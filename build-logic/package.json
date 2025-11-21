@@ -1,0 +1,26 @@
+{
+	"name": "build-logic",
+	"private": true,
+	"exports": {
+		"./targets": {
+			"import": "./rollup-targets.mjs"
+		},
+		"./plugins": {
+			"import": "./rollup-plugins.mjs"
+		}
+	},
+	"bin": {
+		"build": "./rollup-build.mjs"
+	},
+	"devDependencies": {
+		"@calmdownval/rollup-util": "file:../../monorepo-utils/packages/rollup-util",
+		"@calmdownval/workspaces-util": "file:../../monorepo-utils/packages/workspaces-util",
+		"@rollup/plugin-terser": "0.4.4",
+		"@rollup/plugin-typescript": "12.3.0",
+		"dts-bundle-generator": "9.5.1",
+		"rollup": "4.53.2",
+		"rollup-plugin-node-externals": "8.1.2",
+		"tslib": "2.8.1",
+		"typescript": "5.9.3"
+	}
+}

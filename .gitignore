@@ -1,0 +1,14 @@
+# Build artifacts
+packages/*/src/**/*.svelte.d.ts
+packages/*/dist
+
+# Yarn
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+# MacOS Finder files
+.DS_Store

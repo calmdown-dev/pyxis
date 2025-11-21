@@ -1,0 +1,9 @@
+{
+	"name": "@calmdown/pyxis",
+	"version": "1.0.0",
+	"license": "ISC",
+	"devDependencies": {
+		"build-logic": "workspace:*",
+		"typescript": "5.9.3"
+	}
+}
