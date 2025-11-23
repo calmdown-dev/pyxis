@@ -21,6 +21,10 @@ const RAW_RUNTIME_STATE =
     {\
       "name": "@calmdown/pyxis",\
       "reference": "workspace:packages/pyxis"\
+    },\
+    {\
+      "name": "@calmdown/pyxis-compiler",\
+      "reference": "workspace:packages/pyxis-compiler"\
     }\
   ],\
   "enableTopLevelFallback": true,\
@@ -28,6 +32,7 @@ const RAW_RUNTIME_STATE =
   "pnpZipBackend": "libzip",\
   "fallbackExclusionList": [\
     ["@calmdown/pyxis", ["workspace:packages/pyxis"]],\
+    ["@calmdown/pyxis-compiler", ["workspace:packages/pyxis-compiler"]],\
     ["@calmdown/pyxis-monorepo", ["workspace:."]],\
     ["build-logic", ["workspace:build-logic"]]\
   ],\
@@ -67,6 +72,17 @@ const RAW_RUNTIME_STATE =
         "linkType": "SOFT"\
       }]\
     ]],\
+    ["@calmdown/pyxis-compiler", [\
+      ["workspace:packages/pyxis-compiler", {\
+        "packageLocation": "./packages/pyxis-compiler/",\
+        "packageDependencies": [\
+          ["@calmdown/pyxis-compiler", "workspace:packages/pyxis-compiler"],\
+          ["build-logic", "workspace:build-logic"],\
+          ["typescript", "patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"]\
+        ],\
+        "linkType": "SOFT"\
+      }]\
+    ]],\
     ["@calmdown/pyxis-monorepo", [\
       ["workspace:.", {\
         "packageLocation": "./",\
@@ -79,18 +95,18 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["@calmdownval/rollup-util", [\
-      ["file:../../monorepo-utils/packages/rollup-util#../../monorepo-utils/packages/rollup-util::hash=1c68dd&locator=build-logic%40workspace%3Abuild-logic", {\
-        "packageLocation": "./.yarn/cache/@calmdownval-rollup-util-file-d44f7a24d6-4d1ac74e55.zip/node_modules/@calmdownval/rollup-util/",\
+      ["file:../../monorepo-utils/packages/rollup-util#../../monorepo-utils/packages/rollup-util::hash=206ccd&locator=build-logic%40workspace%3Abuild-logic", {\
+        "packageLocation": "./.yarn/cache/@calmdownval-rollup-util-file-ddc5e889c0-f60ccd1634.zip/node_modules/@calmdownval/rollup-util/",\
         "packageDependencies": [\
-          ["@calmdownval/rollup-util", "file:../../monorepo-utils/packages/rollup-util#../../monorepo-utils/packages/rollup-util::hash=1c68dd&locator=build-logic%40workspace%3Abuild-logic"]\
+          ["@calmdownval/rollup-util", "file:../../monorepo-utils/packages/rollup-util#../../monorepo-utils/packages/rollup-util::hash=206ccd&locator=build-logic%40workspace%3Abuild-logic"]\
         ],\
         "linkType": "SOFT"\
       }],\
-      ["virtual:b992d4f4d8a546a46d11d4f2e94e372c5091a7f79d2b9d76b67d58ee8a861fcba1f411d948301d09a34685c9a7d4fdcadb682a467db70b0e19fec6166f121411#file:../../monorepo-utils/packages/rollup-util#../../monorepo-utils/packages/rollup-util::hash=1c68dd&locator=build-logic%40workspace%3Abuild-logic", {\
-        "packageLocation": "./.yarn/__virtual__/@calmdownval-rollup-util-virtual-47fecb0a40/0/cache/@calmdownval-rollup-util-file-d44f7a24d6-4d1ac74e55.zip/node_modules/@calmdownval/rollup-util/",\
+      ["virtual:b992d4f4d8a546a46d11d4f2e94e372c5091a7f79d2b9d76b67d58ee8a861fcba1f411d948301d09a34685c9a7d4fdcadb682a467db70b0e19fec6166f121411#file:../../monorepo-utils/packages/rollup-util#../../monorepo-utils/packages/rollup-util::hash=206ccd&locator=build-logic%40workspace%3Abuild-logic", {\
+        "packageLocation": "./.yarn/__virtual__/@calmdownval-rollup-util-virtual-e21d58d178/0/cache/@calmdownval-rollup-util-file-ddc5e889c0-f60ccd1634.zip/node_modules/@calmdownval/rollup-util/",\
         "packageDependencies": [\
-          ["@calmdownval/rollup-util", "virtual:b992d4f4d8a546a46d11d4f2e94e372c5091a7f79d2b9d76b67d58ee8a861fcba1f411d948301d09a34685c9a7d4fdcadb682a467db70b0e19fec6166f121411#file:../../monorepo-utils/packages/rollup-util#../../monorepo-utils/packages/rollup-util::hash=1c68dd&locator=build-logic%40workspace%3Abuild-logic"],\
-          ["@calmdownval/workspaces-util", "file:../../monorepo-utils/packages/workspaces-util#../../monorepo-utils/packages/workspaces-util::hash=1586ea&locator=build-logic%40workspace%3Abuild-logic"],\
+          ["@calmdownval/rollup-util", "virtual:b992d4f4d8a546a46d11d4f2e94e372c5091a7f79d2b9d76b67d58ee8a861fcba1f411d948301d09a34685c9a7d4fdcadb682a467db70b0e19fec6166f121411#file:../../monorepo-utils/packages/rollup-util#../../monorepo-utils/packages/rollup-util::hash=206ccd&locator=build-logic%40workspace%3Abuild-logic"],\
+          ["@calmdownval/workspaces-util", "file:../../monorepo-utils/packages/workspaces-util#../../monorepo-utils/packages/workspaces-util::hash=1c1296&locator=build-logic%40workspace%3Abuild-logic"],\
           ["@types/calmdownval__workspaces-util", null],\
           ["@types/rollup", null],\
           ["rollup", "npm:4.53.2"]\
@@ -105,10 +121,10 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["@calmdownval/workspaces-util", [\
-      ["file:../../monorepo-utils/packages/workspaces-util#../../monorepo-utils/packages/workspaces-util::hash=1586ea&locator=build-logic%40workspace%3Abuild-logic", {\
-        "packageLocation": "./.yarn/cache/@calmdownval-workspaces-util-file-4e286e87f4-25d1dc52b5.zip/node_modules/@calmdownval/workspaces-util/",\
+      ["file:../../monorepo-utils/packages/workspaces-util#../../monorepo-utils/packages/workspaces-util::hash=1c1296&locator=build-logic%40workspace%3Abuild-logic", {\
+        "packageLocation": "./.yarn/cache/@calmdownval-workspaces-util-file-50d18a056c-cf82bd4524.zip/node_modules/@calmdownval/workspaces-util/",\
         "packageDependencies": [\
-          ["@calmdownval/workspaces-util", "file:../../monorepo-utils/packages/workspaces-util#../../monorepo-utils/packages/workspaces-util::hash=1586ea&locator=build-logic%40workspace%3Abuild-logic"]\
+          ["@calmdownval/workspaces-util", "file:../../monorepo-utils/packages/workspaces-util#../../monorepo-utils/packages/workspaces-util::hash=1c1296&locator=build-logic%40workspace%3Abuild-logic"]\
         ],\
         "linkType": "HARD"\
       }]\
@@ -723,8 +739,8 @@ const RAW_RUNTIME_STATE =
       ["workspace:build-logic", {\
         "packageLocation": "./build-logic/",\
         "packageDependencies": [\
-          ["@calmdownval/rollup-util", "virtual:b992d4f4d8a546a46d11d4f2e94e372c5091a7f79d2b9d76b67d58ee8a861fcba1f411d948301d09a34685c9a7d4fdcadb682a467db70b0e19fec6166f121411#file:../../monorepo-utils/packages/rollup-util#../../monorepo-utils/packages/rollup-util::hash=1c68dd&locator=build-logic%40workspace%3Abuild-logic"],\
-          ["@calmdownval/workspaces-util", "file:../../monorepo-utils/packages/workspaces-util#../../monorepo-utils/packages/workspaces-util::hash=1586ea&locator=build-logic%40workspace%3Abuild-logic"],\
+          ["@calmdownval/rollup-util", "virtual:b992d4f4d8a546a46d11d4f2e94e372c5091a7f79d2b9d76b67d58ee8a861fcba1f411d948301d09a34685c9a7d4fdcadb682a467db70b0e19fec6166f121411#file:../../monorepo-utils/packages/rollup-util#../../monorepo-utils/packages/rollup-util::hash=206ccd&locator=build-logic%40workspace%3Abuild-logic"],\
+          ["@calmdownval/workspaces-util", "file:../../monorepo-utils/packages/workspaces-util#../../monorepo-utils/packages/workspaces-util::hash=1c1296&locator=build-logic%40workspace%3Abuild-logic"],\
           ["@rollup/plugin-terser", "virtual:b992d4f4d8a546a46d11d4f2e94e372c5091a7f79d2b9d76b67d58ee8a861fcba1f411d948301d09a34685c9a7d4fdcadb682a467db70b0e19fec6166f121411#npm:0.4.4"],\
           ["@rollup/plugin-typescript", "virtual:b992d4f4d8a546a46d11d4f2e94e372c5091a7f79d2b9d76b67d58ee8a861fcba1f411d948301d09a34685c9a7d4fdcadb682a467db70b0e19fec6166f121411#npm:12.3.0"],\
           ["build-logic", "workspace:build-logic"],\

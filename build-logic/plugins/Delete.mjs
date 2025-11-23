@@ -101,5 +101,16 @@ function toArray(oneOrMore) {
 }
 
 function directoriesLast(a, b) {
-	return (a.isDirectory() ? 1 : 0) - (b.isDirectory() ? 1 : 0);
+	// delete files first
+	if (a.isDirectory()) {
+		if (!b.isDirectory()) {
+			return 1;
+		}
+	}
+	else if (b.isDirectory()) {
+		return -1;
+	}
+
+	// delete directories last, upwards
+	return b.parentPath.length - a.parentPath.length;
 }

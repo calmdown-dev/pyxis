@@ -2,8 +2,8 @@ import { declareTarget, inEnv } from "@calmdownval/rollup-util";
 
 import { Plugin } from "./rollup-plugins.mjs";
 
-const TypeScriptLibrary = declareTarget("TypeScriptLibrary", target => (target
-	.pipeline("Code", pipe => (pipe
+const TypeScriptLibrary = declareTarget("TypeScriptLibrary", target => target
+	.pipeline("Code", pipe => pipe
 		.plugin(Plugin.Delete
 			.configure({
 				// dryRun: true,
@@ -20,10 +20,8 @@ const TypeScriptLibrary = declareTarget("TypeScriptLibrary", target => (target
 			}))
 		.plugin(Plugin.BundleDts
 			.configure({
-				entries: {
-					"first": "./dist/types/first.d.ts",
-					"second": "./dist/types/second.d.ts",
-				},
+				baseDir: "./src",
+				declarationDir: "./dist/types",
 			}))
 		.plugin(Plugin.TypeScript
 			.configure({
@@ -32,20 +30,26 @@ const TypeScriptLibrary = declareTarget("TypeScriptLibrary", target => (target
 					declarationDir: "./dist/types",
 				},
 			}))
-		.plugin(Plugin.Terser
-			.enable(inEnv("prod"))
-			.configure({
-				output: {
-					comments: false,
-				},
-			}))
-		.output("Main", out => (out
+		.output("Main", out => out
 			.configure({
 				format: "es",
 				entryFileNames: "[name].mjs",
 			})
-		))
-	))
-));
+		)
+		.output("Minified", out => out
+			.enable(inEnv("prod"))
+			.configure({
+				format: "es",
+				entryFileNames: "[name].min.mjs",
+			})
+			.plugin(Plugin.Terser
+				.configure({
+					output: {
+						comments: false,
+					},
+				}))
+		)
+	)
+);
 
 export const Target = { TypeScriptLibrary };

@@ -15,6 +15,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@calmdown/pyxis-compiler@workspace:packages/pyxis-compiler":
+  version: 0.0.0-use.local
+  resolution: "@calmdown/pyxis-compiler@workspace:packages/pyxis-compiler"
+  dependencies:
+    build-logic: "workspace:*"
+    typescript: "npm:5.9.3"
+  languageName: unknown
+  linkType: soft
+
 "@calmdown/pyxis-monorepo@workspace:.":
   version: 0.0.0-use.local
   resolution: "@calmdown/pyxis-monorepo@workspace:."
@@ -35,18 +44,18 @@ __metadata:
 
 "@calmdownval/rollup-util@file:../../monorepo-utils/packages/rollup-util::locator=build-logic%40workspace%3Abuild-logic":
   version: 1.0.0-alpha.14
-  resolution: "@calmdownval/rollup-util@file:../../monorepo-utils/packages/rollup-util#../../monorepo-utils/packages/rollup-util::hash=1c68dd&locator=build-logic%40workspace%3Abuild-logic"
+  resolution: "@calmdownval/rollup-util@file:../../monorepo-utils/packages/rollup-util#../../monorepo-utils/packages/rollup-util::hash=206ccd&locator=build-logic%40workspace%3Abuild-logic"
   peerDependencies:
     "@calmdownval/workspaces-util": 1.0.0-alpha.8
     rollup: ">=4.53.2"
-  checksum: 10/4d1ac74e5545f9737e7a6a72f5059e21aad83392f83931c83f5f91526ce535b9371331169989b34908a23dc9ffd42ad2a27cffa20bd1fe238fc0ae95c4f36d66
+  checksum: 10/f60ccd163414d4b8402681151a1ff9767eb6527d81f72e8bb44f58ce3e2b1186bfae6aff8fa726dde13ac31361c57db9b663d6ce047b2b470712586e0c9a87a5
   languageName: node
   linkType: hard
 
 "@calmdownval/workspaces-util@file:../../monorepo-utils/packages/workspaces-util::locator=build-logic%40workspace%3Abuild-logic":
   version: 1.0.0-alpha.14
-  resolution: "@calmdownval/workspaces-util@file:../../monorepo-utils/packages/workspaces-util#../../monorepo-utils/packages/workspaces-util::hash=1586ea&locator=build-logic%40workspace%3Abuild-logic"
-  checksum: 10/25d1dc52b56e842313c9d9655142d429210bc5797b05f6ad3a9e484d0361e0d749f54e8d280a2b53e04aafd7397159918321ca2971340a15ac12b4c86b604427
+  resolution: "@calmdownval/workspaces-util@file:../../monorepo-utils/packages/workspaces-util#../../monorepo-utils/packages/workspaces-util::hash=1c1296&locator=build-logic%40workspace%3Abuild-logic"
+  checksum: 10/cf82bd45240347dd134835b876ec79e94be1cc465c525aff1f1a3238acda0cf8ab16d261307e1753df2d858a0d75211e780e7275d83fc66a9377adffe1862e4e
   languageName: node
   linkType: hard
 
