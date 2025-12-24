@@ -1,5 +1,5 @@
 {
-	"name": "@calmdown/pyxis-transpiler",
+	"name": "@calmdown/pyxis-demo-app",
 	"version": "1.0.0",
 	"license": "ISC",
 	"type": "module",
@@ -10,10 +10,9 @@
 		}
 	},
 	"dependencies": {
-		"ts-morph": "27.0.2"
+		"@calmdown/pyxis": "workspace:*"
 	},
 	"devDependencies": {
-		"@types/node": "24.10.1",
 		"build-logic": "workspace:*",
 		"typescript": "5.9.3"
 	}

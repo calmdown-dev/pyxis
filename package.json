@@ -1,13 +1,12 @@
 {
 	"name": "@calmdown/pyxis-monorepo",
 	"private": true,
-	"packageManager": "yarn@4.11.0",
+	"packageManager": "yarn@4.12.0",
 	"workspaces": [
 		"build-logic",
 		"packages/*"
 	],
 	"devDependencies": {
-		"svelte-language-server": "0.17.22",
 		"typescript": "5.9.3"
 	}
 }

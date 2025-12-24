@@ -61,11 +61,10 @@ export default function BundleDtsPlugin(pluginOptions) {
 
 				const baseDir = join(cwd, pluginOptions.baseDir);
 				const declDir = join(cwd, pluginOptions.declarationDir);
-				const { input } = rollupOptions;
 
-				// TODO: input can also be a string ... i think
-				for (const entryId in input) {
-					const parsed = parse(input[entryId]);
+				const inputs = getInputs(rollupOptions.input);
+				for (const input of inputs) {
+					const parsed = parse(input);
 					const entryDir = relative(baseDir, join(cwd, parsed.dir));
 					entries.push({
 						dtsEntryPath: join(declDir, entryDir, `${parsed.name}.d.ts`),
@@ -135,4 +134,14 @@ function getDeclarationPath(path) {
 	}
 
 	return `${ts.base}${EXT_MAP[ts.ext]}`;
+}
+
+function getInputs(input) {
+	switch (typeof input) {
+		case "string":
+			return input;
+
+		case "object":
+			return Array.isArray(input) ? input : Object.values(input);
+	}
 }

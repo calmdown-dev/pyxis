@@ -21,6 +21,11 @@ export const Plugin = {
 		async () => (await import("rollup-plugin-node-externals")).default,
 	),
 
+	PyxisTranspiler: declarePlugin(
+		"PyxisTranspiler",
+		async () => (await import("@calmdown/rollup-plugin-pyxis-transpiler")).default,
+	),
+
 	Terser: declarePlugin(
 		"Terser",
 		async () => (await import("@rollup/plugin-terser")).default,

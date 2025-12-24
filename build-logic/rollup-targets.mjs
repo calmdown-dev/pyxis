@@ -53,4 +53,41 @@ const TypeScriptLibrary = declareTarget("TypeScriptLibrary", target => target
 	)
 );
 
-export const Target = { TypeScriptLibrary };
+const PyxisApplication = declareTarget("PyxisApplication", target => target
+	.pipeline("Code", pipe => pipe
+		.plugin(Plugin.Delete
+			.configure({
+				// dryRun: true,
+				targets: [
+					{
+						trigger: "before",
+						include: "./dist/**/*",
+					},
+				],
+			}))
+		.plugin(Plugin.PyxisTranspiler)
+		.plugin(Plugin.TypeScript)
+		.plugin(Plugin.Externals)
+		.output("Main", out => out
+			.configure({
+				format: "es",
+				entryFileNames: "[name].js",
+			})
+		)
+		.output("Minified", out => out
+			.enable(inEnv("prod"))
+			.configure({
+				format: "es",
+				entryFileNames: "[name].min.js",
+			})
+			.plugin(Plugin.Terser
+				.configure({
+					output: {
+						comments: false,
+					},
+				}))
+		)
+	)
+);
+
+export const Target = { PyxisApplication, TypeScriptLibrary };
