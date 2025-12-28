@@ -5,7 +5,6 @@ import type { Context } from "./Context";
 
 /**
  * Manages a queue of scheduled updates.
- * @internal
  */
 export interface Scheduler {
 	readonly scheduleTick: () => void;
@@ -63,7 +62,6 @@ export function createScheduler(tick: TickFn) {
 /**
  * An update callback that can be scheduled.
  * @see {@link Scheduler}
- * @internal
  */
 export interface UpdateCallback<TArgs extends ArgsMax5 = ArgsMax5> extends Callback<TArgs> {
 	un?: Nil<UpdateCallback>;

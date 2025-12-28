@@ -1,4 +1,4 @@
-import { reaction, read, type MaybeAtom } from "@calmdown/pyxis";
+import { getContext, reaction, read, unmounted, withContext, type MaybeAtom } from "@calmdown/pyxis";
 
 export type EventExtensionType = {
 	[TType in keyof GlobalEventHandlersEventMap]: {
@@ -23,12 +23,18 @@ export const EventExtension: EventExtensionType = {
 		type: string,
 		listenerAtom: MaybeAtom<(e: any) => any>,
 	) => {
+		let callback: (e: any) => any;
+
+		const context = getContext();
+		const listener = (e: any) => withContext(context, callback!, e);
+
 		reaction(() => {
-			const listener = read(listenerAtom);
-			node.addEventListener(type, listener);
-			return () => {
-				node.removeEventListener(type, listener);
-			};
-		});
+			callback = read(listenerAtom);
+		}, context);
+
+		node.addEventListener(type, listener);
+		unmounted(() => {
+			node.removeEventListener(type, listener);
+		}, context);
 	},
 };

@@ -1,7 +1,7 @@
 import type { Adapter, ExtensionMap } from "./Adapter";
-import type { Component, Template } from "./Component";
-import { isAtom, read } from "./data/Atom";
-import { contextMounted, contextUnmounted, getContext, withContext, type Context } from "./data/Context";
+import type { Component, DataTemplate, Template } from "./Component";
+import { isAtom, read, type Atom } from "./data/Atom";
+import { contextMounted, contextUnmounted, getContext, onMounted, onUnmounted, withContext, type Context } from "./data/Context";
 import { reaction } from "./data/Reaction";
 import { createScheduler, type TickFn } from "./data/Scheduler";
 import { EMPTY_ARRAY, EMPTY_OBJECT, wrap } from "./support/common";
@@ -15,6 +15,7 @@ export interface Renderer<TNode> {
 export interface RendererContext<TNode = any, TExtensions extends ExtensionMap = ExtensionMap> extends Context {
 	readonly adapter: Adapter<TNode>;
 	readonly extensions: TExtensions;
+	readonly parent?: RendererContext<TNode, TExtensions>;
 	topNodes: readonly TNode[];
 }
 
@@ -32,14 +33,14 @@ export function createRenderer<TNode, TExtensions extends ExtensionMap>(
 		adapter: options.adapter,
 		extensions: options.extensions ?? (EMPTY_OBJECT as TExtensions),
 		topNodes: EMPTY_ARRAY,
+		mounted: false,
 		unmount: () => unmount(context),
 		mount: (root, template) => {
-			withContext(context, () => {
-				const nodes = wrap(template());
-				appendChildren(options.adapter, root, nodes);
-				context.topNodes = nodes;
-			});
+			const nodes = withContext(context, () => (
+				context.topNodes = wrap(template())
+			));
 
+			appendChildren(options.adapter, root, nodes);
 			contextMounted(context);
 		},
 	};
@@ -52,12 +53,12 @@ const RE_EXT = /^([^:]+):([^:]+)$/;
 export function render(
 	tagName: string,
 	props: { readonly [_ in string]?: unknown },
-): any;
+): JSX.Node;
 
-export function render<TProps extends {}>(
-	component: Component<TProps>,
+export function render<TProps extends {}, TReturn>(
+	component: Component<TProps, TReturn>,
 	props: TProps,
-): any;
+): TReturn;
 
 export function render(
 	componentOrTagName: Component<any> | string,
@@ -105,35 +106,64 @@ export function render(
 export function fork<TNode, TExtensions extends ExtensionMap>(
 	context: RendererContext<TNode, TExtensions> = (getContext() as RendererContext<TNode, TExtensions>),
 ): RendererContext<TNode, TExtensions> {
-	return {
+	const subContext = {
 		scheduler: context.scheduler,
 		adapter: context.adapter,
 		extensions: context.extensions,
+		parent: context,
 		topNodes: [],
+		mounted: false,
 	};
+
+	onUnmounted(context, {
+		fn: unmount,
+		a0: subContext,
+	});
+
+	return subContext;
 }
 
 /** @internal */
-export function mount<TNode>(context: RendererContext<TNode>, template: Template, before: TNode) {
+export function mount<TNode>(context: RendererContext<TNode>, template: Template, data?: undefined, before?: TNode): void;
+
+/** @internal */
+export function mount<TNode, T>(context: RendererContext<TNode>, template: DataTemplate<T>, data: T, before?: TNode): void;
+
+export function mount<TNode>(context: RendererContext<TNode>, template: Template | DataTemplate<any>, data?: any, before?: TNode) {
+	if (context.mounted) {
+		insertChildren(context.adapter, before!, context.topNodes);
+		return;
+	}
+
 	withContext(context, () => {
-		const nodes = wrap(template());
-		insertChildren(context.adapter, before, nodes);
-		context.topNodes = nodes;
+		context.topNodes = wrap(template(data))
 	});
 
-	contextMounted(context);
+	if (before && context.parent!.mounted === true) {
+		insertChildren(context.adapter, before, context.topNodes);
+		contextMounted(context);
+	}
+	else {
+		onMounted(context.parent!, {
+			fn: contextMounted,
+			a0: context,
+		});
+	}
 }
 
 /** @internal */
 export function unmount(context: RendererContext) {
 	contextUnmounted(context);
+	if (context.parent?.mounted !== false) {
+		// only remove nodes if the parent context is still mounted, otherwise this context's nodes
+		// will be removed as part of the tree
+		const { adapter, topNodes } = context;
+		const { length } = topNodes;
 
-	const { adapter, topNodes } = context;
-	const { length } = topNodes;
-
-	let i = 0;
-	for (; i < length; i += 1) {
-		adapter.removeNode(topNodes[i]);
+		let i = 0;
+		for (; i < length; i += 1) {
+			adapter.removeNode(topNodes[i]);
+		}
 	}
 
 	context.topNodes = EMPTY_ARRAY;
@@ -168,7 +198,7 @@ function insertChildren<TNode>(adapter: Adapter<TNode>, before: TNode, children:
 			if (Array.isArray(child)) {
 				insertChildren(adapter, before, child);
 			}
-			else if (child) {
+			else {
 				adapter.insertNode(child, before);
 			}
 		}

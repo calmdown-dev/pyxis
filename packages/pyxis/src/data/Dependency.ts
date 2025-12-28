@@ -1,21 +1,21 @@
 import type { ArgsMax5, Callback } from "~/support/Callback";
 import type { Nil } from "~/support/types";
 
-import type { Atom } from "./Atom";
 import type { Context } from "./Context";
 
 /**
  * A dependency callback of an Atom. The callback will be run whenever the relevant Atom changes.
+ * @internal
  */
 export interface Dependency<TArgs extends ArgsMax5 = ArgsMax5> extends Callback<TArgs> {
-	atom?: Nil<Atom>;
-	context?: Nil<Context>;
+	atom?: Nil<DependencyList<TArgs>>;
+	context?: Nil<DependencyList>;
 
 	/** Previous Dependency within an Atom's dependency list. */
-	ap?: Nil<Dependency>;
+	ap?: Nil<Dependency<TArgs>>;
 
 	/** Next Dependency within an Atom's dependency list. */
-	an?: Nil<Dependency>;
+	an?: Nil<Dependency<TArgs>>;
 
 	/** Previous Dependency within a Context's dependency list. */
 	cp?: Nil<Dependency>;
@@ -24,10 +24,25 @@ export interface Dependency<TArgs extends ArgsMax5 = ArgsMax5> extends Callback<
 	cn?: Nil<Dependency>;
 }
 
+export interface DependencyList<TArgs extends ArgsMax5 = ArgsMax5> {
+	/**
+	 * The head of the dependencies linked list.
+	 * @internal
+	 */
+	dh?: Nil<Dependency<TArgs>>;
+
+	/**
+	 * The tail of the dependencies linked list.
+	 * @internal
+	 */
+	dt?: Nil<Dependency<TArgs>>;
+}
+
 /**
  * Links a Dependency to an Atom.
+ * @internal
  */
-export function link(context: Context, atom: Atom<any>, dep: Dependency) {
+export function link<TArgs extends ArgsMax5>(context: Context, atom: DependencyList<TArgs>, dep: Dependency<TArgs>) {
 	// link to Atom
 	if (atom.dt) {
 		atom.dt.an = dep;
@@ -42,19 +57,20 @@ export function link(context: Context, atom: Atom<any>, dep: Dependency) {
 
 	// link to Context
 	if (context.dt) {
-		context.dt.cn = dep;
+		context.dt.cn = dep as Dependency;
 		dep.cp = context.dt;
 	}
 	else {
-		context.dh = dep;
+		context.dh = dep as Dependency;
 	}
 
 	dep.context = context;
-	context.dt = dep;
+	context.dt = dep as Dependency;
 }
 
 /**
  * Unlinks a Dependency from the Atom and Context it has been linked to.
+ * @internal
  */
 export function unlink(dep: Dependency) {
 	// unlink from Atom

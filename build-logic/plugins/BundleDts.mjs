@@ -98,6 +98,9 @@ export default function BundleDtsPlugin(pluginOptions) {
 			const tsconfigPath = path.join(cwd, pluginOptions.tsconfig ?? "./tsconfig.json");
 			const tsconfigRaw = await this.fs.readFile(tsconfigPath, "utf8");
 			const tsconfigActual = parseConfigFileTextToJson(tsconfigPath, tsconfigRaw);
+			if (tsconfigActual.error) {
+				throw new Error(`failed to parse tsconfig: ${tsconfigActual.error.messageText}`);
+			}
 
 			// fake package info
 			const declarationDir = path.join(cwd, pluginOptions.declarationDir);
@@ -109,15 +112,17 @@ export default function BundleDtsPlugin(pluginOptions) {
 
 			// build a fake config
 			const tsconfigOverride = {
-				...tsconfigActual,
+				...tsconfigActual.config,
 				compilerOptions: {
-					...tsconfigActual.compilerOptions,
+					...tsconfigActual.config.compilerOptions,
 					// override baseUrl to correctly resolve TS' paths mappings
 					baseUrl: declarationDir,
 					skipLibCheck: true,
 					// apply user overrides
 					...pluginOptions.compilerOptions,
 				},
+				exclude: [],
+				include: [ "./**/*.d.ts" ],
 			};
 
 			for (const entry of entries) {
@@ -131,7 +136,6 @@ export default function BundleDtsPlugin(pluginOptions) {
 						compiler: {
 							overrideTsconfig: tsconfigOverride,
 							tsconfigFilePath: fakeTsconfigJsonPath,
-							// skipLibCheck: true,
 						},
 						dtsRollup: {
 							enabled: true,

@@ -31,7 +31,6 @@ export type ReactionDependency = Dependency<[ reaction: Reaction<any>, epoch: nu
  */
 export function reaction(block: ReactionBlock): void;
 
-/** @internal */
 export function reaction(block: ReactionBlock, context: Context): void;
 
 export function reaction(block: ReactionBlock, context = getContext()) {

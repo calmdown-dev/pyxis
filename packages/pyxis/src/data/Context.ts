@@ -1,18 +1,12 @@
 import { invoke, type ArgsMax5, type Callback } from "~/support/Callback";
 import type { Nil } from "~/support/types";
 
-import type { Dependency } from "./Dependency";
+import type { DependencyList } from "./Dependency";
 import type { Scheduler } from "./Scheduler";
 
-/** @internal */
-export interface Context {
+export interface Context extends DependencyList {
 	readonly scheduler: Scheduler;
-
-	/** The head of the dependencies linked list. */
-	dh?: Nil<Dependency>;
-
-	/** The tail of the dependencies linked list. */
-	dt?: Nil<Dependency>;
+	mounted: boolean;
 
 	/** The head of the mount callback linked list. */
 	mh?: Nil<MountCallback>;
@@ -29,7 +23,6 @@ export interface Context {
 
 /**
  * A mount callback running setup logic for contextual resources.
- * @internal
  */
 export interface MountCallback<TArgs extends ArgsMax5 = ArgsMax5> extends Callback<TArgs> {
 	mn?: Nil<MountCallback>;
@@ -37,7 +30,6 @@ export interface MountCallback<TArgs extends ArgsMax5 = ArgsMax5> extends Callba
 
 /**
  * An unmount callback running teardown logic for contextual resources.
- * @internal
  */
 export interface UnmountCallback<TArgs extends ArgsMax5 = ArgsMax5> extends Callback<TArgs> {
 	un?: Nil<UnmountCallback>;
@@ -53,8 +45,11 @@ export interface MountBlock {
  *
  * If a teardown callback is returned, it will be run when the Component unmounts.
  */
-export function mounted(block: MountBlock) {
-	const context = getContext();
+export function mounted(block: MountBlock): void;
+
+export function mounted(block: MountBlock, context: Context): void;
+
+export function mounted(block: MountBlock, context = getContext()) {
 	onMounted(context, {
 		fn: runMountedCallback,
 		a0: context,
@@ -88,8 +83,12 @@ export interface UnmountBlock {
 /**
  * Registers a callback to run once the current Component unmounts.
  */
-export function unmounted(block: UnmountBlock) {
-	onUnmounted(getContext(), { fn: block });
+export function unmounted(block: UnmountBlock): void;
+
+export function unmounted(block: UnmountBlock, context: Context): void;
+
+export function unmounted(block: UnmountBlock, context = getContext()) {
+	onUnmounted(context, { fn: block });
 }
 
 /** @internal */
@@ -107,7 +106,6 @@ export function onUnmounted(context: Context, callback: UnmountCallback) {
 
 let currentContext: Context | null = null;
 
-/** @internal */
 export function getContext(): Context {
 	if (__DEV__ && !currentContext) {
 		throw new Error("Cannot get current context. Are you creating an Atom outside of a Component?");
@@ -116,10 +114,9 @@ export function getContext(): Context {
 	return currentContext!;
 }
 
-/** @internal */
 export function withContext<TArgs extends ArgsMax5, TReturn>(
 	context: Context,
-	block: (...args: TArgs) => void,
+	block: (...args: TArgs) => TReturn,
 	...args: TArgs
 ): TReturn;
 
@@ -144,6 +141,8 @@ export function withContext(
 
 /** @internal */
 export function contextMounted(context: Context) {
+	context.mounted = true;
+
 	// run registered mount callbacks
 	try {
 		let callback = context.mh;
@@ -163,6 +162,8 @@ export function contextMounted(context: Context) {
 
 /** @internal */
 export function contextUnmounted(context: Context) {
+	context.mounted = false;
+
 	// unlink all contextual dependencies
 	let dep = context.dh;
 	let tmp;

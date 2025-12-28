@@ -3,7 +3,7 @@ import type { ExtendedIntrinsicElements } from "@calmdown/pyxis-dom";
 
 declare global {
 	namespace JSX {
-		type Child = Node;
+		type Node = globalThis.Node;
 		type IntrinsicElements = ExtendedIntrinsicElements<{}>;
 	}
 }

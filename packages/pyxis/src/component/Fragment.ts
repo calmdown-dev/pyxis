@@ -7,7 +7,7 @@ import "~/jsx";
 //         https://github.com/microsoft/TypeScript/issues/62358?referrer=grok.com
 
 export interface FragmentProps {
-	children?: Nil<JSX.Child>[];
+	children?: Nil<JSX.Node>[];
 }
 
 export const Fragment = component((props: FragmentProps) => props.children);

@@ -9,11 +9,11 @@ export function jsx(
 	key?: any,
 ): any;
 
-export function jsx<TProps extends {}>(
-	component: Component<TProps>,
+export function jsx<TProps extends {}, TReturn>(
+	component: Component<TProps, TReturn>,
 	props: TProps,
 	key?: any,
-): any;
+): TReturn;
 
 export function jsx(
 	componentOrTagName: Component<any> | string,
@@ -24,7 +24,7 @@ export function jsx(
 	props.children = children === undefined ? EMPTY_ARRAY : [ children ];
 	props.key ??= key;
 
-	return render(componentOrTagName as string, props);
+	return render(componentOrTagName as any, props);
 }
 
 
@@ -34,11 +34,11 @@ export function jsxs(
 	key?: any,
 ): any;
 
-export function jsxs<TProps extends {}>(
-	component: Component<TProps>,
+export function jsxs<TProps extends {}, TReturn>(
+	component: Component<TProps, TReturn>,
 	props: TProps,
 	key?: any,
-): any;
+): TReturn;
 
 export function jsxs(
 	componentOrTagName: Component<any> | string,
@@ -46,5 +46,5 @@ export function jsxs(
 	key?: any,
 ) {
 	props.key ??= key;
-	return render(componentOrTagName as string, props);
+	return render(componentOrTagName as any, props);
 }

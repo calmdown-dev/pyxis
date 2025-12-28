@@ -1,8 +1,7 @@
 import { invoke } from "~/support/Callback";
-import type { Nil } from "~/support/types";
 
 import { getContext, type Context } from "./Context";
-import type { Dependency } from "./Dependency";
+import type { DependencyList } from "./Dependency";
 import { reportAccess } from "./Reaction";
 import { schedule, type UpdateCallback } from "./Scheduler";
 
@@ -17,7 +16,7 @@ export const S_ATOM = Symbol.for("pyxis:atom");
  * @see {@link read}
  * @see {@link write}
  */
-export interface Atom<T = unknown> {
+export interface Atom<T = unknown> extends DependencyList {
 	/**
 	 * Pyxis Atom type guard marker.
 	 */
@@ -37,18 +36,6 @@ export interface Atom<T = unknown> {
 
 	/** @internal */
 	lastValue?: T;
-
-	/**
-	 * The head of the dependencies linked list.
-	 * @internal
-	 */
-	dh?: Nil<Dependency>;
-
-	/**
-	 * The tail of the dependencies linked list.
-	 * @internal
-	 */
-	dt?: Nil<Dependency>;
 
 	/**
 	 * The notify callback of this Atom.
@@ -91,7 +78,6 @@ export function atom<T>(): Atom<T | undefined>;
  */
 export function atom<T>(initialValue: MaybeAtom<T>): Atom<T>;
 
-/** @internal */
 export function atom<T>(initialValue: MaybeAtom<T>, context: Context): Atom<T>;
 
 export function atom<T>(initialValue?: MaybeAtom<T>, context = getContext()) {

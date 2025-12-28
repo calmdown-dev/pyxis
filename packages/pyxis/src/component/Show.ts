@@ -1,9 +1,7 @@
 import { component, type Template } from "~/Component";
 import { fork, mount, unmount } from "~/Renderer";
 import { isAtom, read, type MaybeAtom } from "~/data/Atom";
-import { withContext } from "~/data/Context";
 import { reaction } from "~/data/Reaction";
-import { wrap } from "~/support/common";
 
 export interface ShowProps {
 	when: MaybeAtom<boolean>;
@@ -24,7 +22,7 @@ export const Show = component(({ when, children: [ template ] }: ShowProps) => {
 	reaction(() => {
 		const shouldShow = read(when);
 		if (shouldShow && !isShown) {
-			mount(context, template, anchor);
+			mount(context, template, undefined, anchor);
 			isShown = true;
 		}
 		else if (!shouldShow && isShown) {
@@ -40,8 +38,6 @@ export const Show = component(({ when, children: [ template ] }: ShowProps) => {
 
 	// content should be shown but we're still mounting, i.e. anchor is not yet placed anywhere
 	// -> render synchronously within the forked sub-context
-	const nodes = wrap(withContext(context, template));
-	nodes.push(anchor);
-
-	return nodes;
+	mount(context, template);
+	return context.topNodes.concat(anchor);
 });

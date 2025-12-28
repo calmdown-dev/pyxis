@@ -2,7 +2,6 @@ export type ArgsMax5<A0 = any, A1 = any, A2 = any, A3 = any, A4 = any> = [ a0?: 
 
 /**
  * An object describing a callback holding it and up to 5 forwarded arguments.
- * @internal
  */
 export interface Callback<TArgs extends ArgsMax5 = ArgsMax5, TReturn = void> {
 	fn: (this: any, ...args: TArgs) => TReturn;

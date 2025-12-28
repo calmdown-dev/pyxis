@@ -17,7 +17,6 @@ export interface Derivation<T = unknown> extends Atom<T> {}
  */
 export function derivation<T>(block: () => T): Derivation<T>;
 
-/** @internal */
 export function derivation<T>(block: () => T, context: Context): Derivation<T>;
 
 export function derivation<T>(block: () => T, context = getContext()): Derivation<T> {
