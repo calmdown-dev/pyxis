@@ -309,9 +309,6 @@ export function listSynced<T>(delta: ListDelta<T>, oldState: readonly T[], newSt
 			break;
 		}
 
-		// @ts-ignore
-		console.log(rs, re, is, ie);
-
 		for (r = rs; r < re; r += 1) {
 			itemRemoved(delta, rs + offset);
 		}
