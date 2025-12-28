@@ -14,9 +14,9 @@ const extensions = {
 };
 
 const renderer = createRenderer({
+	extensions,
 	adapter: DomAdapter,
 	tick: queueMicrotask,
-	extensions,
 });
 
 declare global {
@@ -32,10 +32,10 @@ interface TodoItem {
 }
 
 const TestApp = () => {
-	const todos = list<TodoItem>([]);
+	const todos = list<TodoItem>();
 	const todoText = atom("");
 	const addTodoItem = () => {
-		todos.insertLast({
+		todos.insertFirst({
 			done: atom(false),
 			text: read(todoText),
 		});

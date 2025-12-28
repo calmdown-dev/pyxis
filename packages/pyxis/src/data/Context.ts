@@ -5,24 +5,39 @@ import type { DependencyList } from "./Dependency";
 import type { Scheduler } from "./Scheduler";
 
 export interface Context extends DependencyList {
+	/** @internal */
 	readonly scheduler: Scheduler;
+
 	mounted: boolean;
 
-	/** The head of the mount callback linked list. */
+	/**
+	 * The head of the mount callback linked list.
+	 * @internal
+	 */
 	mh?: Nil<MountCallback>;
 
-	/** The tail of the mount callback linked list. */
+	/**
+	 * The tail of the mount callback linked list.
+	 * @internal
+	 */
 	mt?: Nil<MountCallback>;
 
-	/** The head of the unmount callback linked list. */
+	/**
+	 * The head of the unmount callback linked list.
+	 * @internal
+	 */
 	uh?: Nil<UnmountCallback>;
 
-	/** The tail of the unmount callback linked list. */
+	/**
+	 * The tail of the unmount callback linked list.
+	 * @internal
+	 */
 	ut?: Nil<UnmountCallback>;
 }
 
 /**
  * A mount callback running setup logic for contextual resources.
+ * @internal
  */
 export interface MountCallback<TArgs extends ArgsMax5 = ArgsMax5> extends Callback<TArgs> {
 	mn?: Nil<MountCallback>;
@@ -30,14 +45,18 @@ export interface MountCallback<TArgs extends ArgsMax5 = ArgsMax5> extends Callba
 
 /**
  * An unmount callback running teardown logic for contextual resources.
+ * @internal
  */
 export interface UnmountCallback<TArgs extends ArgsMax5 = ArgsMax5> extends Callback<TArgs> {
 	un?: Nil<UnmountCallback>;
 }
 
-
 export interface MountBlock {
 	(): (() => void) | void;
+}
+
+export interface UnmountBlock {
+	(): void;
 }
 
 /**
@@ -74,10 +93,6 @@ export function onMounted(context: Context, callback: MountCallback) {
 	}
 
 	context.mt = callback;
-}
-
-export interface UnmountBlock {
-	(): void;
 }
 
 /**

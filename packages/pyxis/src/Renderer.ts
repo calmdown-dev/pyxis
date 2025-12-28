@@ -1,6 +1,6 @@
 import type { Adapter, ExtensionMap } from "./Adapter";
 import type { Component, DataTemplate, Template } from "./Component";
-import { isAtom, read, type Atom } from "./data/Atom";
+import { isAtom, read } from "./data/Atom";
 import { contextMounted, contextUnmounted, getContext, onMounted, onUnmounted, withContext, type Context } from "./data/Context";
 import { reaction } from "./data/Reaction";
 import { createScheduler, type TickFn } from "./data/Scheduler";

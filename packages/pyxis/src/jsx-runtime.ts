@@ -1,7 +1,9 @@
-import { EMPTY_ARRAY, Fragment, render, type Component } from "@calmdown/pyxis";
+import { Fragment, render, type Component } from "@calmdown/pyxis";
 
 export { Fragment };
 
+
+const EMPTY_ARRAY = [] as const;
 
 export function jsx(
 	tagName: string,

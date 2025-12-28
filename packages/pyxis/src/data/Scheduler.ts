@@ -5,6 +5,7 @@ import type { Context } from "./Context";
 
 /**
  * Manages a queue of scheduled updates.
+ * @internal
  */
 export interface Scheduler {
 	readonly scheduleTick: () => void;
