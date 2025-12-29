@@ -38,17 +38,8 @@ export function Iterator<T>(props: ProxyIteratorProps<T, []>) {
 	const fallbackAnchor = parentContext.adapter.createAnchorNode("/Iterator");
 	const isProxy = proxy !== undefined;
 
-	// render initial items
-	const nodes: JSX.Node[] = [];
-	let items: IteratorItemContext[] = source.items.map(data => {
-		const item: IteratorItemContext = fork(parentContext);
-		item.data = isProxy ? createProxy(item, data, proxy) : data;
-		mount(item, template, item.data);
-		nodes.push(...item.topNodes);
-		return item;
-	});
-
-	// setup list reactions
+	// list change reactions
+	let items: IteratorItemContext[];
 	const onDelta = (delta: ListDelta<T>) => {
 		const { changes } = delta;
 		const cMax = changes.length;
@@ -160,7 +151,16 @@ export function Iterator<T>(props: ProxyIteratorProps<T, []>) {
 
 	link(parentContext, source, { fn: onDelta });
 
-	// return initial nodes
+	// initial render
+	const nodes: JSX.Node[] = [];
+	items = source.items.map(data => {
+		const item: IteratorItemContext = fork(parentContext);
+		item.data = isProxy ? createProxy(item, data, proxy) : data;
+		mount(item, template, item.data);
+		nodes.push(...item.topNodes);
+		return item;
+	});
+
 	nodes.push(fallbackAnchor);
 	return nodes;
 }
