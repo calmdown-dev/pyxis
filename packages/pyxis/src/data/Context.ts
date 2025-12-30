@@ -55,10 +55,6 @@ export interface UnmountBlock {
  *
  * If a teardown callback is returned, it will be run when the Component unmounts.
  */
-export function mounted(block: MountBlock): void;
-
-export function mounted(block: MountBlock, context: Context): void;
-
 export function mounted(block: MountBlock, context = getContext()) {
 	onMounted(context as ContextInternal, {
 		$fn: runMountedCallback,
@@ -90,10 +86,6 @@ export function onMounted(context: ContextInternal, callback: MountCallback) {
 /**
  * Registers a callback to run once the current Component unmounts.
  */
-export function unmounted(block: UnmountBlock): void;
-
-export function unmounted(block: UnmountBlock, context: Context): void;
-
 export function unmounted(block: UnmountBlock, context = getContext()) {
 	onUnmounted(context as ContextInternal, { $fn: block });
 }
