@@ -31,4 +31,13 @@ Target.TypeScriptLibrary.build(target => {
 		.configure({
 			include: [ "@calmdown/pyxis-dom" ],
 		});
+
+	target.pipelines.Code.plugins.Terser
+		.configure({
+			mangle: {
+				properties: {
+					regex: /^\$.*$/,
+				},
+			},
+		});
 });

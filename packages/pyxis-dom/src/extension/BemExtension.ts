@@ -1,7 +1,7 @@
 import { isAtom, mounted, reaction, read, type MaybeAtom } from "@calmdown/pyxis";
 
 export interface BemBlockExtensionType {
-	setProp(
+	set(
 		node: HTMLElement,
 		name: string,
 		value: true,
@@ -9,7 +9,7 @@ export interface BemBlockExtensionType {
 }
 
 export interface BemElementExtensionType {
-	setProp(
+	set(
 		node: HTMLElement,
 		name: string,
 		value: true,
@@ -17,7 +17,7 @@ export interface BemElementExtensionType {
 }
 
 export interface BemModifierExtensionType {
-	setProp(
+	set(
 		node: HTMLElement,
 		name: string,
 		toggle: MaybeAtom<boolean>,
@@ -25,45 +25,45 @@ export interface BemModifierExtensionType {
 }
 
 export const BemBlockExtension: BemBlockExtensionType = {
-	setProp: (node, bemBlockName) => {
+	set: (node, bemBlockName) => {
 		const state = getState(node);
-		state.bemBase = bemBlockName;
+		state.$bemBase = bemBlockName;
 		node.classList.add(bemBlockName);
 	},
 };
 
 export const BemElementExtension: BemElementExtensionType = {
-	setProp: (node, bemElementName) => {
+	set: (node, bemElementName) => {
 		const state = getState(node);
-		state.bemElementName = bemElementName;
+		state.$bemElementName = bemElementName;
 	},
 };
 
 export const BemModifierExtension: BemModifierExtensionType = {
-	setProp: (node, bemModifierName, toggle) => {
+	set: (node, bemModifierName, toggle) => {
 		const state = getState(node);
 		if (isAtom(toggle)) {
 			reaction(() => {
-				if (state.bemBase) {
-					node.classList.toggle(`${state.bemBase}--${bemModifierName}`, read(toggle));
+				if (state.$bemBase) {
+					node.classList.toggle(`${state.$bemBase}--${bemModifierName}`, read(toggle));
 				}
 				else if (read(toggle)) {
-					(state.bemModifiers ??= []).push(bemModifierName);
+					(state.$bemModifiers ??= []).push(bemModifierName);
 				}
 			});
 		}
 		else if (toggle) {
-			(state.bemModifiers ??= []).push(bemModifierName);
+			(state.$bemModifiers ??= []).push(bemModifierName);
 		}
 	},
 };
 
 
 interface BemState {
-	readonly node: HTMLElement;
-	bemBase?: string;
-	bemElementName?: string;
-	bemModifiers?: string[];
+	readonly $node: HTMLElement;
+	$bemBase?: string;
+	$bemElementName?: string;
+	$bemModifiers?: string[];
 }
 
 const MAX_DEPTH = 10;
@@ -82,7 +82,7 @@ function getState(node: HTMLElement) {
 
 	let state = BEM_NODES.get(node);
 	if (!state) {
-		BEM_NODES.set(node, state = { node });
+		BEM_NODES.set(node, state = { $node: node });
 		pendingNodes.push(state);
 	}
 
@@ -97,10 +97,10 @@ function onMounted() {
 	// render runs bottom-up, so we iterate in reverse to start from topmost nodes
 	for (; i >= 0; i -= 1) {
 		state = pendingNodes[i];
-		if (!state.bemBase && state.bemElementName && (bemBase = findBemBase(state.node))) {
-			bemBase += `__${state.bemElementName}`;
-			state.bemBase = bemBase;
-			state.bemElementName = undefined;
+		if (!state.$bemBase && state.$bemElementName && (bemBase = findBemBase(state.$node))) {
+			bemBase += `__${state.$bemElementName}`;
+			state.$bemBase = bemBase;
+			state.$bemElementName = undefined;
 			applyBemClasses(state);
 		}
 	}
@@ -117,7 +117,7 @@ function findBemBase(node: HTMLElement) {
 	while (++depth < MAX_DEPTH && (current = current.parentElement)) {
 		state = BEM_NODES.get(current);
 		if (state) {
-			return state.bemBase;
+			return state.$bemBase;
 		}
 	}
 
@@ -125,7 +125,7 @@ function findBemBase(node: HTMLElement) {
 }
 
 function applyBemClasses(state: BemState) {
-	const { node, bemBase, bemModifiers } = state;
+	const { $node: node, $bemBase: bemBase, $bemModifiers: bemModifiers } = state;
 	node.classList.add(bemBase!);
 
 	if (!bemModifiers) {
@@ -138,5 +138,5 @@ function applyBemClasses(state: BemState) {
 		node.classList.add(`${bemBase}--${bemModifiers[i]}`);
 	}
 
-	state.bemModifiers = undefined;
+	state.$bemModifiers = undefined;
 }

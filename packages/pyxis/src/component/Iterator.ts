@@ -3,7 +3,7 @@ import { fork, mount, unmount, type RendererContext } from "~/Renderer";
 import type { MaybeAtom } from "~/data/Atom";
 import { getContext, type Context } from "~/data/Context";
 import { link } from "~/data/Dependency";
-import type { List } from "~/data/List";
+import type { List, ListInternal } from "~/data/List";
 import { K_CHANGE, K_CLEAR, K_INSERT, K_REMOVE, type ListDelta } from "~/data/ListDelta";
 import { proxy, type ProxyAtom } from "~/data/ProxyAtom";
 import "~/jsx";
@@ -21,29 +21,31 @@ export interface ProxyIteratorProps<T, P extends readonly (keyof T)[]> {
 }
 
 interface IteratorItemContext extends RendererContext {
-	data?: any;
+	$data?: any;
 }
 
 interface PendingItem<T> {
-	readonly index: number;
-	readonly item: T;
+	readonly $index: number;
+	readonly $item: T;
 }
 
 export function Iterator<T>(props: RemountIteratorProps<T>): JSX.Node[];
 export function Iterator<T, P extends readonly (keyof T)[]>(props: ProxyIteratorProps<T, P>): JSX.Node[];
-export function Iterator<T>(props: ProxyIteratorProps<T, []>) {
-	const { source, proxy } = props;
-	const template: DataTemplate<T> = (props.children as any)[0];
+export function Iterator<T>(props: any) {
+	const source: ListInternal<T> = props.source;
+	const proxy: readonly PropertyKey[] | undefined = props.proxy;
+	const template: DataTemplate<T> = props.children[0];
+
 	const parentContext = getContext() as RendererContext;
-	const fallbackAnchor = parentContext.adapter.createAnchorNode("/Iterator");
+	const fallbackAnchor = parentContext.$adapter.anchor("/Iterator");
 	const isProxy = proxy !== undefined;
 
 	// list change reactions
 	let items: IteratorItemContext[];
 	const onDelta = (delta: ListDelta<T>) => {
-		const { changes } = delta;
+		const { $changes: changes } = delta;
 		const cMax = changes.length;
-		const iMax = items.length + delta.lengthDelta;
+		const iMax = items.length + delta.$lengthDelta;
 		const newItems = new Array<IteratorItemContext>(iMax);
 		const pending: PendingItem<T>[] = [];
 		let recycled: IteratorItemContext[] = [];
@@ -59,20 +61,20 @@ export function Iterator<T>(props: ProxyIteratorProps<T, []>) {
 			change = changes[ci];
 
 			// copy unchanged items
-			while (ni < change.index) {
+			while (ni < change.$index) {
 				newItems[ni++] = items[oi++];
 			}
 
 			// apply change
-			switch (change.kind) {
+			switch (change.$kind) {
 				case K_CHANGE:
 					item = (newItems[ni++] = items[oi++]);
 					if (isProxy) {
-						updateProxy(item.data, change.item, proxy);
+						updateProxy(item.$data, change.$item, proxy);
 					}
 					else {
 						unmount(item);
-						mount(item, template, change.item as any, getAnchor(items, oi, fallbackAnchor));
+						mount(item, template, change.$item, getAnchor(items, oi, fallbackAnchor));
 					}
 
 					break;
@@ -81,25 +83,25 @@ export function Iterator<T>(props: ProxyIteratorProps<T, []>) {
 					if (ri < recycled.length) {
 						// we must be in proxy mode, otherwise the recycled array would be empty
 						item = (newItems[ni++] = recycled[ri++]);
-						updateProxy(item.data, change.item, proxy!);
+						updateProxy(item.$data, change.$item, proxy!);
 					}
-					else if (!isProxy || inserted < delta.lengthDelta) {
+					else if (!isProxy || inserted < delta.$lengthDelta) {
 						// we're either in remount mode, or no more items are available for recycling
 						item = (newItems[ni++] = fork(parentContext));
-						item.data = isProxy ? createProxy(item, change.item, proxy) : change.item;
+						item.$data = isProxy ? createProxy(item, change.$item, proxy) : change.$item;
 						inserted += 1;
 					}
 					else {
 						// we know enough items will be removed later -> add a pending item
 						pending.push({
-							index: ni++,
-							item: change.item,
+							$index: ni++,
+							$item: change.$item,
 						});
 
 						break;
 					}
 
-					mount(item, template, item.data, getAnchor(items, oi, fallbackAnchor));
+					mount(item, template, item.$data, getAnchor(items, oi, fallbackAnchor));
 					break;
 
 				case K_REMOVE:
@@ -130,9 +132,9 @@ export function Iterator<T>(props: ProxyIteratorProps<T, []>) {
 		let tmp;
 		while (pi < pMax) {
 			tmp = pending[pi++];
-			item = (newItems[tmp.index] = recycled[ri++]);
-			updateProxy(item.data, tmp.item, proxy!);
-			mount(item, template, item.data, getAnchor(newItems, tmp.index + 1, fallbackAnchor));
+			item = (newItems[tmp.$index] = recycled[ri++]);
+			updateProxy(item.$data, tmp.$item, proxy!);
+			mount(item, template, item.$data, getAnchor(newItems, tmp.$index + 1, fallbackAnchor));
 		}
 
 		// unmount unused
@@ -149,15 +151,15 @@ export function Iterator<T>(props: ProxyIteratorProps<T, []>) {
 		items = newItems;
 	};
 
-	link(parentContext, source, { fn: onDelta });
+	link(parentContext, source, { $fn: onDelta });
 
 	// initial render
 	const nodes: JSX.Node[] = [];
-	items = source.items.map(data => {
+	items = source.$items.map(data => {
 		const item: IteratorItemContext = fork(parentContext);
-		item.data = isProxy ? createProxy(item, data, proxy) : data;
-		mount(item, template, item.data);
-		nodes.push(...item.topNodes);
+		item.$data = isProxy ? createProxy(item, data, proxy) : data;
+		mount(item, template, item.$data);
+		nodes.push(...item.$topNodes);
 		return item;
 	});
 
@@ -171,8 +173,8 @@ function getAnchor(items: readonly RendererContext[], startIndex: number, fallba
 	let item;
 	while (i < length) {
 		item = items[i];
-		if (item && item.topNodes.length > 0) {
-			return item.topNodes[0];
+		if (item && item.$topNodes.length > 0) {
+			return item.$topNodes[0];
 		}
 
 		i += 1;

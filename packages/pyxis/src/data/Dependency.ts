@@ -1,71 +1,66 @@
-import type { ArgsMax5, Callback } from "~/support/Callback";
+import type { ArgsMax2, Callback } from "~/support/Callback";
 import type { Nil } from "~/support/types";
 
-import type { Context } from "./Context";
+import type { ContextInternal } from "./Context";
 
 /**
  * A dependency callback of an Atom. The callback will be run whenever the relevant Atom changes.
  * @internal
  */
-export interface Dependency<TArgs extends ArgsMax5 = ArgsMax5> extends Callback<TArgs> {
-	atom?: Nil<DependencyList<TArgs>>;
-	context?: Nil<DependencyList>;
+export interface Dependency<TArgs extends ArgsMax2 = ArgsMax2> extends Callback<TArgs> {
+	$context?: Nil<DependencyList>;
+	$target?: Nil<DependencyList<TArgs>>;
 
 	/** Previous Dependency within an Atom's dependency list. */
-	ap?: Nil<Dependency<TArgs>>;
+	$ap?: Nil<Dependency<TArgs>>;
 
 	/** Next Dependency within an Atom's dependency list. */
-	an?: Nil<Dependency<TArgs>>;
+	$an?: Nil<Dependency<TArgs>>;
 
 	/** Previous Dependency within a Context's dependency list. */
-	cp?: Nil<Dependency>;
+	$cp?: Nil<Dependency>;
 
 	/** Next Dependency within an Context's dependency list. */
-	cn?: Nil<Dependency>;
+	$cn?: Nil<Dependency>;
 }
 
-export interface DependencyList<TArgs extends ArgsMax5 = ArgsMax5> {
-	/**
-	 * The head of the dependencies linked list.
-	 * @internal
-	 */
-	dh?: Nil<Dependency<TArgs>>;
+/** @internal */
+export interface DependencyList<TArgs extends ArgsMax2 = ArgsMax2> {
+	/** The head of the dependencies linked list. */
+	$dh?: Nil<Dependency<TArgs>>;
 
-	/**
-	 * The tail of the dependencies linked list.
-	 * @internal
-	 */
-	dt?: Nil<Dependency<TArgs>>;
+	/** The tail of the dependencies linked list. */
+	$dt?: Nil<Dependency<TArgs>>;
 }
 
 /**
  * Links a Dependency to an Atom.
  * @internal
  */
-export function link<TArgs extends ArgsMax5>(context: Context, atom: DependencyList<TArgs>, dep: Dependency<TArgs>) {
-	// link to Atom
-	if (atom.dt) {
-		atom.dt.an = dep;
-		dep.ap = atom.dt;
+export function link<TArgs extends ArgsMax2>(context: ContextInternal, target: DependencyList<TArgs>, dep: Dependency<TArgs>) {
+	// link to target
+	if (target.$dt) {
+		target.$dt.$an = dep;
+		dep.$ap = target.$dt;
 	}
 	else {
-		atom.dh = dep;
+		target.$dh = dep;
 	}
 
-	dep.atom = atom;
-	atom.dt = dep;
+	dep.$target = target;
+	target.$dt = dep;
 
-	// link to Context
-	if (context.dt) {
-		context.dt.cn = dep as Dependency;
-		dep.cp = context.dt;
+	// link to context
+	if (context.$dt) {
+		context.$dt.$cn = dep as Dependency;
+		dep.$cp = context.$dt;
 	}
 	else {
-		context.dh = dep as Dependency;
+		context.$dh = dep as Dependency;
 	}
 
-	dep.context = context;
-	context.dt = dep as Dependency;
+	dep.$context = context;
+	context.$dt = dep as Dependency;
 }
 
 /**
@@ -73,43 +68,43 @@ export function link<TArgs extends ArgsMax5>(context: Context, atom: DependencyL
  * @internal
  */
 export function unlink(dep: Dependency) {
-	// unlink from Atom
-	const atom = dep.atom!;
-	if (dep.ap) {
-		dep.ap.an = dep.an;
+	// unlink from target
+	const target = dep.$target!;
+	if (dep.$ap) {
+		dep.$ap.$an = dep.$an;
 	}
-	else if (atom.dh === dep) {
-		atom.dh = dep.an;
-	}
-
-	if (dep.an) {
-		dep.an.ap = dep.ap;
-	}
-	else if (atom.dt === dep) {
-		atom.dt = dep.ap;
+	else if (target.$dh === dep) {
+		target.$dh = dep.$an;
 	}
 
-	dep.atom = null;
-	dep.ap = null;
-	dep.an = null;
-
-	// unlink from Context
-	const context = dep.context!;
-	if (dep.cp) {
-		dep.cp.cn = dep.cn;
+	if (dep.$an) {
+		dep.$an.$ap = dep.$ap;
 	}
-	else if (context.dh === dep) {
-		context.dh = dep.cn;
+	else if (target.$dt === dep) {
+		target.$dt = dep.$ap;
 	}
 
-	if (dep.cn) {
-		dep.cn.cp = dep.cp;
+	dep.$target = null;
+	dep.$ap = null;
+	dep.$an = null;
+
+	// unlink from context
+	const context = dep.$context!;
+	if (dep.$cp) {
+		dep.$cp.$cn = dep.$cn;
 	}
-	else if (context.dt === dep) {
-		context.dt = dep.cp;
+	else if (context.$dh === dep) {
+		context.$dh = dep.$cn;
 	}
 
-	dep.context = null;
-	dep.cp = null;
-	dep.cn = null;
+	if (dep.$cn) {
+		dep.$cn.$cp = dep.$cp;
+	}
+	else if (context.$dt === dep) {
+		context.$dt = dep.$cp;
+	}
+
+	dep.$context = null;
+	dep.$cp = null;
+	dep.$cn = null;
 }

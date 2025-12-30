@@ -19,38 +19,46 @@
 // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+/** @internal */
 export const K_CHANGE = 1;
+
+/** @internal */
 export const K_INSERT = 2;
+
+/** @internal */
 export const K_REMOVE = 3;
+
+/** @internal */
 export const K_CLEAR = 4;
 
+/** @internal */
 export interface ListDelta<T> {
-	readonly changes: ChangeType<T>[];
-	lengthDelta: number;
+	readonly $changes: ChangeType<T>[];
+	$lengthDelta: number;
 }
 
-export type ChangeType<T> = ItemChangedListDelta<T> | ItemInsertedListDelta<T> | ItemRemovedListDelta | ClearedListDelta;
+type ChangeType<T> = ItemChangedListDelta<T> | ItemInsertedListDelta<T> | ItemRemovedListDelta | ClearedListDelta;
 
-export interface ItemChangedListDelta<T> {
-	kind: typeof K_CHANGE;
-	index: number;
-	item: T;
+interface ItemChangedListDelta<T> {
+	$kind: typeof K_CHANGE;
+	$index: number;
+	$item: T;
 }
 
-export interface ItemInsertedListDelta<T> {
-	kind: typeof K_INSERT;
-	index: number;
-	item: T;
+interface ItemInsertedListDelta<T> {
+	$kind: typeof K_INSERT;
+	$index: number;
+	$item: T;
 }
 
-export interface ItemRemovedListDelta {
-	kind: typeof K_REMOVE;
-	index: number;
+interface ItemRemovedListDelta {
+	$kind: typeof K_REMOVE;
+	$index: number;
 }
 
-export interface ClearedListDelta {
-	kind: typeof K_CLEAR;
-	index: number;
+interface ClearedListDelta {
+	$kind: typeof K_CLEAR;
+	$index: number;
 }
 
 export interface Equals<T> {
@@ -58,45 +66,45 @@ export interface Equals<T> {
 }
 
 interface DiffState<T> {
-	readonly eq: Equals<T>;
-	readonly list0: readonly T[];
-	readonly list1: readonly T[];
-	index0: number;
-	index1: number;
-	N: number;
-	M: number;
-	Z: number;
-	c: number;
-	readonly buffer: Uint8Array | Uint16Array | Uint32Array;
-	readonly stack: number[];
-	stackTop: number;
-	pxs: number;
-	pxe: number;
-	pys: number;
-	pye: number;
-	oxs: number;
-	oxe: number;
-	oys: number;
-	oye: number;
+	readonly $eq: Equals<T>;
+	readonly $list0: readonly T[];
+	readonly $list1: readonly T[];
+	$index0: number;
+	$index1: number;
+	$N: number;
+	$M: number;
+	$Z: number;
+	$c: number;
+	readonly $buffer: Uint8Array | Uint16Array | Uint32Array;
+	readonly $stack: number[];
+	$stackTop: number;
+	$pxs: number;
+	$pxe: number;
+	$pys: number;
+	$pye: number;
+	$oxs: number;
+	$oxe: number;
+	$oys: number;
+	$oye: number;
 }
 
 /** @internal */
 export function createDelta<T>(): ListDelta<T> {
 	return {
-		changes: [],
-		lengthDelta: 0,
+		$changes: [],
+		$lengthDelta: 0,
 	};
 }
 
 /** @internal */
-export function itemChanged<T>({ changes }: ListDelta<T>, at: number, item: T) {
+export function itemChanged<T>({ $changes: changes }: ListDelta<T>, at: number, item: T) {
 	const ci = binarySearch(changes, at);
 	if (ci < 0) {
 		// nothing at this index, add new delta
 		changes.splice(~ci, 0, {
-			kind: K_CHANGE,
-			index: at,
-			item,
+			$kind: K_CHANGE,
+			$index: at,
+			$item: item,
 		});
 	}
 	else {
@@ -105,17 +113,17 @@ export function itemChanged<T>({ changes }: ListDelta<T>, at: number, item: T) {
 		// - insert -> change item
 		// - remove -> append change
 		const current = changes[ci];
-		switch (current.kind) {
+		switch (current.$kind) {
 			case K_CHANGE:
 			case K_INSERT:
-				current.item = item;
+				current.$item = item;
 				break;
 
 			case K_REMOVE:
 				changes.splice(ci + 1, 0, {
-					kind: K_CHANGE,
-					index: at,
-					item,
+					$kind: K_CHANGE,
+					$index: at,
+					$item: item,
 				});
 
 				break;
@@ -125,16 +133,16 @@ export function itemChanged<T>({ changes }: ListDelta<T>, at: number, item: T) {
 
 /** @internal */
 export function itemInserted<T>(delta: ListDelta<T>, at: number, item: T) {
-	const { changes } = delta;
+	const { $changes: changes } = delta;
 
 	let ci = binarySearch(changes, at);
 	if (ci < 0) {
 		// nothing at this index, add new delta
 		ci = ~ci;
 		changes.splice(ci, 0, {
-			kind: K_INSERT,
-			index: at,
-			item,
+			$kind: K_INSERT,
+			$index: at,
+			$item: item,
 		});
 	}
 	else {
@@ -143,28 +151,28 @@ export function itemInserted<T>(delta: ListDelta<T>, at: number, item: T) {
 		// - insert -> append another
 		// - remove -> replace with change
 		const current = changes[ci];
-		switch (current.kind) {
+		switch (current.$kind) {
 			case K_CHANGE:
 				changes.splice(ci, 0, {
-					kind: K_INSERT,
-					index: at,
-					item,
+					$kind: K_INSERT,
+					$index: at,
+					$item: item,
 				});
 
 				break;
 
 			case K_INSERT:
 				changes.splice(ci + 1, 0, {
-					kind: K_INSERT,
-					index: at,
-					item,
+					$kind: K_INSERT,
+					$index: at,
+					$item: item,
 				});
 
 				break;
 
 			case K_REMOVE:
-				(current as any).kind = K_CHANGE;
-				(current as any).item = item;
+				(current as any).$kind = K_CHANGE;
+				(current as any).$item = item;
 				break;
 		}
 	}
@@ -172,24 +180,24 @@ export function itemInserted<T>(delta: ListDelta<T>, at: number, item: T) {
 	// shift the indices of later changes
 	const { length } = changes;
 	while (++ci < length) {
-		changes[ci].index += 1;
+		changes[ci].$index += 1;
 	}
 
 	// update the overall change in list length
-	delta.lengthDelta += 1;
+	delta.$lengthDelta += 1;
 }
 
 /** @internal */
 export function itemRemoved<T>(delta: ListDelta<T>, at: number) {
-	const { changes } = delta;
+	const { $changes: changes } = delta;
 
 	let ci = binarySearch(changes, at);
 	if (ci < 0) {
 		// nothing at this index, add new delta
 		ci = ~ci;
 		changes.splice(ci, 0, {
-			kind: K_REMOVE,
-			index: at,
+			$kind: K_REMOVE,
+			$index: at,
 		});
 	}
 	else {
@@ -198,10 +206,10 @@ export function itemRemoved<T>(delta: ListDelta<T>, at: number) {
 		// - insert -> remove it
 		// - remove -> append another
 		const current = changes[ci];
-		switch (current.kind) {
+		switch (current.$kind) {
 			case K_CHANGE:
-				(current as any).kind = K_REMOVE;
-				(current as any).item = undefined;
+				(current as any).$kind = K_REMOVE;
+				(current as any).$item = undefined;
 				break;
 
 			case K_INSERT:
@@ -210,8 +218,8 @@ export function itemRemoved<T>(delta: ListDelta<T>, at: number) {
 
 			case K_REMOVE:
 				changes.splice(++ci, 0, {
-					kind: K_REMOVE,
-					index: at,
+					$kind: K_REMOVE,
+					$index: at,
 				});
 
 				break;
@@ -221,23 +229,23 @@ export function itemRemoved<T>(delta: ListDelta<T>, at: number) {
 	// shift the indices of later changes
 	const { length } = changes;
 	while (++ci < length) {
-		changes[ci].index -= 1;
+		changes[ci].$index -= 1;
 	}
 
 	// update the overall change in list length
-	delta.lengthDelta -= 1;
+	delta.$lengthDelta -= 1;
 }
 
 /** @internal */
 export function listCleared<T>(delta: ListDelta<T>, count: number) {
-	const { changes } = delta;
+	const { $changes: changes } = delta;
 	changes.length = 0;
 	changes.push({
-		kind: K_CLEAR,
-		index: -1,
+		$kind: K_CLEAR,
+		$index: -1,
 	});
 
-	delta.lengthDelta -= count;
+	delta.$lengthDelta -= count;
 }
 
 /** @internal */
@@ -267,43 +275,43 @@ export function listSynced<T>(delta: ListDelta<T>, oldState: readonly T[], newSt
 	const Z = (Math.min(N, M) + 1) * 2;
 	const L = N + M;
 	const state: DiffState<T> = {
-		eq,
-		list0: oldState,
-		list1: newState,
-		index0: index,
-		index1: index,
-		N,
-		M,
-		Z,
-		c: 0,
-		buffer: new (L <= 0xff ? Uint8Array : L <= 0xffff ? Uint16Array : Uint32Array)(Z + Z),
-		stack: [],
-		stackTop: 0,
-		pxs: -1,
-		pxe: -1,
-		pys: -1,
-		pye: -1,
-		oxs: -1,
-		oxe: -1,
-		oys: -1,
-		oye: -1,
+		$eq: eq,
+		$list0: oldState,
+		$list1: newState,
+		$index0: index,
+		$index1: index,
+		$N: N,
+		$M: M,
+		$Z: Z,
+		$c: 0,
+		$buffer: new (L <= 0xff ? Uint8Array : L <= 0xffff ? Uint16Array : Uint32Array)(Z + Z),
+		$stack: [],
+		$stackTop: 0,
+		$pxs: -1,
+		$pxe: -1,
+		$pys: -1,
+		$pye: -1,
+		$oxs: -1,
+		$oxe: -1,
+		$oys: -1,
+		$oye: -1,
 	};
 
 	let offset = 0;
 	let rs, re, is, ie, r, i;
 	do {
 		myersDiff(state);
-		if (state.c === 1) {
-			rs = state.oxs;
-			re = state.oxe;
-			is = state.oys;
-			ie = state.oye;
+		if (state.$c === 1) {
+			rs = state.$oxs;
+			re = state.$oxe;
+			is = state.$oys;
+			ie = state.$oye;
 		}
-		else if (state.pxs >= 0) {
-			rs = state.pxs;
-			re = state.pxe;
-			is = state.pys;
-			ie = state.pye;
+		else if (state.$pxs >= 0) {
+			rs = state.$pxs;
+			re = state.$pxe;
+			is = state.$pys;
+			ie = state.$pye;
 		}
 		else {
 			break;
@@ -320,7 +328,7 @@ export function listSynced<T>(delta: ListDelta<T>, oldState: readonly T[], newSt
 
 		offset -= re - rs;
 	}
-	while (state.c < 2);
+	while (state.$c < 2);
 }
 
 function binarySearch<T>(changes: readonly ChangeType<T>[], index: number) {
@@ -331,7 +339,7 @@ function binarySearch<T>(changes: readonly ChangeType<T>[], index: number) {
 
 	while (min < max) {
 		mid = (min + max) >>> 1;
-		tmp = changes[mid].index;
+		tmp = changes[mid].$index;
 
 		if (index < tmp) {
 			max = mid;
@@ -342,7 +350,7 @@ function binarySearch<T>(changes: readonly ChangeType<T>[], index: number) {
 		else {
 			// found matching index, but there may be more deltas with the same index
 			// find the last one
-			while (++mid < max && changes[mid].index === index) ;
+			while (++mid < max && changes[mid].$index === index) ;
 			return mid - 1;
 		}
 	}
@@ -351,49 +359,49 @@ function binarySearch<T>(changes: readonly ChangeType<T>[], index: number) {
 }
 
 function myersDiff<T>(state: DiffState<T>) {
-	const { list0, list1, buffer, stack, eq } = state;
-	let { index0, index1, N, M, Z, c, stackTop } = state;
+	const { $list0, $list1, $buffer, $stack, $eq } = state;
+	let { $index0, $index1, $N, $M, $Z, $c, $stackTop } = state;
 	let W, L, parity, offsetX, offsetY, z, h, hMax, k, kMin, kMax, gkm, gkp, u, v, x, y, pkm, pkp, sx;
 
 	while (true) {
-		switch (c) {
+		switch ($c) {
 			case 0: {
-				Z_block: while (N > 0 && M > 0) {
-					W = N - M;
-					L = N + M;
+				Z_block: while ($N > 0 && $M > 0) {
+					W = $N - $M;
+					L = $N + $M;
 					parity = L & 1;
-					offsetX = index0 + N - 1;
-					offsetY = index1 + M - 1;
+					offsetX = $index0 + $N - 1;
+					offsetY = $index1 + $M - 1;
 					hMax = (L + parity) / 2;
 
-					buffer.fill(0, 0, Z + Z);
+					$buffer.fill(0, 0, $Z + $Z);
 					h_loop: for (h = 0; h <= hMax; h += 1) {
-						kMin = 2 * Math.max(0, h - M) - h;
-						kMax = h - 2 * Math.max(0, h - N);
+						kMin = 2 * Math.max(0, h - $M) - h;
+						kMax = h - 2 * Math.max(0, h - $N);
 
 						// forward pass
 						for (k = kMin; k <= kMax; k += 2) {
-							gkm = buffer[k - 1 - Z * Math.floor((k - 1)/Z)];
-							gkp = buffer[k + 1 - Z * Math.floor((k + 1)/Z)];
+							gkm = $buffer[k - 1 - $Z * Math.floor((k - 1)/$Z)];
+							gkp = $buffer[k + 1 - $Z * Math.floor((k + 1)/$Z)];
 							u = (k === -h || (k !== h && gkm < gkp)) ? gkp : gkm + 1;
 							v = u - k;
 							x = u;
 							y = v;
-							while (x < N && y < M && eq(list0[index0 + x], list1[index1 + y])) {
+							while (x < $N && y < $M && $eq($list0[$index0 + x], $list1[$index1 + y])) {
 								x += 1;
 								y += 1;
 							}
 
-							buffer[k - Z * Math.floor(k / Z)] = x;
-							if (parity === 1 && (z = W - k) >= 1 - h && z < h && x + buffer[Z + z - Z * Math.floor(z / Z)] >= N) {
+							$buffer[k - $Z * Math.floor(k / $Z)] = x;
+							if (parity === 1 && (z = W - k) >= 1 - h && z < h && x + $buffer[$Z + z - $Z * Math.floor(z / $Z)] >= $N) {
 								if (h > 1 || x !== u) {
-									stack[stackTop++] = index0 + x;
-									stack[stackTop++] = index1 + y;
-									stack[stackTop++] = N - x;
-									stack[stackTop++] = M - y;
-									N = u;
-									M = v;
-									Z = 2 * (Math.min(N, M) + 1);
+									$stack[$stackTop++] = $index0 + x;
+									$stack[$stackTop++] = $index1 + y;
+									$stack[$stackTop++] = $N - x;
+									$stack[$stackTop++] = $M - y;
+									$N = u;
+									$M = v;
+									$Z = 2 * (Math.min($N, $M) + 1);
 									continue Z_block;
 								}
 								else {
@@ -404,27 +412,27 @@ function myersDiff<T>(state: DiffState<T>) {
 
 						// reverse pass
 						for (k = kMin; k <= kMax; k += 2) {
-							pkm = buffer[Z + k - 1 - Z * Math.floor((k - 1)/Z)];
-							pkp = buffer[Z + k + 1 - Z * Math.floor((k + 1)/Z)];
+							pkm = $buffer[$Z + k - 1 - $Z * Math.floor((k - 1)/$Z)];
+							pkp = $buffer[$Z + k + 1 - $Z * Math.floor((k + 1)/$Z)];
 							u = (k === -h || (k !== h && pkm < pkp)) ? pkp : pkm + 1;
 							v = u - k;
 							x = u;
 							y = v;
-							while (x < N && y < M && eq(list0[offsetX - x], list1[offsetY - y])) {
+							while (x < $N && y < $M && $eq($list0[offsetX - x], $list1[offsetY - y])) {
 								x += 1;
 								y += 1;
 							}
 
-							buffer[Z + k - Z * Math.floor(k/Z)] = x;
-							if (parity === 0 && (z = W - k) >= -h && z <= h && x + buffer[z - Z * Math.floor(z/Z)] >= N) {
+							$buffer[$Z + k - $Z * Math.floor(k/$Z)] = x;
+							if (parity === 0 && (z = W - k) >= -h && z <= h && x + $buffer[z - $Z * Math.floor(z/$Z)] >= $N) {
 								if (h > 0 || x !== u) {
-									stack[stackTop++] = index0 + N - u;
-									stack[stackTop++] = index1 + M - v;
-									stack[stackTop++] = u;
-									stack[stackTop++] = v;
-									N = N - x;
-									M = M - y;
-									Z = 2 * (Math.min(N, M) + 1);
+									$stack[$stackTop++] = $index0 + $N - u;
+									$stack[$stackTop++] = $index1 + $M - v;
+									$stack[$stackTop++] = u;
+									$stack[$stackTop++] = v;
+									$N = $N - x;
+									$M = $M - y;
+									$Z = 2 * (Math.min($N, $M) + 1);
 									continue Z_block;
 								}
 								else {
@@ -434,21 +442,21 @@ function myersDiff<T>(state: DiffState<T>) {
 						}
 					}
 
-					if (N === M) {
+					if ($N === $M) {
 						continue;
 					}
 
-					if (M > N) {
-						index0 += N;
-						index1 += N;
-						M -= N;
-						N = 0;
+					if ($M > $N) {
+						$index0 += $N;
+						$index1 += $N;
+						$M -= $N;
+						$N = 0;
 					}
 					else {
-						index0 += M;
-						index1 += M;
-						N -= M;
-						M = 0;
+						$index0 += $M;
+						$index1 += $M;
+						$N -= $M;
+						$M = 0;
 					}
 
 					// we already know either N or M is zero, so we can skip the extra check at the top of the loop
@@ -457,32 +465,32 @@ function myersDiff<T>(state: DiffState<T>) {
 
 				// yield delete_start, delete_end, insert_start, insert_end
 				// at this point, at least one of N & M is zero, or we wouldn't have gotten out of the preceding loop yet
-				if (N + M !== 0) {
-					if (state.pxe === index0 || state.pye === index1) {
+				if ($N + $M !== 0) {
+					if (state.$pxe === $index0 || state.$pye === $index1) {
 						// it is a contiguous difference, extend the existing one
-						state.pxe = index0 + N;
-						state.pye = index1 + M;
+						state.$pxe = $index0 + $N;
+						state.$pye = $index1 + $M;
 					} else {
-						sx = state.pxs;
-						state.oxs = state.pxs;
-						state.oxe = state.pxe;
-						state.oys = state.pys;
-						state.oye = state.pye;
+						sx = state.$pxs;
+						state.$oxs = state.$pxs;
+						state.$oxe = state.$pxe;
+						state.$oys = state.$pys;
+						state.$oye = state.$pye;
 
 						// defer this one until we can check the next one
-						state.pxs = index0;
-						state.pxe = index0 + N;
-						state.pys = index1;
-						state.pye = index1 + M;
+						state.$pxs = $index0;
+						state.$pxe = $index0 + $N;
+						state.$pys = $index1;
+						state.$pye = $index1 + $M;
 
 						if (sx >= 0) {
-							state.index0 = index0;
-							state.index1 = index1;
-							state.N = N;
-							state.M = M;
-							state.Z = Z;
-							state.stackTop = stackTop;
-							state.c = 1;
+							state.$index0 = $index0;
+							state.$index1 = $index1;
+							state.$N = $N;
+							state.$M = $M;
+							state.$Z = $Z;
+							state.$stackTop = $stackTop;
+							state.$c = 1;
 							return;
 						}
 					}
@@ -490,17 +498,17 @@ function myersDiff<T>(state: DiffState<T>) {
 			}
 
 			case 1: {
-				if (stackTop === 0) {
-					state.c = 2;
+				if ($stackTop === 0) {
+					state.$c = 2;
 					return;
 				}
 
-				M = stack[--stackTop];
-				N = stack[--stackTop];
-				index1 = stack[--stackTop];
-				index0 = stack[--stackTop];
-				Z = 2 * (Math.min(N, M) + 1);
-				c = 0;
+				$M = $stack[--$stackTop];
+				$N = $stack[--$stackTop];
+				$index1 = $stack[--$stackTop];
+				$index0 = $stack[--$stackTop];
+				$Z = 2 * (Math.min($N, $M) + 1);
+				$c = 0;
 			}
 		}
 	}

@@ -1,6 +1,6 @@
 import { invoke } from "~/support/Callback";
 
-import { getContext, type Context } from "./Context";
+import { getContext, type Context, type ContextInternal } from "./Context";
 import type { DependencyList } from "./Dependency";
 import { reportAccess } from "./Reaction";
 import { schedule, type UpdateCallback } from "./Scheduler";
@@ -16,7 +16,7 @@ export const S_ATOM = Symbol.for("pyxis:atom");
  * @see {@link read}
  * @see {@link write}
  */
-export interface Atom<T = unknown> extends DependencyList {
+export interface Atom<T = unknown> {
 	/**
 	 * Pyxis Atom type guard marker.
 	 */
@@ -27,34 +27,33 @@ export interface Atom<T = unknown> extends DependencyList {
 	 * @deprecated Not to be used! Only holds the value type and does not actually exist at runtime.
 	 */
 	__valueType?: T;
+}
 
-	/** @internal */
-	readonly context: Context;
-
-	/** @internal */
-	readonly tracksValue?: boolean;
-
-	/** @internal */
-	lastValue?: T;
+/** @internal */
+export interface AtomInternal<T> extends Atom<T>, DependencyList {
+	readonly $context: ContextInternal;
+	readonly $tracksValue?: boolean;
+	$lastValue?: T;
 
 	/**
 	 * The notify callback of this Atom.
-	 * @internal
 	 */
-	notify?: UpdateCallback<[ self: Atom ]>;
+	$notify?: UpdateCallback<[ self: AtomInternal<T> ]>;
 
 	/**
 	 * Gets the value of this Atom.
-	 * @internal
 	 */
-	get(): T;
+	$get(): T;
 
 	/**
 	 * Sets the value of this Atom. Does nothing if this Atom is readonly.
 	 * @returns Boolean indicating whether the value of this Atom changed.
-	 * @internal
 	 */
-	set(value: T): boolean;
+	$set(value: T): boolean;
+}
+
+interface DirectAtom<T> extends AtomInternal<any> {
+	$value: T;
 }
 
 /**
@@ -65,6 +64,9 @@ export interface Atom<T = unknown> extends DependencyList {
  * @see {@link isAtom}
  */
 export type MaybeAtom<T> = Atom<T> | T;
+
+/** @internal */
+export type MaybeAtomInternal<T> = AtomInternal<T> | T;
 
 /**
  * Creates an empty Atom; i.e. value set to `undefined`.
@@ -78,34 +80,30 @@ export function atom<T>(): Atom<T | undefined>;
  */
 export function atom<T>(initialValue: MaybeAtom<T>, context?: Context): Atom<T>;
 
-export function atom<T>(initialValue?: MaybeAtom<T>, context = getContext()) {
+export function atom<T>(initialValue?: MaybeAtomInternal<T>, context = getContext()) {
 	return isAtom(initialValue)
 		? initialValue
 		: {
 			[S_ATOM]: true,
-			tracksValue: true,
-			context,
-			value: initialValue!,
-			lastValue: initialValue,
-			get: getValue,
-			set: setValue,
+			$value: initialValue!,
+			$tracksValue: true,
+			$context: context as ContextInternal,
+			$lastValue: initialValue,
+			$get: getValue,
+			$set: setValue,
 		} satisfies DirectAtom<T>;
 }
 
-interface DirectAtom<T> extends Atom<any> {
-	value: T;
-}
-
 function getValue<T>(this: DirectAtom<T>) {
-	return this.value;
+	return this.$value;
 }
 
 function setValue<T>(this: DirectAtom<T>, value: T) {
-	if (this.value === value) {
+	if (this.$value === value) {
 		return false;
 	}
 
-	this.value = value;
+	this.$value = value;
 	return true;
 }
 
@@ -126,10 +124,11 @@ export function isAtom<T = unknown>(input: MaybeAtom<T>): input is Atom<T> {
  * @see {@link write}
  * @see {@link update}
  */
-export function read<T>(input: MaybeAtom<T>): T {
+export function read<T>(input: MaybeAtom<T>): T
+export function read<T>(input: MaybeAtomInternal<T>): T {
 	if (isAtom<T>(input)) {
 		reportAccess(input);
-		return input.get();
+		return input.$get();
 	}
 
 	return input;
@@ -144,16 +143,17 @@ export function read<T>(input: MaybeAtom<T>): T {
  * @see {@link read}
  * @see {@link update}
  */
-export function write<T>(input: MaybeAtom<T>, value: T): T {
+export function write<T>(input: MaybeAtom<T>, value: T): T
+export function write<T>(input: MaybeAtomInternal<T>, value: T): T {
 	if (isAtom(input)) {
-		if (input.set(value)) {
-			schedule(input.context, input.notify ??= {
-				fn: notify,
-				a0: input,
+		if (input.$set(value)) {
+			schedule(input.$context, input.$notify ??= {
+				$fn: notify,
+				$a0: input,
 			});
 		}
 
-		return input.get();
+		return input.$get();
 	}
 
 	return input;
@@ -168,16 +168,17 @@ export function write<T>(input: MaybeAtom<T>, value: T): T {
  * @see {@link read}
  * @see {@link write}
  */
-export function update<T>(input: MaybeAtom<T>, transform: (value: T) => T): T {
+export function update<T>(input: MaybeAtom<T>, transform: (value: T) => T): T
+export function update<T>(input: MaybeAtomInternal<T>, transform: (value: T) => T): T {
 	if (isAtom(input)) {
-		if (input.set(transform(input.get()))) {
-			schedule(input.context, input.notify ??= {
-				fn: notify,
-				a0: input,
+		if (input.$set(transform(input.$get()))) {
+			schedule(input.$context, input.$notify ??= {
+				$fn: notify,
+				$a0: input,
 			});
 		}
 
-		return input.get();
+		return input.$get();
 	}
 
 	return input;
@@ -187,21 +188,21 @@ export function update<T>(input: MaybeAtom<T>, transform: (value: T) => T): T {
  * Notifies the dependencies of an Atom.
  * @internal
  */
-export function notify(input: Atom) {
+export function notify<T>(input: AtomInternal<T>) {
 	// optimization: when Atom changes multiple times within a single update and ends up with the
 	// same value it started with, the notification is skipped
-	if (input.tracksValue) {
-		const newValue = input.get();
-		if (input.lastValue === newValue) {
+	if (input.$tracksValue) {
+		const newValue = input.$get();
+		if (input.$lastValue === newValue) {
 			return;
 		}
 
-		input.lastValue = newValue;
+		input.$lastValue = newValue;
 	}
 
-	let current = input.dh;
+	let current = input.$dh;
 	while (current) {
 		invoke(current);
-		current = current.an;
+		current = current.$an;
 	}
 }

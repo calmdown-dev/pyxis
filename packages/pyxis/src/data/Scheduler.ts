@@ -1,18 +1,18 @@
-import { invoke, type ArgsMax5, type Callback } from "~/support/Callback";
+import { invoke, type ArgsMax2, type Callback } from "~/support/Callback";
 import type { Nil } from "~/support/types";
 
-import type { Context } from "./Context";
+import type { ContextInternal } from "./Context";
 
 /**
  * Manages a queue of scheduled updates.
  * @internal
  */
 export interface Scheduler {
-	readonly scheduleTick: () => void;
-	isUpdating: boolean;
-	epoch: number;
-	uh?: Nil<UpdateCallback>;
-	ut?: Nil<UpdateCallback>;
+	readonly $scheduleTick: () => void;
+	$isUpdating: boolean;
+	$epoch: number;
+	$uh?: Nil<UpdateCallback>;
+	$ut?: Nil<UpdateCallback>;
 }
 
 export interface TickFn {
@@ -23,9 +23,9 @@ export interface TickFn {
 export function createScheduler(tick: TickFn) {
 	let isPending = false;
 	const scheduler: Scheduler = {
-		isUpdating: false,
-		epoch: 1,
-		scheduleTick: () => {
+		$isUpdating: false,
+		$epoch: 1,
+		$scheduleTick: () => {
 			if (isPending) {
 				return;
 			}
@@ -37,23 +37,23 @@ export function createScheduler(tick: TickFn) {
 
 	const update = () => {
 		try {
-			scheduler.isUpdating = true;
+			scheduler.$isUpdating = true;
 
-			let current = scheduler.uh;
+			let current = scheduler.$uh;
 			let tmp;
 			while (current) {
 				invoke(current);
-				tmp = current.un;
-				current.un = null;
+				tmp = current.$un;
+				current.$un = null;
 				current = tmp;
 			}
 		}
 		finally {
 			isPending = false;
-			scheduler.isUpdating = false;
-			scheduler.uh = null;
-			scheduler.ut = null;
-			scheduler.epoch += 1;
+			scheduler.$isUpdating = false;
+			scheduler.$uh = null;
+			scheduler.$ut = null;
+			scheduler.$epoch += 1;
 		}
 	};
 
@@ -63,20 +63,20 @@ export function createScheduler(tick: TickFn) {
 /**
  * An update callback that can be scheduled.
  * @see {@link Scheduler}
+ * @internal
  */
-export interface UpdateCallback<TArgs extends ArgsMax5 = ArgsMax5> extends Callback<TArgs> {
-	un?: Nil<UpdateCallback>;
-	epoch?: number;
+export interface UpdateCallback<TArgs extends ArgsMax2 = ArgsMax2> extends Callback<TArgs> {
+	$un?: Nil<UpdateCallback>;
+	$epoch?: number;
 }
 
 /**
  * Adds the provided callback to the update queue. Does nothing if already queued.
  * @internal
  */
-export function schedule(context: Context, callback: UpdateCallback): void;
-export function schedule({ scheduler }: Context, callback: UpdateCallback) {
-	if (callback.epoch === scheduler.epoch) {
-		if (__DEV__ && scheduler.isUpdating) {
+export function schedule({ $scheduler }: ContextInternal, callback: UpdateCallback) {
+	if (callback.$epoch === $scheduler.$epoch) {
+		if (__DEV__ && $scheduler.$isUpdating) {
 			throw new Error("Refusing to reschedule an update as it may cause an infinite loop. Are you mutating an Atom inside a reaction that depends on it?");
 		}
 
@@ -85,14 +85,14 @@ export function schedule({ scheduler }: Context, callback: UpdateCallback) {
 		return;
 	}
 
-	if (scheduler.ut) {
-		scheduler.ut.un = callback;
+	if ($scheduler.$ut) {
+		$scheduler.$ut.$un = callback;
 	}
 	else {
-		scheduler.uh = callback;
+		$scheduler.$uh = callback;
 	}
 
-	scheduler.ut = callback;
-	callback.epoch = scheduler.epoch;
-	scheduler.scheduleTick();
+	$scheduler.$ut = callback;
+	callback.$epoch = $scheduler.$epoch;
+	$scheduler.$scheduleTick();
 }

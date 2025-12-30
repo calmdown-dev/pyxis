@@ -7,19 +7,19 @@ export interface Adapter<TNode> extends Extension<TNode> {
 	 *
 	 * Optionally a hint can be attached to convey the purpose of the anchor.
 	 */
-	readonly createAnchorNode: (hint?: string) => TNode;
+	readonly anchor: (hint?: string) => TNode;
 
 	/**
 	 * Creates a native element node by its tag name.
 	 */
-	readonly createNativeNode: (
+	readonly native: (
 		tagName: string,
 	) => TNode;
 
 	/**
 	 * Appends a node as the last child of the parent.
 	 */
-	readonly appendNode: (
+	readonly append: (
 		node: TNode,
 		parent: TNode,
 	) => void;
@@ -27,7 +27,7 @@ export interface Adapter<TNode> extends Extension<TNode> {
 	/**
 	 * Inserts a node before the referenced child.
 	 */
-	readonly insertNode: (
+	readonly insert: (
 		node: TNode,
 		before: TNode,
 	) => void;
@@ -35,7 +35,7 @@ export interface Adapter<TNode> extends Extension<TNode> {
 	/**
 	 * Removes a node from the hierarchy.
 	 */
-	readonly removeNode: (
+	readonly remove: (
 		node: TNode,
 	) => void;
 }
@@ -44,7 +44,7 @@ export interface Extension<TNode> {
 	/**
 	 * Sets a named property of the given node.
 	 */
-	readonly setProp: (
+	readonly set: (
 		node: TNode,
 		prop: any,
 		value: any,
@@ -65,13 +65,13 @@ export type SingleExtensionProps<TNode, TExtension, TPrefix extends string> =
 		TExtension extends Extension<TNode>
 			? {
 				[P in SingleExtensionPropNames<TExtension>]: {
-					[_ in `${TPrefix}:${P}`]?: TExtension extends { setProp(node: TNode, prop: P, value: infer V): void } ? V : never
+					[_ in `${TPrefix}:${P}`]?: TExtension extends { set(node: TNode, prop: P, value: infer V): void } ? V : never
 				};
 			}[SingleExtensionPropNames<TExtension>]
 			: {}
 	>;
 
 export type SingleExtensionPropNames<TExtension> =
-	TExtension extends { setProp(node: any, prop: infer TAllProps extends string, value: any): void }
+	TExtension extends { set(node: any, prop: infer TAllProps extends string, value: any): void }
 		? TAllProps
 		: never;

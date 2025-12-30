@@ -1,54 +1,44 @@
-import { invoke, type ArgsMax5, type Callback } from "~/support/Callback";
+import { invoke, type ArgsMax2, type ArgsMax5, type Callback } from "~/support/Callback";
 import type { Nil } from "~/support/types";
 
 import type { DependencyList } from "./Dependency";
 import type { Scheduler } from "./Scheduler";
 
-export interface Context extends DependencyList {
-	/** @internal */
-	readonly scheduler: Scheduler;
-
+export interface Context {
 	mounted: boolean;
+}
 
-	/**
-	 * The head of the mount callback linked list.
-	 * @internal
-	 */
-	mh?: Nil<MountCallback>;
+/** @internal */
+export interface ContextInternal extends Context, DependencyList {
+	readonly $scheduler: Scheduler;
 
-	/**
-	 * The tail of the mount callback linked list.
-	 * @internal
-	 */
-	mt?: Nil<MountCallback>;
+	/** The head of the mount callback linked list. */
+	$mh?: Nil<MountCallback>;
 
-	/**
-	 * The head of the unmount callback linked list.
-	 * @internal
-	 */
-	uh?: Nil<UnmountCallback>;
+	/** The tail of the mount callback linked list. */
+	$mt?: Nil<MountCallback>;
 
-	/**
-	 * The tail of the unmount callback linked list.
-	 * @internal
-	 */
-	ut?: Nil<UnmountCallback>;
+	/** The head of the unmount callback linked list. */
+	$uh?: Nil<UnmountCallback>;
+
+	/** The tail of the unmount callback linked list. */
+	$ut?: Nil<UnmountCallback>;
 }
 
 /**
  * A mount callback running setup logic for contextual resources.
  * @internal
  */
-export interface MountCallback<TArgs extends ArgsMax5 = ArgsMax5> extends Callback<TArgs> {
-	mn?: Nil<MountCallback>;
+export interface MountCallback<TArgs extends ArgsMax2 = ArgsMax2> extends Callback<TArgs> {
+	$mn?: Nil<MountCallback>;
 }
 
 /**
  * An unmount callback running teardown logic for contextual resources.
  * @internal
  */
-export interface UnmountCallback<TArgs extends ArgsMax5 = ArgsMax5> extends Callback<TArgs> {
-	un?: Nil<UnmountCallback>;
+export interface UnmountCallback<TArgs extends ArgsMax2 = ArgsMax2> extends Callback<TArgs> {
+	$un?: Nil<UnmountCallback>;
 }
 
 export interface MountBlock {
@@ -58,6 +48,7 @@ export interface MountBlock {
 export interface UnmountBlock {
 	(): void;
 }
+
 
 /**
  * Registers a callback to run when the current Component mounts.
@@ -69,31 +60,32 @@ export function mounted(block: MountBlock): void;
 export function mounted(block: MountBlock, context: Context): void;
 
 export function mounted(block: MountBlock, context = getContext()) {
-	onMounted(context, {
-		fn: runMountedCallback,
-		a0: context,
-		a1: block,
+	onMounted(context as ContextInternal, {
+		$fn: runMountedCallback,
+		$a0: context,
+		$a1: block,
 	});
 }
 
-function runMountedCallback(context: Context, block: MountBlock) {
+function runMountedCallback(context: ContextInternal, block: MountBlock) {
 	const dispose = block();
 	if (dispose) {
-		onUnmounted(context, { fn: dispose });
+		onUnmounted(context, { $fn: dispose });
 	}
 }
 
 /** @internal */
-export function onMounted(context: Context, callback: MountCallback) {
-	if (context.mt) {
-		context.mt.mn = callback;
+export function onMounted(context: ContextInternal, callback: MountCallback) {
+	if (context.$mt) {
+		context.$mt.$mn = callback;
 	}
 	else {
-		context.mh = callback;
+		context.$mh = callback;
 	}
 
-	context.mt = callback;
+	context.$mt = callback;
 }
+
 
 /**
  * Registers a callback to run once the current Component unmounts.
@@ -103,19 +95,19 @@ export function unmounted(block: UnmountBlock): void;
 export function unmounted(block: UnmountBlock, context: Context): void;
 
 export function unmounted(block: UnmountBlock, context = getContext()) {
-	onUnmounted(context, { fn: block });
+	onUnmounted(context as ContextInternal, { $fn: block });
 }
 
 /** @internal */
-export function onUnmounted(context: Context, callback: UnmountCallback) {
-	if (context.ut) {
-		context.ut.un = callback;
+export function onUnmounted(context: ContextInternal, callback: UnmountCallback) {
+	if (context.$ut) {
+		context.$ut.$un = callback;
 	}
 	else {
-		context.uh = callback;
+		context.$uh = callback;
 	}
 
-	context.ut = callback;
+	context.$ut = callback;
 }
 
 
@@ -155,80 +147,80 @@ export function withContext(
 }
 
 /** @internal */
-export function contextMounted(context: Context) {
+export function contextMounted(context: ContextInternal) {
 	context.mounted = true;
 
 	// run registered mount callbacks
 	try {
-		let callback = context.mh;
+		let callback = context.$mh;
 		let tmp;
 		while (callback) {
-			tmp = callback.mn;
+			tmp = callback.$mn;
 			invoke(callback);
-			callback.mn = null;
+			callback.$mn = null;
 			callback = tmp;
 		}
 	}
 	finally {
-		context.mh = null;
-		context.mt = null;
+		context.$mh = null;
+		context.$mt = null;
 	}
 }
 
 /** @internal */
-export function contextUnmounted(context: Context) {
+export function contextUnmounted(context: ContextInternal) {
 	context.mounted = false;
 
 	// unlink all contextual dependencies
-	let dep = context.dh;
+	let dep = context.$dh;
 	let tmp;
 	let atom;
 
 	while (dep) {
-		tmp = dep.cn;
-		atom = dep.atom!;
+		tmp = dep.$cn;
+		atom = dep.$target!;
 
-		if (dep.ap) {
-			dep.ap.an = dep.an;
+		if (dep.$ap) {
+			dep.$ap.$an = dep.$an;
 		}
-		else if (atom.dh === dep) {
-			atom.dh = dep.an;
-		}
-
-		if (dep.an) {
-			dep.an.ap = dep.ap;
-		}
-		else if (atom.dt === dep) {
-			atom.dt = dep.ap;
+		else if (atom.$dh === dep) {
+			atom.$dh = dep.$an;
 		}
 
-		dep.atom = null;
-		dep.ap = null;
-		dep.an = null;
+		if (dep.$an) {
+			dep.$an.$ap = dep.$ap;
+		}
+		else if (atom.$dt === dep) {
+			atom.$dt = dep.$ap;
+		}
 
-		dep.context = null;
-		dep.cp = null;
-		dep.cn = null;
+		dep.$target = null;
+		dep.$ap = null;
+		dep.$an = null;
+
+		dep.$context = null;
+		dep.$cp = null;
+		dep.$cn = null;
 
 		dep = tmp;
 	}
 
-	context.dh = null;
-	context.dt = null;
+	context.$dh = null;
+	context.$dt = null;
 
 	// run registered unmount callbacks
 	try {
-		let callback = context.uh;
+		let callback = context.$uh;
 		let tmp;
 		while (callback) {
-			tmp = callback.un;
+			tmp = callback.$un;
 			invoke(callback);
-			callback.un = null;
+			callback.$un = null;
 			callback = tmp;
 		}
 	}
 	finally {
-		context.uh = null;
-		context.ut = null;
+		context.$uh = null;
+		context.$ut = null;
 	}
 }

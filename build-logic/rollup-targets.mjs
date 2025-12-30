@@ -52,6 +52,7 @@ const TypeScriptLibrary = declareTarget("TypeScriptLibrary", target => target
 					comments: false,
 				},
 				mangle: {
+					module: true,
 					toplevel: true,
 				},
 			}))

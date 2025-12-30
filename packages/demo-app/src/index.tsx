@@ -56,8 +56,6 @@ const TestApp = () => {
 
 		todos.insertAt(i0 <= i1 ? i0 : i0 - 1, t1);
 		todos.insertAt(i1 <= i0 ? i1 : i1 - 1, t0);
-
-		console.log((todos as any).items.map((it: any) => it.text));
 	};
 
 	return (

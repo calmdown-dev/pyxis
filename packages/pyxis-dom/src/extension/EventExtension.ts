@@ -2,7 +2,7 @@ import { getContext, reaction, read, unmounted, withContext, type MaybeAtom } fr
 
 export type EventExtensionType = {
 	[TType in keyof GlobalEventHandlersEventMap]: {
-		setProp<TNode extends HTMLElement>(
+		set<TNode extends HTMLElement>(
 			node: TNode,
 			type: TType,
 			listener: MaybeAtom<(e: ExtendedEvent<GlobalEventHandlersEventMap[TType], TType, TNode>) => any>,
@@ -18,7 +18,7 @@ export type ExtendedEvent<TEvent, TType, TNode> =
 	};
 
 export const EventExtension: EventExtensionType = {
-	setProp: (
+	set: (
 		node: HTMLElement,
 		type: string,
 		listenerAtom: MaybeAtom<(e: any) => any>,
