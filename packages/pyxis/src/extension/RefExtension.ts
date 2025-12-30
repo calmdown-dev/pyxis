@@ -1,12 +1,14 @@
 import { write, type Atom } from "~/data/Atom";
 
-export interface RefExtensionType {
+export interface AtomRefExtensionType {
 	set(
 		node: JSX.Node,
 		kind: "atom",
 		atom: Atom<JSX.Node>,
 	): void;
+}
 
+export interface FnRefExtensionType {
 	set(
 		node: JSX.Node,
 		kind: "fn",
@@ -14,15 +16,17 @@ export interface RefExtensionType {
 	): void;
 }
 
+export type RefExtensionType = AtomRefExtensionType | FnRefExtensionType;
+
 export const RefExtension: RefExtensionType = {
-	set: (node, kind, value) => {
+	set: (node: JSX.Node, kind: string, value: any) => {
 		switch (kind) {
 			case "atom":
 				write(value, node);
 				break;
 
 			case "fn":
-				(value as (node: JSX.Node) => void)(node);
+				value(node);
 				break;
 		}
 	},

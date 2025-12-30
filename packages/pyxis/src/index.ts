@@ -15,7 +15,7 @@ export { on, slot, trigger, type Slot, type S_SLOT } from "./data/Slot";
 export type { ArgsMax5 } from "./support/Callback";
 export type { Intersection, Nil } from "./support/types";
 
-export { RefExtension, type RefExtensionType } from "./extension/RefExtension";
+export { RefExtension, type AtomRefExtensionType, type FnRefExtensionType, type RefExtensionType } from "./extension/RefExtension";
 
 export type { Adapter, Extension, ExtensionMap, ExtensionProps, SingleExtensionPropNames, SingleExtensionProps } from "./Adapter";
 export { component, type AnyProps, type Component, type DataTemplate, type JsxChildren, type JsxProps, type Template } from "./Component";

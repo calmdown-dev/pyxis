@@ -1,4 +1,4 @@
-import { atom, createRenderer, derivation, Iterator, list, read, write, type Atom } from "@calmdown/pyxis";
+import { atom, createRenderer, derivation, Iterator, list, read, RefExtension, write, type Atom } from "@calmdown/pyxis";
 import { BemBlockExtension, BemElementExtension, BemModifierExtension, ClassListExtension, DomAdapter, EventExtension, Text, type ExtendedIntrinsicElements } from "@calmdown/pyxis-dom";
 
 import { Button } from "~/components/Button";
@@ -11,6 +11,7 @@ const extensions = {
 	blk: BemBlockExtension,
 	elm: BemElementExtension,
 	mod: BemModifierExtension,
+	ref: RefExtension,
 };
 
 const renderer = createRenderer({
@@ -77,7 +78,7 @@ const TestApp = () => {
 				<Text>Swap</Text>
 			</Button>
 			<ul>
-				<Iterator source={todos} proxy={[ "done", "text" ] as const}>
+				<Iterator source={todos} proxy={[ "done", "text" ]}>
 					{todo => (
 						<li>
 							<CheckBox checked={todo.done}>
