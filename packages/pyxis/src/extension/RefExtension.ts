@@ -1,24 +1,19 @@
+import type { ExtensionProps } from "~/Adapter";
 import { write, type Atom } from "~/data/Atom";
+import type { ElementsType, NodeType } from "~/support/types";
 
-export interface AtomRefExtensionType {
-	set(
-		node: JSX.Node,
-		kind: "atom",
-		atom: Atom<JSX.Node>,
-	): void;
+export interface RefExtensionType {
+	<TExtensionKey extends string, TElements extends ElementsType>(extensionKey: TExtensionKey, elements: TElements): {
+		[TElementName in keyof TElements]: TElements[TElementName] & ExtensionProps<TExtensionKey, {
+			readonly atom?: Atom<NodeType<TElements[TElementName]>>;
+			readonly fn?: (node: NodeType<TElements[TElementName]>) => void;
+		}>;
+	};
+
+	set: (node: JSX.Node, prop: string, value: any) => void;
 }
 
-export interface FnRefExtensionType {
-	set(
-		node: JSX.Node,
-		kind: "fn",
-		call: (node: JSX.Node) => void,
-	): void;
-}
-
-export type RefExtensionType = AtomRefExtensionType | FnRefExtensionType;
-
-export const RefExtension: RefExtensionType = {
+export const RefExtension = {
 	set: (node: JSX.Node, kind: string, value: any) => {
 		switch (kind) {
 			case "atom":
@@ -30,4 +25,4 @@ export const RefExtension: RefExtensionType = {
 				break;
 		}
 	},
-};
+} as RefExtensionType;

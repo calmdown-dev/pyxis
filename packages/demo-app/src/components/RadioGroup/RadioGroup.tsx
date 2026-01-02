@@ -16,9 +16,7 @@ export const RadioGroup = component(<T extends string>(props: RadioGroupProps<T>
 			name={props.name ?? ""}
 			value={option.value}
 			checked={derivation(() => read(props.value) === option.value)}
-			on:input={() => {
-				write(props.value, option.value);
-			}}
+			on:input={() => write(props.value, option.value)}
 		/>
 		<Text>{option.children}</Text>
 	</label>

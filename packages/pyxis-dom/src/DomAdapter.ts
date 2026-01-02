@@ -1,14 +1,16 @@
 import type { Adapter } from "@calmdown/pyxis";
 
-import { PROP_MAP } from "./props";
+import { PROP_MAP } from "./jsx/mapping";
+import type { IntrinsicElements } from "./jsx/baked";
 
-export const DomAdapter: Adapter<Node> = {
+export const DomAdapter: Adapter<Node, IntrinsicElements> = {
 	anchor,
 	native,
 	append,
 	insert,
 	remove,
 	set,
+	tick: queueMicrotask,
 };
 
 function anchor(hint = "") {

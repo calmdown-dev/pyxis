@@ -1,37 +1,44 @@
-import type { Adapter, ExtensionMap } from "./Adapter";
+import type { Adapter, ExtensionsType } from "./Adapter";
 import type { Component, DataTemplate, Template } from "./Component";
 import { isAtom, read } from "./data/Atom";
 import { contextMounted, contextUnmounted, getContext, onMounted, onUnmounted, withContext, type ContextInternal } from "./data/Context";
 import { reaction } from "./data/Reaction";
-import { createScheduler, type TickFn } from "./data/Scheduler";
-import { EMPTY_ARRAY, EMPTY_OBJECT, isNil, wrap } from "./support/common";
+import { createScheduler } from "./data/Scheduler";
+import { EMPTY_ARRAY, isNil, wrap } from "./support/common";
+import type { ElementsType } from "./support/types";
 
-export interface Renderer<TNode> {
+export interface Renderer<TNode, TIntrinsicElements extends ElementsType = ElementsType> {
+	/**
+	 * Carries information about the available intrinsic elements when using this Renderer.
+	 * @deprecated **Type only, does not exist at runtime!**
+	 */
+	readonly __elements?: TIntrinsicElements;
+
 	mount(root: TNode, template: Template): void;
 	unmount(): void;
 }
 
-export interface RendererOptions<TNode, TExtensions extends ExtensionMap = {}> {
-	adapter: Adapter<TNode>;
-	extensions?: TExtensions;
-	tick: TickFn;
-}
+export type ElementsOf<TRenderer> = TRenderer extends { readonly __elements?: infer TElements }
+	? TElements
+	: {};
 
 /** @internal */
-export interface RendererContext<TNode = any, TExtensions extends ExtensionMap = ExtensionMap> extends ContextInternal {
+export interface RendererContext<TNode = any> extends ContextInternal {
 	readonly $adapter: Adapter<TNode>;
-	readonly $extensions: TExtensions;
-	readonly $parent?: RendererContext<TNode, TExtensions>;
+	readonly $extensions: ExtensionsType<TNode>;
+	readonly $parent?: RendererContext<TNode>;
 	$topNodes: readonly TNode[];
 }
 
-export function createRenderer<TNode, TExtensions extends ExtensionMap>(
-	options: RendererOptions<TNode, TExtensions>,
-): Renderer<TNode> {
-	const context: RendererContext<TNode, TExtensions> & Renderer<TNode> = {
-		$scheduler: createScheduler(options.tick),
-		$adapter: options.adapter,
-		$extensions: options.extensions ?? (EMPTY_OBJECT as TExtensions),
+/** @internal */
+export function createRenderer<TNode, TIntrinsicElements extends ElementsType>(
+	adapter: Adapter<TNode>,
+	extensions: ExtensionsType<TNode>,
+): Renderer<TNode, TIntrinsicElements> {
+	const context: RendererContext<TNode> & Renderer<TNode, TIntrinsicElements> = {
+		$scheduler: createScheduler(adapter.tick),
+		$adapter: adapter,
+		$extensions: extensions,
 		$topNodes: EMPTY_ARRAY,
 		mounted: false,
 		unmount: () => unmount(context),
@@ -40,7 +47,7 @@ export function createRenderer<TNode, TExtensions extends ExtensionMap>(
 				context.$topNodes = wrap(template())
 			));
 
-			appendChildren(options.adapter, root, nodes);
+			appendChildren(adapter, root, nodes);
 			contextMounted(context);
 		},
 	};
@@ -103,9 +110,9 @@ export function render(
  * dynamically re-render or unmount entirely.
  * @internal
  */
-export function fork<TNode, TExtensions extends ExtensionMap>(
-	context: RendererContext<TNode, TExtensions> = (getContext() as RendererContext<TNode, TExtensions>),
-): RendererContext<TNode, TExtensions> {
+export function fork<TNode>(
+	context: RendererContext<TNode> = (getContext() as RendererContext<TNode>),
+): RendererContext<TNode> {
 	const subContext = {
 		$scheduler: context.$scheduler,
 		$adapter: context.$adapter,
@@ -127,7 +134,7 @@ export function fork<TNode, TExtensions extends ExtensionMap>(
 export function mount<TNode>(context: RendererContext<TNode>, template: Template, data?: undefined, before?: TNode): void;
 
 /** @internal */
-export function mount<TNode, T>(context: RendererContext<TNode>, template: DataTemplate<T>, data: T, before?: TNode): void;
+export function mount<TNode, TData>(context: RendererContext<TNode>, template: DataTemplate<TData>, data: TData, before?: TNode): void;
 
 export function mount<TNode>(context: RendererContext<TNode>, template: Template | DataTemplate<any>, data?: any, before?: TNode) {
 	if (context.mounted) {

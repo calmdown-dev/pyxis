@@ -1,45 +1,41 @@
-import { isAtom, mounted, reaction, read, type MaybeAtom } from "@calmdown/pyxis";
+import { isAtom, mounted, reaction, read, type ElementsType, type ExtensionProps, type MaybeAtom } from "@calmdown/pyxis";
 
-export interface BemBlockExtensionType {
-	set(
-		node: HTMLElement,
-		name: string,
-		value: true,
-	): void;
+export interface BemStaticExtensionType {
+	<TExtensionKey extends string, TElements extends ElementsType>(extensionKey: TExtensionKey, elements: TElements): {
+		[TElementName in keyof TElements]: TElements[TElementName] & ExtensionProps<TExtensionKey, {
+			readonly [_ in string]?: true;
+		}>;
+	};
+
+	set: (node: HTMLElement, bemName: string, toggle: true) => void;
 }
 
-export interface BemElementExtensionType {
-	set(
-		node: HTMLElement,
-		name: string,
-		value: true,
-	): void;
+export interface BemDynamicExtensionType {
+	<TExtensionKey extends string, TElements extends ElementsType>(extensionKey: TExtensionKey, elements: TElements): {
+		[TElementName in keyof TElements]: TElements[TElementName] & ExtensionProps<TExtensionKey, {
+			readonly [_ in string]?: MaybeAtom<boolean>;
+		}>;
+	};
+
+	set: (node: HTMLElement, bemName: string, toggle: MaybeAtom<boolean>) => void;
 }
 
-export interface BemModifierExtensionType {
-	set(
-		node: HTMLElement,
-		name: string,
-		toggle: MaybeAtom<boolean>,
-	): void;
-}
-
-export const BemBlockExtension: BemBlockExtensionType = {
-	set: (node, bemBlockName) => {
+export const BemBlockExtension = {
+	set: (node, bemBlockName, _toggle) => {
 		const state = getState(node);
 		state.$bemBase = bemBlockName;
 		node.classList.add(bemBlockName);
 	},
-};
+} as BemStaticExtensionType;
 
-export const BemElementExtension: BemElementExtensionType = {
-	set: (node, bemElementName) => {
+export const BemElementExtension = {
+	set: (node, bemElementName, _toggle) => {
 		const state = getState(node);
 		state.$bemElementName = bemElementName;
 	},
-};
+} as BemStaticExtensionType;
 
-export const BemModifierExtension: BemModifierExtensionType = {
+export const BemModifierExtension = {
 	set: (node, bemModifierName, toggle) => {
 		const state = getState(node);
 		if (isAtom(toggle)) {
@@ -56,7 +52,7 @@ export const BemModifierExtension: BemModifierExtensionType = {
 			(state.$bemModifiers ??= []).push(bemModifierName);
 		}
 	},
-};
+} as BemDynamicExtensionType;
 
 
 interface BemState {

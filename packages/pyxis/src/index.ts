@@ -13,10 +13,11 @@ export type { TickFn } from "./data/Scheduler";
 export { on, slot, trigger, type Slot, type S_SLOT } from "./data/Slot";
 
 export type { ArgsMax5 } from "./support/Callback";
-export type { Intersection, Nil } from "./support/types";
+export type { ElementsType, Intersection, Nil, NodeType, PropsType, S_NODE_TYPE } from "./support/types";
 
-export { RefExtension, type AtomRefExtensionType, type FnRefExtensionType, type RefExtensionType } from "./extension/RefExtension";
+export { RefExtension, type RefExtensionType } from "./extension/RefExtension";
 
-export type { Adapter, Extension, ExtensionMap, ExtensionProps, SingleExtensionPropNames, SingleExtensionProps } from "./Adapter";
-export { component, type AnyProps, type Component, type DataTemplate, type JsxChildren, type JsxProps, type Template } from "./Component";
-export { createRenderer, render, type Renderer, type RendererOptions } from "./Renderer";
+export type { Adapter, Extension, ExtensionProps } from "./Adapter";
+export { pyxis, type PyxisBuilder } from "./Builder";
+export { component, type Component, type DataTemplate, type JsxChildren, type JsxProps, type Template } from "./Component";
+export { render, type ElementsOf, type Renderer } from "./Renderer";

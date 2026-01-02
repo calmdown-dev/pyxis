@@ -1,7 +1,5 @@
 {
 	"compilerOptions": {
-		"baseUrl": "./src",
-		"forceConsistentCasingInFileNames": true,
 		"isolatedModules": true,
 		"lib": [
 			"ESNext",
@@ -9,21 +7,14 @@
 		],
 		"module": "ESNext",
 		"moduleResolution": "bundler",
-		"paths": {
-			"~/*": [ "*" ],
-			"@calmdown/pyxis-dom": [ "index.ts" ]
-		},
 		"skipLibCheck": true,
-		"stripInternal": true,
 		"strict": true,
 		"target": "ESNext",
 		"types": [],
 		"verbatimModuleSyntax": true
 	},
 	"include": [
-		"./src/**/*.ts"
-	],
-	"exclude": [
-		"./src/jsx/inferred.ts"
+		"./inferred.ts",
+		"./mapping.ts"
 	]
 }

@@ -11,8 +11,6 @@ export const TextInput = component((props: TextInputProps) => (
 		type={props.masked ? "password" : "text"}
 		name={props.name ?? ""}
 		value={props.value}
-		on:input={(e) => {
-			write(props.value, (e.currentTarget as HTMLInputElement).value);
-		}}
+		on:input={(e) => write(props.value, e.currentTarget.value)}
 	/>
 ));

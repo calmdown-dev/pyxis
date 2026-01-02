@@ -19,5 +19,8 @@
 		"@calmdown/pyxis": "workspace:*",
 		"build-logic": "workspace:*",
 		"typescript": "5.9.3"
+	},
+	"scripts": {
+		"bake": "node ./src/jsx/bake.js ./src/jsx/inferred.ts ./src/jsx/baked.ts"
 	}
 }

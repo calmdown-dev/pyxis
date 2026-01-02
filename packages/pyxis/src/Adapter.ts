@@ -1,19 +1,34 @@
-import type { Intersection } from "./support/types";
+import type { TickFn } from "./data/Scheduler";
+import type { ElementsType, Intersection, PropsType } from "./support/types";
 
-export interface Adapter<TNode> extends Extension<TNode> {
+export interface Adapter<TNode, TIntrinsicElements extends ElementsType = ElementsType> {
+	/**
+	 * Carries information about the available intrinsic elements when using this Adapter.
+	 * @deprecated **Type only, does not exist at runtime!**
+	 */
+	readonly __elements?: TIntrinsicElements;
+
+	/**
+	 * A function able to schedule a callback to be executed at a later time, e.g. `queueMicrotask`.
+	 * The function must guarantee that the callback will be eventually executed.
+	 */
+	readonly tick: TickFn;
+
 	/**
 	 * Creates a dummy node occupying a place within the document hierarchy, but is not visually
 	 * presented to the user in any way. E.g. a comment node.
 	 *
 	 * Optionally a hint can be attached to convey the purpose of the anchor.
 	 */
-	readonly anchor: (hint?: string) => TNode;
+	readonly anchor: (
+		hint?: string,
+	) => TNode;
 
 	/**
-	 * Creates a native element node by its tag name.
+	 * Creates a native (intrinsic) element node by its name.
 	 */
 	readonly native: (
-		tagName: string,
+		name: string,
 	) => TNode;
 
 	/**
@@ -38,40 +53,39 @@ export interface Adapter<TNode> extends Extension<TNode> {
 	readonly remove: (
 		node: TNode,
 	) => void;
-}
 
-export interface Extension<TNode> {
 	/**
 	 * Sets a named property of the given node.
 	 */
 	readonly set: (
 		node: TNode,
-		prop: any,
+		prop: string,
 		value: any,
 	) => void;
 }
 
-export type ExtensionMap = { [E in string]: Extension<any> };
+export interface Extension<TNode, TExtensionKey extends string = string, TIntrinsicElements extends ElementsType = ElementsType, TExtendedIntrinsicElements extends ElementsType = ElementsType> {
+	/**
+	 * Infers prop types to decorate existing types with extensions.
+	 * Type only, this call signature does not exist at runtime!
+	 */
+	(extensionKey: TExtensionKey, intrinsicElements: TIntrinsicElements): TExtendedIntrinsicElements;
 
-export type ExtensionProps<TNode, TExtensions extends ExtensionMap> =
-	Intersection<{
-		[E in keyof TExtensions]: E extends string
-			? SingleExtensionProps<TNode, TExtensions[E], E>
-			: {};
-	}[keyof TExtensions]>;
+	/**
+	 * Sets a named property of the given node.
+	 */
+	readonly set: (
+		node: TNode,
+		prop: string,
+		value: any,
+	) => void;
+}
 
-export type SingleExtensionProps<TNode, TExtension, TPrefix extends string> =
-	Intersection<
-		TExtension extends Extension<TNode>
-			? {
-				[P in SingleExtensionPropNames<TExtension>]: {
-					[_ in `${TPrefix}:${P}`]?: TExtension extends { set(node: TNode, prop: P, value: infer V): void } ? V : never
-				};
-			}[SingleExtensionPropNames<TExtension>]
-			: {}
-	>;
+/** @internal */
+export type ExtensionsType<TNode> = { [_ in string]?: Extension<TNode> };
 
-export type SingleExtensionPropNames<TExtension> =
-	TExtension extends { set(node: any, prop: infer TAllProps extends string, value: any): void }
-		? TAllProps
-		: never;
+export type ExtensionProps<TExtensionKey extends string, TProps extends PropsType> = Intersection<{
+	[TPropKey in keyof TProps] -?: TPropKey extends string
+		? { readonly [_ in `${TExtensionKey}:${TPropKey}`]?: TProps[TPropKey] }
+		: never
+}[keyof TProps]>;

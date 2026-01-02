@@ -1,14 +1,16 @@
-import { isAtom, reaction, read, type MaybeAtom } from "@calmdown/pyxis";
+import { isAtom, reaction, read, type ElementsType, type ExtensionProps, type MaybeAtom } from "@calmdown/pyxis";
 
 export interface ClassListExtensionType {
-	set(
-		node: HTMLElement,
-		className: string,
-		toggle: MaybeAtom<boolean>,
-	): void;
+	<TExtensionKey extends string, TElements extends ElementsType>(extensionKey: TExtensionKey, elements: TElements): {
+		[TElementName in keyof TElements]: TElements[TElementName] & ExtensionProps<TExtensionKey, {
+			readonly [_ in string]?: MaybeAtom<boolean>;
+		}>;
+	};
+
+	set: (node: HTMLElement, className: string, toggle: MaybeAtom<boolean>) => void;
 }
 
-export const ClassListExtension: ClassListExtensionType = {
+export const ClassListExtension = {
 	set: (node, className, toggle) => {
 		if (isAtom(toggle)) {
 			reaction(() => {
@@ -19,4 +21,4 @@ export const ClassListExtension: ClassListExtensionType = {
 			node.classList.add(className);
 		}
 	},
-};
+} as ClassListExtensionType;

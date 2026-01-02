@@ -1,7 +1,7 @@
-import type { Nil } from "./support/types";
+import type { Nil, PropsType } from "./support/types";
 import "./jsx";
 
-export interface Component<TProps extends AnyProps = {}, TReturn = any> {
+export interface Component<TProps extends PropsType = {}, TReturn = any> {
 	(props: TProps): TReturn;
 }
 
@@ -9,11 +9,9 @@ export interface Template {
 	(): JsxChildren<Nil<JSX.Node>>;
 }
 
-export interface DataTemplate<T> {
-	(data: T): JsxChildren<Nil<JSX.Node>>;
+export interface DataTemplate<TData> {
+	(data: TData): JsxChildren<Nil<JSX.Node>>;
 }
-
-export type AnyProps = { [_ in string]?: any };
 
 export function component<TPropsArg extends [ {} ], TReturn>(
 	body: (...args: TPropsArg) => TReturn,
@@ -21,6 +19,10 @@ export function component<TPropsArg extends [ {} ], TReturn>(
 	return body as any;
 }
 
+/**
+ * Infers the props object for use with JSX. Because Pyxis always supplies components with child
+ * arrays (or tuples), the type needs to be adjusted to reflect the internal mechanics.
+ */
 export type JsxProps<T> = { readonly [K in keyof T]: K extends "children" ? JsxChildren<T[K]> : T[K] };
 
 /**

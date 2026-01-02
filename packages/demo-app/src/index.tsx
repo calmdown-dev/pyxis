@@ -1,29 +1,23 @@
-import { atom, createRenderer, derivation, Iterator, list, read, RefExtension, write, type Atom } from "@calmdown/pyxis";
-import { BemBlockExtension, BemElementExtension, BemModifierExtension, ClassListExtension, DomAdapter, EventExtension, Text, type ExtendedIntrinsicElements } from "@calmdown/pyxis-dom";
+import { atom, derivation, Iterator, list, pyxis, read, RefExtension, write, type Atom, type ElementsOf } from "@calmdown/pyxis";
+import { BemBlockExtension, BemElementExtension, BemModifierExtension, ClassListExtension, DomAdapter, EventExtension, Text } from "@calmdown/pyxis-dom";
 
 import { Button } from "~/components/Button";
 import { CheckBox } from "~/components/CheckBox";
 import { TextInput } from "~/components/TextInput";
 
-const extensions = {
-	on: EventExtension,
-	cl: ClassListExtension,
-	blk: BemBlockExtension,
-	elm: BemElementExtension,
-	mod: BemModifierExtension,
-	ref: RefExtension,
-};
-
-const renderer = createRenderer({
-	extensions,
-	adapter: DomAdapter,
-	tick: queueMicrotask,
-});
+const renderer = pyxis(DomAdapter)
+	.extend("on", EventExtension)
+	.extend("cl", ClassListExtension)
+	.extend("blk", BemBlockExtension)
+	.extend("elm", BemElementExtension)
+	.extend("mod", BemModifierExtension)
+	.extend("ref", RefExtension)
+	.build();
 
 declare global {
 	namespace JSX {
 		type Node = globalThis.Node;
-		type IntrinsicElements = ExtendedIntrinsicElements<typeof extensions>;
+		type IntrinsicElements = ElementsOf<typeof renderer>;
 	}
 }
 

@@ -24,9 +24,9 @@ export interface Atom<T = unknown> {
 
 	/**
 	 * A fake property kept for TypeScript to properly type-check Atom compatibility.
-	 * @deprecated Not to be used! Only holds the value type and does not actually exist at runtime.
+	 * @deprecated **Type only, does not exist at runtime!**
 	 */
-	__valueType?: T;
+	readonly __type?: T;
 }
 
 /** @internal */

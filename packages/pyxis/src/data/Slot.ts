@@ -16,9 +16,9 @@ export interface Slot<TArgs extends ArgsMax5 = []> {
 
 	/**
 	 * A fake property kept for TypeScript to properly type-check Slot compatibility.
-	 * @deprecated Not to be used! Only holds the value type and does not actually exist at runtime.
+	 * @deprecated **Type only, does not exist at runtime!**
 	 */
-	__slotType?: (...args: TArgs) => void;
+	readonly __type?: (...args: TArgs) => void;
 }
 
 interface SlotInternal<TArgs extends ArgsMax5> extends Slot<TArgs> {

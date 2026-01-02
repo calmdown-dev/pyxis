@@ -15,6 +15,10 @@ export interface Scheduler {
 	$ut?: Nil<UpdateCallback>;
 }
 
+/**
+ * A function able to schedule a callback to be executed at a later time, e.g. `queueMicrotask`.
+ * The function must guarantee that the callback will be eventually executed.
+ */
 export interface TickFn {
 	(onTick: () => void): void;
 }
