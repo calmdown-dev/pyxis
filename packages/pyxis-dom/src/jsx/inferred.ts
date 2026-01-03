@@ -9,12 +9,25 @@ import type { PROP_MAP } from "./mapping";
 
 /** infers the usable props of a DOM element from its native typings */
 type BasePropsOf<T> = Finalize<
-	& MapProps<WrapProps<OmitBanned<OmitFunctions<OmitReadonly<T>>>>, typeof PROP_MAP>
+	& MapProps<WrapProps<OmitBanned<OmitFunctions<OmitReadonly<OmitIndex<T>>>>>, typeof PROP_MAP>
 	& {
 		readonly [S_NODE_TYPE]?: T;
 		children: Nil<Node> | readonly Nil<Node>[];
 	}
 >;
+
+/** omits any catch-all index signatures from T */
+type OmitIndex<T> = {
+	[K in keyof T as (
+		string extends K
+			? never
+			: number extends K
+				? never
+				: symbol extends K
+					? never
+					: K
+	)]: T[K];
+};
 
 /** omits any readonly properties from an object type */
 type OmitReadonly<T> = Pick<T, { [K in keyof T] -?: Equals<{ -readonly [_ in K]: T[K] }, { [_ in K]: T[K] }, K, never> }[keyof T]>;

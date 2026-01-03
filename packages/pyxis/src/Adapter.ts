@@ -72,7 +72,7 @@ export interface Extension<TNode, TExtensionKey extends string = string, TIntrin
 	(extensionKey: TExtensionKey, intrinsicElements: TIntrinsicElements): TExtendedIntrinsicElements;
 
 	/**
-	 * Sets a named property of the given node.
+	 * Sets a named extension property of the given node.
 	 */
 	readonly set: (
 		node: TNode,

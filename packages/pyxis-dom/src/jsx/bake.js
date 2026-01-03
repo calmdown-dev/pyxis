@@ -1,3 +1,10 @@
+// A TypeScript "bake" script capable of materializing complex types into flat interfaces.
+// Usage: node bake.js <input> <output>
+//
+// Only types tagged with the @bake JSDoc tag will be baked.
+// Any node tagged with the @preserve JSDoc tag will be preserved as-is into the output.
+// All other nodes get dropped.
+
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 
@@ -71,7 +78,7 @@ function visitBakedNode(node) {
 	let typeStr = checker.typeToString(type, node, flags);
 
 	// remove redundant `| undefined` unions
-	typeStr = typeStr.replaceAll(/\s*\|\s*undefined;/g, ";");
+	typeStr = typeStr.replaceAll(/(\?:[^;]+?)\s*\|\s*undefined;/g, "$1;");
 
 	// add newline since TS doesn't add it...
 	// https://github.com/microsoft/TypeScript/pull/61349
