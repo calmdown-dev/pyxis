@@ -1,0 +1,11 @@
+.graph-editor,
+.graph-editor__view {
+	width: 100%;
+	height: 100%;
+}
+
+.graph-editor {
+	position: relative;
+	overflow: clip;
+	contain: strict;
+}
