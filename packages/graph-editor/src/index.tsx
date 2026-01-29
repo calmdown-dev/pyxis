@@ -1,5 +1,5 @@
 import { pyxis, RefExtension, type ElementsOf, type JsxResult } from "@calmdown/pyxis";
-import { ClassListExtension, DomAdapter, EventExtension, Text } from "@calmdown/pyxis-dom";
+import { ClassListExtension, CssVariableExtension, DomAdapter, EventExtension, Text } from "@calmdown/pyxis-dom";
 
 import { EditorLayout } from "~/component/EditorLayout";
 import { GraphEditor } from "~/component/GraphEditor";
@@ -7,6 +7,7 @@ import { GraphEditor } from "~/component/GraphEditor";
 const renderer = pyxis(DomAdapter)
 	.extend("on", EventExtension)
 	.extend("cl", ClassListExtension)
+	.extend("var", CssVariableExtension)
 	.extend("ref", RefExtension)
 	.build();
 

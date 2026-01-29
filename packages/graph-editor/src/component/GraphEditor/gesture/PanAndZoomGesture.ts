@@ -1,5 +1,5 @@
 import { PointerType, type PointerGestureEvent } from "~/component/EditorView";
-import { distance, height, width, type Point, type Rect } from "~/support/math";
+import { clamp, distance, lerp, type Point, type Rect } from "~/support/math";
 
 import { PressGesture, PressState, type PressGestureOptions } from "./PressGesture";
 
@@ -18,7 +18,7 @@ export class PanAndZoomGesture extends PressGesture {
 
 	private readonly pointerLockTarget?: Element;
 	private isPointerLockEligible = false;
-	private prevPinchFocus!: Point;
+	private prevPinchCenter!: Point;
 	private prevPinchDistance!: number;
 	private prevResult: Rect;
 
@@ -46,7 +46,7 @@ export class PanAndZoomGesture extends PressGesture {
 		if (allPointers.length === 2) {
 			const [ a, b ] = allPointers;
 			this.prevPinchDistance = distance(a, b);
-			this.prevPinchFocus = {
+			this.prevPinchCenter = {
 				x: (a.x + b.x) * 0.5,
 				y: (a.y + b.y) * 0.5,
 			};
@@ -58,32 +58,45 @@ export class PanAndZoomGesture extends PressGesture {
 	public move(e: PointerGestureEvent) {
 		super.move(e);
 
-		const { allPointers, current } = e;
-		const { prevPinchDistance, prevPinchFocus, prevResult } = this;
+		const { allPointers, clientSize, current } = e;
+		const { prevResult } = this;
 		let result: Rect;
 
 		if (allPointers.length === 2) {
+			const { prevPinchDistance, prevPinchCenter } = this;
 			const [ a, b ] = allPointers;
 			const pinchDistance = distance(a, b);
-			const pinchFocus = {
+			const pinchCenter: Point = {
 				x: (a.x + b.x) * 0.5,
 				y: (a.y + b.y) * 0.5,
 			};
 
-			const dx = pinchFocus.x - prevPinchFocus.x;
-			const dy = pinchFocus.y - prevPinchFocus.y;
-			result = {
+			const zoom = prevPinchDistance / pinchDistance;
+			const cx = lerp(prevResult.left, prevResult.right, clamp(pinchCenter.x / clientSize.width));
+			const cy = lerp(prevResult.top, prevResult.bottom, clamp(pinchCenter.y / clientSize.height));
 
+			const scale = (prevResult.right - prevResult.left) / clientSize.width;
+			const ox = (prevPinchCenter.x - pinchCenter.x) * scale;
+			const oy = (prevPinchCenter.y - pinchCenter.y) * scale;
+
+			result = {
+				left: (prevResult.left - cx) * zoom + cx + ox,
+				right: (prevResult.right - cx) * zoom + cx + ox,
+				top: (prevResult.top - cy) * zoom + cy + oy,
+				bottom: (prevResult.bottom - cy) * zoom + cy + oy,
 			};
+
+			this.prevPinchDistance = pinchDistance;
+			this.prevPinchCenter = pinchCenter;
 		}
 		else {
-			const dx = width(prevResult) * (current.dx / e.clientSize.width);
-			const dy = height(prevResult) * (current.dy / e.clientSize.height);
+			const dx = (prevResult.right - prevResult.left) * (current.dx / e.clientSize.width);
+			const dy = (prevResult.bottom - prevResult.top) * (current.dy / e.clientSize.height);
 			result = {
-				left: prevResult.left + dx,
-				right: prevResult.right + dx,
-				top: prevResult.top + dy,
-				bottom: prevResult.bottom + dy,
+				left: prevResult.left - dx,
+				right: prevResult.right - dx,
+				top: prevResult.top - dy,
+				bottom: prevResult.bottom - dy,
 			};
 		}
 

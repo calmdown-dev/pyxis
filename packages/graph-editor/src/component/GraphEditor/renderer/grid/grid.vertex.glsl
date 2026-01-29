@@ -20,5 +20,5 @@ void main() {
 		floor(uScreenSize[1] * 0.5)
 	);
 
-	vGridPosition = uScreenSize * projection - origin + uGridOffset;
+	vGridPosition = uScreenSize * projection - origin - uGridOffset;
 }

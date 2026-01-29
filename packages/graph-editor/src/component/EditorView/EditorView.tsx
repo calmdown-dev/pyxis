@@ -109,6 +109,7 @@ export const EditorView = component((props: EditorViewProps) => {
 		allPointers.push(current);
 		if (gesture.offer({ clientSize, allPointers, current }) === true) {
 			canvas!.setPointerCapture(current.id);
+			cancelEvent(e);
 		}
 		else {
 			// rejected, remove the pointer
@@ -138,6 +139,8 @@ export const EditorView = component((props: EditorViewProps) => {
 			if (allPointers.length === 0) {
 				gesture = null;
 			}
+
+			cancelEvent(e);
 		}
 	};
 
@@ -148,20 +151,30 @@ export const EditorView = component((props: EditorViewProps) => {
 			return;
 		}
 
-		current.dx = e.movementX / devicePixelRatio;
-		current.dy = e.movementY / devicePixelRatio;
+		// store previous coordinates
+		const px = current.x;
+		const py = current.y;
 
 		// when using pointer lock, offset doesn't update -> integrate deltas instead
 		if (current.type === PointerType.MOUSE && document.pointerLockElement === canvas) {
-			current.x += current.dx;
-			current.y += current.dy;
+			current.x += e.movementX;
+			current.y += e.movementY;
 		}
 		else {
 			current.x = e.offsetX;
 			current.y = e.offsetY;
 		}
 
-		gesture!.move({ clientSize, allPointers, current });
+		// calculate delta (movement x/y reliably reports values only with pointer lock)
+		current.dx = current.x - px;
+		current.dy = current.y - py;
+
+		try {
+			gesture!.move({ clientSize, allPointers, current });
+		}
+		finally {
+			cancelEvent(e);
+		}
 	};
 
 	const onWheel = (e: WheelEvent) => {
@@ -203,6 +216,7 @@ export const EditorView = component((props: EditorViewProps) => {
 			class={props.class}
 			ref:call={onCanvasRef}
 			on:contextmenu={cancelEvent}
+			on:touchstart={cancelEvent}
 			on:pointerdown={onPointerStart}
 			on:pointerup={onPointerStop}
 			on:pointercancel={onPointerStop}
@@ -218,4 +232,5 @@ export const EditorView = component((props: EditorViewProps) => {
 
 function cancelEvent(e: Event) {
 	e.preventDefault();
+	e.stopPropagation();
 }

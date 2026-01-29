@@ -1,4 +1,4 @@
-import { component } from "@calmdown/pyxis";
+import { atom, component, write } from "@calmdown/pyxis";
 
 import { EditorView, type Editor } from "~/component/EditorView";
 import type { Rect, Size } from "~/support/math";
@@ -13,7 +13,10 @@ export interface GraphEditorProps {
 	cellSize?: number;
 }
 
-export const GraphEditor = component(({ cellSize = 20.0 }: GraphEditorProps) => {
+export const GraphEditor = component(({ cellSize = 40.0 }: GraphEditorProps) => {
+	// later recalculated from resize events - fixes some inconsistencies in mobile emulators
+	let dpr = devicePixelRatio;
+
 	let canvas!: HTMLCanvasElement;
 	let renderer!: Renderer;
 	let clientSize!: Size;
@@ -24,12 +27,12 @@ export const GraphEditor = component(({ cellSize = 20.0 }: GraphEditorProps) => 
 		frame = undefined;
 
 		const zoom = (clientSize.width / cellSize) / (view.right - view.left);
-		const size = cellSize * zoom * devicePixelRatio;
+		const size = cellSize * zoom * dpr;
 		renderer.render({
 			gridSize: size,
 			gridOffset: {
-				x: (view.left + view.right) * 0.5 * size,
-				y: (view.top + view.bottom) * 0.5 * size,
+				x: (((view.left + view.right) * 0.5) % 1.0) * size,
+				y: (((view.top + view.bottom) * 0.5) % 1.0) * size,
 			},
 		});
 	};
@@ -40,7 +43,6 @@ export const GraphEditor = component(({ cellSize = 20.0 }: GraphEditorProps) => 
 
 	const editor: Editor = {
 		onGesture: (e) => {
-			const start = { ...view };
 			return new PanAndZoomGesture({
 				editorSpace: view,
 				pointerLockTarget: canvas,
@@ -51,7 +53,6 @@ export const GraphEditor = component(({ cellSize = 20.0 }: GraphEditorProps) => 
 			});
 		},
 		onWheel: (e) => {
-
 			scheduleFrame();
 		},
 		onResize: (e) => {
@@ -74,7 +75,8 @@ export const GraphEditor = component(({ cellSize = 20.0 }: GraphEditorProps) => 
 				bottom: centerY + halfHeight,
 			};
 
-			renderer.resize?.(e.clientSize);
+			dpr = e.pixelSize.width / clientSize.width;
+			renderer.resize?.(e.pixelSize);
 			onFrame();
 		},
 	};
@@ -87,7 +89,7 @@ export const GraphEditor = component(({ cellSize = 20.0 }: GraphEditorProps) => 
 					canvas = node;
 					renderer = createGLRenderer(node, {
 						backgroundColor: 0x303030,
-						gridlineColor: 0x404040,
+						gridlineColor: 0x606060,
 					});
 
 					return editor;

@@ -1,6 +1,5 @@
 .editor__main,
 .editor__toolbar {
-	contain: strict;
 	position: fixed;
 	inset: 0;
 }
@@ -10,13 +9,20 @@ body {
 	 * on mobile devices - especially problematic in landscape mode
 	 */
 	min-height: 150vh;
-	touch-action: none;
 	overflow: clip;
+
+	/* disable various gestures that attempt to select parts of the body as text on mobile devices
+	 * during various gestures
+	 */
+	touch-action: none;
+	user-select: none;
+	-webkit-user-select: none;
+	-webkit-touch-callout: none;
 }
 
-/* .editor__main {
+.editor__main {
 	z-index: 100;
-} */
+}
 
 
 
@@ -27,8 +33,9 @@ body {
 }
 
 .editor__toolbar {
-	/* z-index: 200; */
 	--peek-size: 3rem;
+	z-index: 200;
+	contain: strict;
 
 	/* snappy scroll for the pull-up card
 	 */
@@ -49,7 +56,6 @@ body {
 	animation-timeline: scroll(block self);
 	animation-fill-mode: both;
 	will-change: clip-path;
-	contain: layout;
 }
 
 @keyframes kfToolbarClip {

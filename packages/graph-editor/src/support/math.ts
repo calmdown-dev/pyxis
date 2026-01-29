@@ -29,14 +29,6 @@ export function lerp(a: number, b: number, t: number) {
 	return a + t * (b - a);
 }
 
-export function width(rect: Rect) {
-	return rect.right - rect.left;
-}
-
-export function height(rect: Rect) {
-	return rect.bottom - rect.top;
-}
-
 export function midpoint(rect: Rect): Point {
 	return {
 		x: (rect.left + rect.right) * 0.5,
