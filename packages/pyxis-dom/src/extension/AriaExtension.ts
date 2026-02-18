@@ -1,4 +1,4 @@
-import { isAtom, reaction, read, type ElementsType, type ExtensionProps, type MaybeAtom, type NodeType } from "@calmdown/pyxis";
+import { isAtom, reaction, read, type ElementsType, type ExtensionProps, type MaybeAtom, type NodeType } from "@calmdown/pyxis/core";
 
 import type { ARIAProps } from "~/jsx/baked";
 

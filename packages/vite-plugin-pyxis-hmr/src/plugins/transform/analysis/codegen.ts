@@ -76,7 +76,7 @@ export function applyTransforms(originalCode: string, transforms: readonly CodeT
 
 export function generatePreamble(options: Required<PyxisHmrPluginOptions>) {
 	return `\
-import * as __hmrPyxis from ${JSON.stringify(options.pyxisModule)};
+import * as __hmrPyxis from ${JSON.stringify(options.pyxisModule + "/core")};
 import __hmrRegistry from ${JSON.stringify(__REGISTRY_MODULE__)};
 
 function __hmrWrap(original, id) {

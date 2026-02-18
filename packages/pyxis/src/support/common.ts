@@ -1,7 +1,5 @@
 import type { ArgsMax2, Callback, Nil } from "./types";
 
-export const EMPTY_ARRAY = Object.freeze([] as const);
-
 /**
  * Invokes a Callback passing stored arguments and forwarding the return value.
  * @internal

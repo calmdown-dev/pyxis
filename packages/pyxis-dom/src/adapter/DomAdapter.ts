@@ -1,4 +1,4 @@
-import type { Adapter } from "@calmdown/pyxis";
+import type { Adapter } from "@calmdown/pyxis/core";
 
 import type { IntrinsicElements } from "~/jsx/baked";
 import { PROP_MAP } from "~/jsx/mapping";

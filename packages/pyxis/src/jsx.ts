@@ -1,8 +1,9 @@
 import { Native, S_TAG_NAME } from "~/component/Native";
-import { EMPTY_ARRAY } from "~/support/common";
 import type { PropsType } from "~/support/types";
 import type { Component, JsxResult } from "~/Component";
 import { S_COMPONENT } from "~/Renderer";
+
+const EMPTY_ARRAY = Object.freeze([] as const);
 
 export function jsx(
 	tagName: string,

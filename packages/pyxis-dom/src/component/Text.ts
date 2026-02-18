@@ -1,4 +1,4 @@
-import { insert, reaction, read, type HierarchyNode, type JsxProps, type JsxResult, type MaybeAtom, type Nil } from "@calmdown/pyxis";
+import { insert, reaction, read, type HierarchyNode, type JsxProps, type JsxResult, type MaybeAtom, type Nil } from "@calmdown/pyxis/core";
 
 export interface TextProps {
 	readonly children?: readonly (MaybeAtom<Nil<string | number | boolean | bigint>>)[];

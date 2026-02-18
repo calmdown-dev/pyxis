@@ -1,4 +1,4 @@
-import { isAtom, reaction, read, type ElementsType, type ExtensionProps, type MaybeAtom } from "@calmdown/pyxis";
+import { isAtom, reaction, read, type ElementsType, type ExtensionProps, type MaybeAtom } from "@calmdown/pyxis/core";
 
 export interface ClassListExtensionType {
 	<TExtensionKey extends string, TElements extends ElementsType>(extensionKey: TExtensionKey, elements: TElements): {

@@ -1,7 +1,7 @@
 // baked types, do not modify as changes will be lost
 // source file: inferred.ts
 
-import type { JsxChildren, MaybeAtom, Nil, S_NODE_TYPE } from "@calmdown/pyxis";
+import type { JsxChildren, MaybeAtom, Nil, S_NODE_TYPE } from "@calmdown/pyxis/core";
 
 export interface CSSStyleDeclarationProps {
 	readonly accentColor?: MaybeAtom<string>;
