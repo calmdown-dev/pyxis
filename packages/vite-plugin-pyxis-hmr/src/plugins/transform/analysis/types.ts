@@ -21,20 +21,19 @@ export interface DeclarationSymbolMeta extends SymbolMetaBase<"Declaration"> {
 }
 
 /** an arbitrary expression exposed directly via default export */
-export interface DefaultExportedExpressionMeta extends SymbolMetaBase<"DefaultExport"> {
+export interface DefaultExpressionSymbolMeta extends SymbolMetaBase<"DefaultExport"> {
 	readonly expression: AST.Expression | AST.Function | AST.Class;
 }
 
-export interface ComponentSymbolMeta {
-	readonly name: string;
-	readonly id: string;
+export interface FactoryCallSymbolMeta {
 	readonly expression: AST.CallExpression;
+	readonly kind: "component" | "context" | "atom" | "list" | "provider";
 }
 
 export type SymbolMeta =
 	| VariableSymbolMeta
 	| DeclarationSymbolMeta
-	| DefaultExportedExpressionMeta;
+	| DefaultExpressionSymbolMeta;
 
 export interface CodeTransform {
 	readonly node: AST.Node;

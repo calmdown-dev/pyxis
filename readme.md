@@ -123,26 +123,24 @@ const CounterContext = createContext<number>();
 ```
 
 With the context object ready, it can now be used in components. By requesting
-mutable access to a context, the enclosing component automatically becomes a
-provider of that context. All children and their descendants rendered by the
-enclosing component will gain access to this data. A single component can be a
-provider of multiple contexts.
+a provider atom, the enclosing component automatically acts a provider of that
+context. All children and their descendants rendered by that component will gain
+access to this data. A single component can be a provider of multiple contexts.
 
 ```ts
-// request a mutable (provider) atom for the given context
-const counter = context.mutable(CounterContext, 0);
+// request a provider atom for the given context, initialized to 0
+const counter = providerOf(CounterContext, 0);
 
 // freely write the context atom as needed
 write(counter, 1);
 ```
 
-Accessing contextual data is done very similarly, only omitting the `mutable`
-modifier and the initial value. This returns a read-only Atom that can be used
-in the view model like any other atom.
+Accessing contextual data is done similarly by requesting a consumer atom. This
+results in a read-only Atom.
 
 ```ts
-// get a read-only (consumer) atom for the given context
-const counter = context(CounterContext);
+// get a consumer atom for the given context, read-only
+const counter = consumerOf(CounterContext);
 ```
 
 ### Rendering Text

@@ -38,4 +38,7 @@ Target.TypeScriptLibrary.build(target => {
 	});
 
 	target.pipelines.Code.plugins.Delete.disable();
+	target.pipelines.Code.outputs.Main.configure({
+		minify: false,
+	});
 });

@@ -1,10 +1,9 @@
-import type { PyxisHmrPluginOptions } from "~/types";
-
 import type { CodeTransform, SymbolMeta } from "./types";
 
 interface Boundary {
+	readonly kind: "start" | "end";
 	readonly transform: CodeTransform;
-	readonly position: number;
+	position: number;
 }
 
 export function applyTransforms(originalCode: string, transforms: readonly CodeTransform[]) {
@@ -14,14 +13,16 @@ export function applyTransforms(originalCode: string, transforms: readonly CodeT
 	// generate start and end boundaries separately, with end bounds in reverse order
 	const startBoundaries = sortedTransforms
 		.map<Boundary>(transform => ({
-			transform,
+			kind: "start",
 			position: transform.node.start,
+			transform,
 		}));
 
 	const endBoundaries = sortedTransforms
 		.map<Boundary>(transform => ({
-			transform,
+			kind: "end",
 			position: transform.node.end,
+			transform,
 		}))
 		.reverse();
 
@@ -35,72 +36,60 @@ export function applyTransforms(originalCode: string, transforms: readonly CodeT
 	const skipped: Boundary[] = [];
 
 	let newCode = originalCode;
-	let preOffset = 0;
-	let postOffset = 0;
+	let offset = 0;
 	let index = 1;
 	let prev = boundaries[0];
 
 	for (; index < length; index += 1) {
 		let next = boundaries[index];
-		if (next.transform !== prev.transform) {
-			skipped.push(prev);
-			prev = next;
+
+		if (next.transform === prev.transform) {
+			const start = prev.position + offset;
+			const end = next.position + offset;
+
+			const originalCode = newCode.slice(start, end);
+			const transformedCode = next.transform.block(originalCode);
+
+			newCode = (
+				newCode.slice(0, start) +
+				transformedCode +
+				newCode.slice(end)
+			);
+
+			offset += transformedCode.length - originalCode.length;
+
+			const peek = boundaries[index + 1];
+			switch (peek?.kind) {
+				case "start":
+					prev = peek;
+					index += 1;
+					break;
+
+				case "end":
+					if (skipped.length === 0) {
+						throw new Error("invalid state: no skipped nodes");
+					}
+
+					prev = skipped.pop()!;
+					prev.position -= offset;
+					break;
+			}
 		}
 		else {
-			do {
-				const start = prev.position + preOffset;
-				const end = next.position + preOffset + postOffset;
-
-				const originalCode = newCode.slice(start, end);
-				const transformedCode = next.transform.block(originalCode);
-				newCode = (
-					newCode.slice(0, start) +
-					transformedCode +
-					newCode.slice(end)
-				);
-
-				postOffset += transformedCode.length - originalCode.length;
-
+			if (prev.kind !== "start") {
+				throw new Error("invalid state: disordered nodes");
 			}
-			while ((prev = skipped.pop()!) && (next = boundaries[++index]));
 
-			preOffset += postOffset;
-			postOffset = 0;
-
-			prev = boundaries[++index];
+			skipped.push(prev);
+			prev.position += offset;
+			prev = next;
 		}
 	}
 
 	return newCode;
 }
 
-export function generatePreamble(options: Required<PyxisHmrPluginOptions>) {
-	return `\
-import * as __hmrPyxis from ${JSON.stringify(options.pyxisModule + "/core")};
-import __hmrRegistry from ${JSON.stringify(__REGISTRY_MODULE__)};
-
-function __hmrWrap(original, id) {
-	if (!import.meta.hot) {
-		return original;
-	}
-
-	__hmrRegistry.current.upsert(id, original);
-	return (jsx, parent) => {
-		const template = component => ({ ...jsx, [__hmrPyxis.S_COMPONENT]: component });
-		const group = __hmrPyxis.split(parent);
-		__hmrPyxis.unmounted(
-			__hmrRegistry.current.subscribe(id, current => {
-				__hmrPyxis.unmount(group);
-				__hmrPyxis.mount(group, template, current);
-			}),
-		);
-	};
-}
-
-`;
-}
-
-export function generatePostamble(exportedSymbols: readonly SymbolMeta[]) {
+export function generateOutro(exportedSymbols: readonly SymbolMeta[]) {
 	let setters = "\n";
 	let exports = " ";
 

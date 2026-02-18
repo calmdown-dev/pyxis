@@ -7,11 +7,10 @@
 		".": {
 			"import": "./dist/index.js",
 			"types": "./dist/index.d.ts"
-		},
-		"./registry": {
-			"import": "./dist/registry.js",
-			"types": "./dist/registry.d.ts"
 		}
+	},
+	"peerDependencies": {
+		"vite": "8.0.0-beta.13"
 	},
 	"devDependencies": {
 		"@oxc-project/types": "0.112.0",

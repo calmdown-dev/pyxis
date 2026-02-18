@@ -16,18 +16,20 @@ export class StateRegistry {
 		map[devId] = value;
 	}
 
-	public restore(handle: WeakKey | undefined, devId: string | undefined, block: (value: any) => void) {
+	public restore<T = any>(handle: WeakKey | undefined, devId: string | undefined): T;
+	public restore<T>(handle: WeakKey | undefined, devId: string | undefined, block: (value: any) => T): T | undefined;
+	public restore(handle: WeakKey | undefined, devId: string | undefined, block?: (value: any) => any) {
 		if (!handle || !devId) {
-			return;
+			return undefined;
 		}
 
 		const map = this.state.get(handle);
-		if (!map) {
-			return;
+		if (!map || !Object.hasOwn(map, devId)) {
+			return undefined;
 		}
 
-		if (Object.hasOwn(map, devId)) {
-			block(map[devId]);
-		}
+		return block
+			? block(map[devId])
+			: map[devId];
 	}
 }

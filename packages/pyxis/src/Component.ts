@@ -44,6 +44,10 @@ export function component(
 	block: ComponentBlock,
 	devId?: string,
 ): ComponentHandler {
+	if (__DEV__) {
+		devId && globalThis.__PYXIS_HMR__.component.upsert(devId, block);
+	}
+
 	return (jsx, parent, before) => {
 		const context = getCurrentContainer();
 		try {
@@ -54,9 +58,9 @@ export function component(
 				}
 
 				const group = split(parent);
-				const template = (impl: ComponentBlock): JsxResult => ({
+				const template = (impl: ComponentBlock) => ({
 					...jsx,
-					[S_COMPONENT]: impl,
+					[S_COMPONENT]: () => mountJsx(impl(jsx), group, null),
 				});
 
 				unmounted(

@@ -4,7 +4,7 @@ export { Native } from "~/component/Native";
 export { Show, type ShowProps } from "~/component/Show";
 
 export { atom, isAtom, peek, read, update, write, type Atom, type MaybeAtom, type S_ATOM } from "~/data/Atom";
-export { context, createContext, type Context, type ContextAccess } from "~/data/Context";
+export { consumerOf, createContext, providerOf, type Context } from "~/data/Context";
 export { derivation, type Derivation } from "~/data/Derivation";
 export { getLifecycle, mounted, unmounted, withLifecycle, type Lifecycle, type MountBlock, type UnmountBlock } from "~/data/Lifecycle";
 export { list, sync, type List } from "~/data/List";

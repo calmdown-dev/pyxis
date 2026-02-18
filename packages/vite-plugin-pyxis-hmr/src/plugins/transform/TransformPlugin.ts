@@ -1,39 +1,48 @@
-import type { Plugin } from "vite";
+import * as path from "node:path";
+
+import { normalizePath, type Plugin } from "vite";
 
 import type { PyxisHmrPluginOptions } from "~/types";
 
-import { applyTransforms, generatePostamble, generatePreamble } from "./analysis/codegen";
-import { findExportedComponents } from "./analysis/findExportedComponents";
+import { applyTransforms, generateOutro } from "./analysis/codegen";
+import { findFactoryCalls } from "./analysis/findFactoryCalls";
 import { findExportedSymbols } from "./analysis/findExportedSymbols";
 import { generateCodeTransforms } from "./analysis/generateCodeTransforms";
 
-export function pyxisHmrTransformPlugin(options: Required<PyxisHmrPluginOptions>): Plugin {
+export function pyxisHmrTransformPlugin(pluginOptions: Required<PyxisHmrPluginOptions>): Plugin {
+	let root: string;
 	return {
 		name: `${__THIS_MODULE__}:transform`,
+		configResolved(config) {
+			root = config.root;
+		},
 		transform: {
 			filter: {
 				id: {
 					include: /\.m?[jt]sx?$/i,
-					exclude: options.exclude,
+					exclude: pluginOptions.exclude,
 				},
 			},
-			async handler(code, moduleId) {
-				const ast = this.parse(code, { astType: "js" });
-
-				const exportedSymbols = findExportedSymbols(ast);
-				const exportedComponents = findExportedComponents(ast, exportedSymbols, options, moduleId);
-				if (exportedSymbols.length === 0 || exportedComponents.length === 0) {
+			handler(code, moduleId) {
+				if (!(root && moduleId.startsWith(root))) {
 					return null;
 				}
 
-				const transforms = generateCodeTransforms(exportedSymbols, exportedComponents);
-				const newCode = (
-					generatePreamble(options) +
-					applyTransforms(code, transforms) +
-					generatePostamble(exportedSymbols)
-				);
+				const ast = this.parse(code, { astType: "js" });
 
-				return newCode;
+				const exportedSymbols = findExportedSymbols(ast);
+				const factoryCalls = findFactoryCalls(ast, pluginOptions);
+				if (exportedSymbols.length === 0 && factoryCalls.length === 0) {
+					return null;
+				}
+
+				const shortModuleId = normalizePath(path.relative(root, moduleId));
+				const transforms = generateCodeTransforms(exportedSymbols, factoryCalls, shortModuleId);
+				return (
+					"\n" +
+					applyTransforms(code, transforms) +
+					generateOutro(exportedSymbols)
+				);
 			},
 		},
 	};
