@@ -1,5 +1,5 @@
 /** @preserve */
-import type { JsxChildren, MaybeAtom, Nil, S_NODE_TYPE } from "@calmdown/pyxis";
+import type { JsxChildren, MaybeAtom, Nil, S_NODE_TYPE } from "@calmdown/pyxis/core";
 
 import type { PROP_MAP } from "./mapping";
 

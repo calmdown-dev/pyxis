@@ -5,8 +5,12 @@
 	"type": "module",
 	"exports": {
 		".": {
-			"import": "./dist/index.js",
-			"types": "./dist/index.d.ts"
+			"import": "./dist/main.js",
+			"types": "./dist/main.d.ts"
+		},
+		"./core": {
+			"import": "./dist/core.js",
+			"types": "./dist/core.d.ts"
 		},
 		"./jsx-runtime": {
 			"import": "./dist/jsx-runtime.js",

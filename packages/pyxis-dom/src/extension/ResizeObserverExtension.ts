@@ -1,4 +1,4 @@
-import { unmounted, write, type Atom, type ElementsType, type ExtensionProps } from "@calmdown/pyxis";
+import { unmounted, write, type Atom, type ElementsType, type ExtensionProps } from "@calmdown/pyxis/core";
 
 export interface ResizeObserverExtensionType {
 	<TExtensionKey extends string, TElements extends ElementsType>(extensionKey: TExtensionKey, elements: TElements): {

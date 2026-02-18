@@ -107,7 +107,7 @@ export type JsxChildren = JsxResult | readonly JsxChildren[];
 /**
  * Utility type adding the standard `children` prop to the given props type.
  */
-export type WithChildren<T extends PropsType> = { children: JsxChildren } & T;
+export type WithChildren<T extends PropsType> = T & { children?: JsxChildren };
 
 /** @internal */
 export interface ComponentHandler {

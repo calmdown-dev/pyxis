@@ -2,12 +2,10 @@ import * as Target from "build-logic/targets";
 import * as Plugin from "build-logic/plugins";
 
 Target.TypeScriptLibrary.build(target => {
-	target.entry("index", "./src/index.ts");
-	target.entry("jsx-runtime", "./src/jsx/runtime.ts");
-	target.entry("jsx-dev-runtime", "./src/jsx/runtimeDev.ts");
+	target.entry("core", "./src/exports/core.ts");
 
 	target.configure({
-		external: [ "@calmdown/pyxis" ],
+		external: [ "@calmdown/pyxis", "@calmdown/pyxis/core" ],
 	});
 
 	target.pipelines.Code.plugin(Plugin.Copy
@@ -15,7 +13,7 @@ Target.TypeScriptLibrary.build(target => {
 			targets: [
 				{
 					destination: "./dist",
-					include: "./src/jsx/jsx-{dev-,}runtime.*",
+					include: "./src/exports/*.{js,d.ts}",
 				},
 			],
 		})

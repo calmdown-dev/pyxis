@@ -1,4 +1,4 @@
-import { Native, split, type HierarchyNode, type JsxProps, type JsxResult } from "@calmdown/pyxis";
+import { Native, split, type HierarchyNode, type JsxProps, type JsxResult } from "@calmdown/pyxis/core";
 
 import { SvgAdapter } from "~/adapter/SvgAdapter";
 import type { SVGSVGElementProps } from "~/jsx/baked";
