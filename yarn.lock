@@ -97,24 +97,24 @@ __metadata:
 
 "@calmdown/rolldown-workspace@file:../../rolldown-workspace/packages/rolldown-workspace::locator=build-logic%40workspace%3Abuild-logic":
   version: 1.0.0-rc.1
-  resolution: "@calmdown/rolldown-workspace@file:../../rolldown-workspace/packages/rolldown-workspace#../../rolldown-workspace/packages/rolldown-workspace::hash=4a9959&locator=build-logic%40workspace%3Abuild-logic"
+  resolution: "@calmdown/rolldown-workspace@file:../../rolldown-workspace/packages/rolldown-workspace#../../rolldown-workspace/packages/rolldown-workspace::hash=8fcfcd&locator=build-logic%40workspace%3Abuild-logic"
   peerDependencies:
     rolldown: 1.0.0-rc.5
-  checksum: 10/10909b444d8d24b67d3080a42a3052aea47f54c6609ab756eb06314aa58fe1b50f8929819de6b8c002232e68447804c5fc54208d422032f2101acbc7f2dc8960
+  checksum: 10/93701fd2271592b097b0717ea2b08b33c1cbdecf146df6a3c27ce2f202160a90b65bb13ecdcdfb7659bc7abf917d31e1cc493ce18d55096b5f2411652194f4b8
   languageName: node
   linkType: hard
 
 "@calmdown/rollup-plugin-copy@file:../../rolldown-workspace/packages/rollup-plugin-copy::locator=build-logic%40workspace%3Abuild-logic":
   version: 1.0.0
-  resolution: "@calmdown/rollup-plugin-copy@file:../../rolldown-workspace/packages/rollup-plugin-copy#../../rolldown-workspace/packages/rollup-plugin-copy::hash=596e36&locator=build-logic%40workspace%3Abuild-logic"
-  checksum: 10/c8de2b8996d157dab3981bdde4d789cac3b5994a13c52924d92595ecd0dcbd603691a9bdf7ed239a0b9664f576efcea3def7aa152532d178ae5f1578b8fb9376
+  resolution: "@calmdown/rollup-plugin-copy@file:../../rolldown-workspace/packages/rollup-plugin-copy#../../rolldown-workspace/packages/rollup-plugin-copy::hash=d17272&locator=build-logic%40workspace%3Abuild-logic"
+  checksum: 10/c1a34e72d7d0a94bc58957f5657bb160c1a678c8089962cc81837eff9068c8bd207de80abc4854f8e04d34ef80c7bc68a8f0ea5c7d90a497939336ad0dbf18ed
   languageName: node
   linkType: hard
 
 "@calmdown/rollup-plugin-delete@file:../../rolldown-workspace/packages/rollup-plugin-delete::locator=build-logic%40workspace%3Abuild-logic":
   version: 1.0.0
-  resolution: "@calmdown/rollup-plugin-delete@file:../../rolldown-workspace/packages/rollup-plugin-delete#../../rolldown-workspace/packages/rollup-plugin-delete::hash=d27e4e&locator=build-logic%40workspace%3Abuild-logic"
-  checksum: 10/a19d395989fe4627e3a2eee5cdd4239298d0c25e662eca8dc859546914646e5e9654d586ee073078dce7f9d59e17efada2dc94645375ba910c427a2b2095626e
+  resolution: "@calmdown/rollup-plugin-delete@file:../../rolldown-workspace/packages/rollup-plugin-delete#../../rolldown-workspace/packages/rollup-plugin-delete::hash=ad8ddf&locator=build-logic%40workspace%3Abuild-logic"
+  checksum: 10/dcb14e3c39949d4ade0a0c5f8fdc8138240d6e5493d71e2811aeeda0ea713a81b73c717631c19bcd851eb838081791d1593e8f676b6917998c2c226aa9cfef84
   languageName: node
   linkType: hard
 

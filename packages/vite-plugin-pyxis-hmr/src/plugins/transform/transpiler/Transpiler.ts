@@ -40,7 +40,7 @@ export class Transpiler {
 
 	public transpile(originalCode: string) {
 		// pre-sort transforms
-		const sortedTransforms = this.transforms.toSorted((a, b) => (a.start - b.start) || (a.end - b.end));
+		const sortedTransforms = this.transforms.toSorted((a, b) => (a.start - b.start) || (b.end - a.end));
 
 		// generate start and end boundaries separately, with end bounds in reverse order
 		const startBoundaries = sortedTransforms
