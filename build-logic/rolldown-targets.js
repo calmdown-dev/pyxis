@@ -39,13 +39,6 @@ export const PyxisApplication = defineTarget("PyxisApplication", target => targe
 				targets: "./dist/**/*",
 			})
 		)
-		.plugin(Plugin.ImportFile
-			.configure({
-				output: "./dist/assets",
-				extensions: /\.(svg|web[pma]|wasm)$/,
-			})
-		)
-		.plugin(Plugin.LoadText)
 		.output("Main", out => out
 			.configure((_, context) => ({
 				dir: "./dist",

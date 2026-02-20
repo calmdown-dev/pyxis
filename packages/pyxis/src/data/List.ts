@@ -7,27 +7,15 @@ import { createDelta, itemChanged, itemInserted, itemRemoved, listCleared, listS
 import { reportAccess } from "./Reaction";
 import { schedule, type UpdateCallback } from "./Scheduler";
 
-export interface List<T> extends DependencyList {
+export interface ReadonlyList<T> extends DependencyList {
 	readonly size: () => number;
-
 	readonly get: (index: number) => T;
-	readonly set: (index: number, item: T) => void;
-	readonly clear: () => void;
-
-	readonly insertAt: (index: number, item: T) => void;
-	readonly insertFirst: (item: T) => void;
-	readonly insertLast: (item: T) => void;
-
-	readonly remove: (item: T) => boolean;
-	readonly removeAt: (index: number) => T;
-	readonly removeFirst: () => T;
-	readonly removeLast: () => T;
 
 	/** @internal */
 	readonly $lifecycle: Lifecycle;
 
 	/** @internal */
-	$items: T[];
+	$items: readonly T[];
 
 	/** @internal */
 	$delta?: Nil<ListDelta<T>>;
@@ -42,11 +30,29 @@ export interface List<T> extends DependencyList {
 	$devId?: string;
 }
 
+export interface List<T> extends ReadonlyList<T> {
+	readonly set: (index: number, item: T) => void;
+	readonly clear: () => void;
+
+	readonly insertAt: (index: number, item: T) => void;
+	readonly insertFirst: (item: T) => void;
+	readonly insertLast: (item: T) => void;
+
+	readonly remove: (item: T) => boolean;
+	readonly removeAt: (index: number) => T;
+	readonly removeFirst: () => T;
+	readonly removeLast: () => T;
+
+	/** @internal */
+	$items: T[];
+}
+
 /**
  * Creates an empty List. This List emits deltas with each mutation which can be observed by
  * Components to efficiently update the rendered state.
  */
-export function list<T>(source?: null, lifecycle?: Lifecycle): List<T>;
+export function list<T>(): List<T>;
+export function list<T>(source: Nil<never>, lifecycle: Lifecycle): List<T>;
 
 /**
  * Creates a List initialized with items copied from the provided Iterable. This List emits deltas
@@ -54,7 +60,7 @@ export function list<T>(source?: null, lifecycle?: Lifecycle): List<T>;
  */
 export function list<T>(source: Iterable<T>, lifecycle?: Lifecycle): List<T>;
 
-export function list<T>(source: Nil<Iterable<T>>, lifecycle = getLifecycle(), devId?: string): List<T> {
+export function list<T>(source?: Nil<Iterable<T>>, lifecycle = getLifecycle(), devId?: string): List<T> {
 	if (__DEV__) {
 		globalThis.__PYXIS_HMR__.state.restore(lifecycle, devId, value => {
 			source = value;

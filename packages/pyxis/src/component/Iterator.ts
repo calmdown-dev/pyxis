@@ -1,20 +1,20 @@
 import type { MaybeAtom } from "~/data/Atom";
 import type { Lifecycle } from "~/data/Lifecycle";
 import { link } from "~/data/Dependency";
-import type { List } from "~/data/List";
+import type { ReadonlyList } from "~/data/List";
 import { K_CHANGE, K_CLEAR, K_INSERT, K_REMOVE } from "~/data/ListDelta";
 import { proxy, type ProxyAtom } from "~/data/ProxyAtom";
 import type { DataTemplate, JsxProps, JsxResult } from "~/Component";
 import { mount, split, track, unmount, untrack, type HierarchyNode, type MountingGroup } from "~/Renderer";
 
 export interface RemountIteratorProps<T> {
-	source: List<T>;
+	source: ReadonlyList<T>;
 	proxy?: never; // discriminator
 	children: [ DataTemplate<T> ];
 }
 
 export interface ProxyIteratorProps<T, P extends readonly (keyof T)[]> {
-	source: List<T>;
+	source: ReadonlyList<T>;
 	proxy?: P;
 	children: [ DataTemplate<{ [K in P[number]]: ProxyAtom<T[K] extends MaybeAtom<infer V> ? V : T[K]> } & { readonly proxied: T }> ];
 }
@@ -49,7 +49,7 @@ export function Iterator<TNode, T>(
 	parent: HierarchyNode<TNode>,
 	before: TNode | null,
 ) {
-	const source = jsx.source as List<T>;
+	const source = jsx.source as ReadonlyList<T>;
 	const proxy = jsx.proxy as readonly PropertyKey[] | undefined;
 	const isProxy = proxy !== undefined;
 	const template = jsx.children[0] as DataTemplate<T>;

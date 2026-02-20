@@ -46,7 +46,7 @@ export function walkUp<T>(node: AST.Node | null | undefined, callback: (node: AS
 	}
 }
 
-export function isNode(value: any): value is AST.Node {
+function isNode(value: any): value is AST.Node {
 	return (
 		value !== null &&
 		typeof value === "object" &&

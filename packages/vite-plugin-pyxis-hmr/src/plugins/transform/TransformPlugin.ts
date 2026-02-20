@@ -4,10 +4,10 @@ import { normalizePath, type Plugin } from "vite";
 
 import type { PyxisHmrPluginOptions } from "~/types";
 
-import { applyTransforms, generateOutro } from "./analysis/codegen";
-import { findFactoryCalls } from "./analysis/findFactoryCalls";
-import { findExportedSymbols } from "./analysis/findExportedSymbols";
-import { generateCodeTransforms } from "./analysis/generateCodeTransforms";
+import { Transpiler } from "./transpiler/Transpiler";
+import { transpileExportedSymbols } from "./transpiler/transpileExportedSymbols";
+import { transpileFactoryCalls } from "./transpiler/transpileFactoryCalls";
+
 
 export function pyxisHmrTransformPlugin(pluginOptions: Required<PyxisHmrPluginOptions>): Plugin {
 	let root: string;
@@ -28,21 +28,28 @@ export function pyxisHmrTransformPlugin(pluginOptions: Required<PyxisHmrPluginOp
 					return null;
 				}
 
-				const ast = this.parse(code, { astType: "js" });
-
-				const exportedSymbols = findExportedSymbols(ast);
-				const factoryCalls = findFactoryCalls(ast, pluginOptions);
-				if (exportedSymbols.length === 0 && factoryCalls.length === 0) {
+				if (!moduleId.endsWith("TestApp.tsx")) {
 					return null;
 				}
 
+				const ast = this.parse(code, { astType: "js" });
+				const transpiler = new Transpiler();
 				const shortModuleId = normalizePath(path.relative(root, moduleId));
-				const transforms = generateCodeTransforms(exportedSymbols, factoryCalls, shortModuleId);
-				return (
-					"\n" +
-					applyTransforms(code, transforms) +
-					generateOutro(exportedSymbols)
-				);
+
+				transpileExportedSymbols(transpiler, ast);
+				transpileFactoryCalls(transpiler, ast, pluginOptions, shortModuleId);
+
+				const result = transpiler.transpile(code);
+				return {
+					code: result.transpiledCode,
+					map: {
+						version: 3,
+						sources: [ shortModuleId ],
+						sourcesContent: [ code ],
+						names: [],
+						mappings: result.sourcemap,
+					},
+				};
 			},
 		},
 	};
