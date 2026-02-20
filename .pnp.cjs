@@ -43,7 +43,7 @@ const RAW_RUNTIME_STATE =
     ["@calmdown/pyxis-demo-app", ["workspace:packages/demo-app"]],\
     ["@calmdown/pyxis-dom", ["virtual:1f62ac333ea38288ad7bfdc4001d7c2d19c462e86d2ec656a9b444e944a05ac2982619007938f2a67c26c0409c529d60b54870ac795802beb97264d96db63ed5#workspace:packages/pyxis-dom", "workspace:packages/pyxis-dom"]],\
     ["@calmdown/pyxis-monorepo", ["workspace:."]],\
-    ["@calmdown/vite-plugin-pyxis-hmr", ["virtual:b992d4f4d8a546a46d11d4f2e94e372c5091a7f79d2b9d76b67d58ee8a861fcba1f411d948301d09a34685c9a7d4fdcadb682a467db70b0e19fec6166f121411#workspace:packages/vite-plugin-pyxis-hmr", "workspace:packages/vite-plugin-pyxis-hmr"]],\
+    ["@calmdown/vite-plugin-pyxis-hmr", ["workspace:packages/vite-plugin-pyxis-hmr"]],\
     ["build-logic", ["workspace:build-logic"]]\
   ],\
   "fallbackPool": [\
@@ -217,23 +217,6 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["@calmdown/vite-plugin-pyxis-hmr", [\
-      ["virtual:b992d4f4d8a546a46d11d4f2e94e372c5091a7f79d2b9d76b67d58ee8a861fcba1f411d948301d09a34685c9a7d4fdcadb682a467db70b0e19fec6166f121411#workspace:packages/vite-plugin-pyxis-hmr", {\
-        "packageLocation": "./.yarn/__virtual__/@calmdown-vite-plugin-pyxis-hmr-virtual-68f62b8248/1/packages/vite-plugin-pyxis-hmr/",\
-        "packageDependencies": [\
-          ["@calmdown/vite-plugin-pyxis-hmr", "virtual:b992d4f4d8a546a46d11d4f2e94e372c5091a7f79d2b9d76b67d58ee8a861fcba1f411d948301d09a34685c9a7d4fdcadb682a467db70b0e19fec6166f121411#workspace:packages/vite-plugin-pyxis-hmr"],\
-          ["@oxc-project/types", "npm:0.114.0"],\
-          ["@types/node", "npm:25.2.3"],\
-          ["@types/vite", null],\
-          ["build-logic", "workspace:build-logic"],\
-          ["typescript", "patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"],\
-          ["vite", "virtual:b992d4f4d8a546a46d11d4f2e94e372c5091a7f79d2b9d76b67d58ee8a861fcba1f411d948301d09a34685c9a7d4fdcadb682a467db70b0e19fec6166f121411#npm:8.0.0-beta.14"]\
-        ],\
-        "packagePeers": [\
-          "@types/vite",\
-          "vite"\
-        ],\
-        "linkType": "SOFT"\
-      }],\
       ["workspace:packages/vite-plugin-pyxis-hmr", {\
         "packageLocation": "./packages/vite-plugin-pyxis-hmr/",\
         "packageDependencies": [\
@@ -734,7 +717,7 @@ const RAW_RUNTIME_STATE =
           ["@calmdown/rolldown-workspace", "virtual:b992d4f4d8a546a46d11d4f2e94e372c5091a7f79d2b9d76b67d58ee8a861fcba1f411d948301d09a34685c9a7d4fdcadb682a467db70b0e19fec6166f121411#file:../../rolldown-workspace/packages/rolldown-workspace#../../rolldown-workspace/packages/rolldown-workspace::hash=8fcfcd&locator=build-logic%40workspace%3Abuild-logic"],\
           ["@calmdown/rollup-plugin-copy", "file:../../rolldown-workspace/packages/rollup-plugin-copy#../../rolldown-workspace/packages/rollup-plugin-copy::hash=d17272&locator=build-logic%40workspace%3Abuild-logic"],\
           ["@calmdown/rollup-plugin-delete", "file:../../rolldown-workspace/packages/rollup-plugin-delete#../../rolldown-workspace/packages/rollup-plugin-delete::hash=ad8ddf&locator=build-logic%40workspace%3Abuild-logic"],\
-          ["@calmdown/vite-plugin-pyxis-hmr", "virtual:b992d4f4d8a546a46d11d4f2e94e372c5091a7f79d2b9d76b67d58ee8a861fcba1f411d948301d09a34685c9a7d4fdcadb682a467db70b0e19fec6166f121411#workspace:packages/vite-plugin-pyxis-hmr"],\
+          ["@calmdown/vite-plugin-pyxis-hmr", "workspace:packages/vite-plugin-pyxis-hmr"],\
           ["build-logic", "workspace:build-logic"],\
           ["rolldown", "npm:1.0.0-rc.5"],\
           ["rolldown-plugin-dts", "virtual:b992d4f4d8a546a46d11d4f2e94e372c5091a7f79d2b9d76b67d58ee8a861fcba1f411d948301d09a34685c9a7d4fdcadb682a467db70b0e19fec6166f121411#npm:0.22.1"],\
@@ -782,11 +765,11 @@ const RAW_RUNTIME_STATE =
         ],\
         "linkType": "SOFT"\
       }],\
-      ["virtual:219e847de09cd440f3b54d16ed8a8e49bf410c6c852a2ccebec885ede6ac800e02db9f5f3f0c93326df44ed8635794d98372661dc65ad7d27cf29796300071ac#npm:4.4.3", {\
-        "packageLocation": "./.yarn/__virtual__/debug-virtual-38263e6cbc/0/cache/debug-npm-4.4.3-0105c6123a-9ada3434ea.zip/node_modules/debug/",\
+      ["virtual:643ed7cc338bcf145a82d8b05b3bef6bcf150ca545df386225596f10ce53cc90b88b3ca83e348ade1ccea5f3f8e76c92d2f0e2ba544da60d40aff9921c56872d#npm:4.4.3", {\
+        "packageLocation": "./.yarn/__virtual__/debug-virtual-5da9fc757d/0/cache/debug-npm-4.4.3-0105c6123a-9ada3434ea.zip/node_modules/debug/",\
         "packageDependencies": [\
           ["@types/supports-color", null],\
-          ["debug", "virtual:219e847de09cd440f3b54d16ed8a8e49bf410c6c852a2ccebec885ede6ac800e02db9f5f3f0c93326df44ed8635794d98372661dc65ad7d27cf29796300071ac#npm:4.4.3"],\
+          ["debug", "virtual:643ed7cc338bcf145a82d8b05b3bef6bcf150ca545df386225596f10ce53cc90b88b3ca83e348ade1ccea5f3f8e76c92d2f0e2ba544da60d40aff9921c56872d#npm:4.4.3"],\
           ["ms", "npm:2.1.3"],\
           ["supports-color", null]\
         ],\
@@ -971,7 +954,7 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "./.yarn/cache/http-proxy-agent-npm-7.0.2-643ed7cc33-d062acfa0c.zip/node_modules/http-proxy-agent/",\
         "packageDependencies": [\
           ["agent-base", "npm:7.1.4"],\
-          ["debug", "virtual:219e847de09cd440f3b54d16ed8a8e49bf410c6c852a2ccebec885ede6ac800e02db9f5f3f0c93326df44ed8635794d98372661dc65ad7d27cf29796300071ac#npm:4.4.3"],\
+          ["debug", "virtual:643ed7cc338bcf145a82d8b05b3bef6bcf150ca545df386225596f10ce53cc90b88b3ca83e348ade1ccea5f3f8e76c92d2f0e2ba544da60d40aff9921c56872d#npm:4.4.3"],\
           ["http-proxy-agent", "npm:7.0.2"]\
         ],\
         "linkType": "HARD"\
@@ -982,7 +965,7 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "./.yarn/cache/https-proxy-agent-npm-7.0.6-27a95c2690-784b628cbd.zip/node_modules/https-proxy-agent/",\
         "packageDependencies": [\
           ["agent-base", "npm:7.1.4"],\
-          ["debug", "virtual:219e847de09cd440f3b54d16ed8a8e49bf410c6c852a2ccebec885ede6ac800e02db9f5f3f0c93326df44ed8635794d98372661dc65ad7d27cf29796300071ac#npm:4.4.3"],\
+          ["debug", "virtual:643ed7cc338bcf145a82d8b05b3bef6bcf150ca545df386225596f10ce53cc90b88b3ca83e348ade1ccea5f3f8e76c92d2f0e2ba544da60d40aff9921c56872d#npm:4.4.3"],\
           ["https-proxy-agent", "npm:7.0.6"]\
         ],\
         "linkType": "HARD"\
@@ -1571,7 +1554,7 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "./.yarn/cache/socks-proxy-agent-npm-8.0.5-24d77a90dc-ee99e1daca.zip/node_modules/socks-proxy-agent/",\
         "packageDependencies": [\
           ["agent-base", "npm:7.1.4"],\
-          ["debug", "virtual:219e847de09cd440f3b54d16ed8a8e49bf410c6c852a2ccebec885ede6ac800e02db9f5f3f0c93326df44ed8635794d98372661dc65ad7d27cf29796300071ac#npm:4.4.3"],\
+          ["debug", "virtual:643ed7cc338bcf145a82d8b05b3bef6bcf150ca545df386225596f10ce53cc90b88b3ca83e348ade1ccea5f3f8e76c92d2f0e2ba544da60d40aff9921c56872d#npm:4.4.3"],\
           ["socks", "npm:2.8.7"],\
           ["socks-proxy-agent", "npm:8.0.5"]\
         ],\
@@ -1838,7 +1821,7 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "./.yarn/__virtual__/vite-tsconfig-paths-virtual-219e847de0/0/cache/vite-tsconfig-paths-npm-6.1.1-aeb8d4e5a5-f752bce4f3.zip/node_modules/vite-tsconfig-paths/",\
         "packageDependencies": [\
           ["@types/vite", null],\
-          ["debug", "virtual:219e847de09cd440f3b54d16ed8a8e49bf410c6c852a2ccebec885ede6ac800e02db9f5f3f0c93326df44ed8635794d98372661dc65ad7d27cf29796300071ac#npm:4.4.3"],\
+          ["debug", "virtual:643ed7cc338bcf145a82d8b05b3bef6bcf150ca545df386225596f10ce53cc90b88b3ca83e348ade1ccea5f3f8e76c92d2f0e2ba544da60d40aff9921c56872d#npm:4.4.3"],\
           ["globrex", "npm:0.1.2"],\
           ["tsconfck", "virtual:219e847de09cd440f3b54d16ed8a8e49bf410c6c852a2ccebec885ede6ac800e02db9f5f3f0c93326df44ed8635794d98372661dc65ad7d27cf29796300071ac#npm:3.1.6"],\
           ["vite", "virtual:b992d4f4d8a546a46d11d4f2e94e372c5091a7f79d2b9d76b67d58ee8a861fcba1f411d948301d09a34685c9a7d4fdcadb682a467db70b0e19fec6166f121411#npm:8.0.0-beta.14"],\

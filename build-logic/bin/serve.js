@@ -38,8 +38,8 @@ try {
 	const call = {
 		reporter: NoOpReporter,
 		env: Env.Development,
-		isWatching: true,
 		isDebug: cmd.opts.debug,
+		isWatching: true,
 	};
 
 	const targets = await Builder.getTargets(currentPackage, call);

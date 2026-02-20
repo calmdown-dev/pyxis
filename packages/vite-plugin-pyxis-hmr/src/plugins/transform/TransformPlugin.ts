@@ -1,6 +1,6 @@
 import * as path from "node:path";
 
-import { normalizePath, type Plugin } from "vite";
+import type { Plugin } from "vite";
 
 import type { PyxisHmrPluginOptions } from "~/types";
 
@@ -14,7 +14,7 @@ export function pyxisHmrTransformPlugin(pluginOptions: Required<PyxisHmrPluginOp
 	return {
 		name: `${__THIS_MODULE__}:transform`,
 		configResolved(config) {
-			root = config.root;
+			root = path.resolve(config.root);
 		},
 		transform: {
 			filter: {
@@ -24,13 +24,13 @@ export function pyxisHmrTransformPlugin(pluginOptions: Required<PyxisHmrPluginOp
 				},
 			},
 			handler(code, moduleId) {
-				if (!(root && moduleId.startsWith(root))) {
+				if (!isPathWithin(root, moduleId)) {
 					return null;
 				}
 
 				const ast = this.parse(code, { astType: "js" });
 				const transpiler = new Transpiler();
-				const shortModuleId = normalizePath(path.relative(root, moduleId));
+				const shortModuleId = getShortModuleId(root, moduleId);
 
 				transpileExportedSymbols(transpiler, ast);
 				transpileFactoryCalls(transpiler, ast, pluginOptions, shortModuleId);
@@ -49,4 +49,18 @@ export function pyxisHmrTransformPlugin(pluginOptions: Required<PyxisHmrPluginOp
 			},
 		},
 	};
+}
+
+function isPathWithin(root: string, moduleId: string) {
+	const relative = path.relative(root, moduleId);
+	return (
+		relative &&
+		!relative.startsWith("..") &&
+		!path.isAbsolute(relative)
+	);
+}
+
+function getShortModuleId(root: string, moduleId: string) {
+	const relative = path.relative(root, moduleId).replace(/\\/g, "/");
+	return path.posix.normalize(relative);
 }

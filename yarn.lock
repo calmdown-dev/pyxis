@@ -127,8 +127,6 @@ __metadata:
     build-logic: "workspace:*"
     typescript: "npm:5.9.3"
     vite: "npm:8.0.0-beta.14"
-  peerDependencies:
-    vite: 8.0.0-beta.14
   languageName: unknown
   linkType: soft
 

@@ -9,9 +9,6 @@
 			"types": "./dist/index.d.ts"
 		}
 	},
-	"peerDependencies": {
-		"vite": "8.0.0-beta.14"
-	},
 	"devDependencies": {
 		"@oxc-project/types": "0.114.0",
 		"@types/node": "25.2.3",
