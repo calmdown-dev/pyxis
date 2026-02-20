@@ -15,21 +15,30 @@ dependency graph and only dispatch updates to areas that require a change.
 
 The building block of any observable state is an Atom. It is a thin wrapper
 around any arbitrary value that can be changed at any time. Atoms don't expose
-their value directly, instead it is necessary to use the `read`, `write` and
-`update` functions to do so.
+their value directly, instead it is necessary to use the `read`, `write`,
+`update` and `peek` functions to do so.
 
-#### Read
+#### Read, Peek
 
-The read function checks whether its input is an Atom and reads its value.
-Non-atom inputs are returned as-is.
+The read and peek functions check whether their input is an Atom and read its
+value. Non-atom inputs are returned as-is.
 
-It also reports read access when used within an effect or derived block.
+The read variant will report access, automatically setting up observers when
+used within an effect or derive blocks, the peek variant will not.
 
 ```ts
-const count = atomOf(0);
+const count1 = atomOf(0);
+const count2 = atomOf(0);
 
-read(count); // returns 0
+read(count1); // returns 0
 read(123); // returns 123
+
+effect(() => {
+  console.log(
+    read(count1), // observed
+    peek(count2), // not observed
+  );
+});
 ```
 
 #### Write
@@ -56,7 +65,7 @@ the new value of the atom is returned. For non-atom inputs, this function is a
 no-op and returns the input as-is.
 
 Update does *not* report read access, even when used within an effect or derive
-block.
+block, i.e. it does not set up observers.
 
 ```ts
 const count = atomOf(0);
@@ -71,10 +80,9 @@ update(123, increment); // does nothing, returns 123
 
 ### Derivations
 
-Derivations are a special, readonly type of an atom. Their value is derived from
-one or more other atoms. Derivations are updated when one or more of the atoms
-they depend on change. The update is lazy and doesn't run until the derivation's
-value is accessed.
+Derivations are a special, readonly type of atoms. Their value is derived from
+other atoms and get updated when a change is observed. Derivations are lazy and
+won't re-run any calculation until their value is accessed.
 
 ```ts
 const totalPrice = derived(() => read(unitPrice) * read(quantity));
@@ -82,9 +90,9 @@ const totalPrice = derived(() => read(unitPrice) * read(quantity));
 
 ### Effects
 
-An effect is a block of code that automatically re-runs whenever one or more
-atoms it depends on change. Effect blocks are synchronously executed upon
-declaration and then eagerly re-run with updates.
+Effects are blocks of code that automatically re-run whenever a change is
+observed. Effect blocks are synchronously executed upon creation and then
+eagerly re-run with updates.
 
 ```ts
 effect(() => {
@@ -92,8 +100,8 @@ effect(() => {
 });
 ```
 
-Effects may also return a teardown function to dispose of any resources
-allocated in its previous run.
+Effects may also return a teardown function to dispose of resources from the
+previous run.
 
 ### Mount and Unmount
 
@@ -123,9 +131,10 @@ const CounterContext = createContext<number>();
 ```
 
 With the context object ready, it can now be used in components. By requesting
-a provider atom, the enclosing component automatically acts a provider of that
-context. All children and their descendants rendered by that component will gain
-access to this data. A single component can be a provider of multiple contexts.
+a provider atom, the enclosing component automatically acts as a provider of
+that context. All children and their descendants rendered by that component will
+gain access to this data. A single component can be a provider of multiple
+contexts.
 
 ```ts
 // request a provider atom for the given context, initialized to 0

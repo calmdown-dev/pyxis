@@ -28,10 +28,6 @@ export function pyxisHmrTransformPlugin(pluginOptions: Required<PyxisHmrPluginOp
 					return null;
 				}
 
-				if (!moduleId.endsWith("TestApp.tsx")) {
-					return null;
-				}
-
 				const ast = this.parse(code, { astType: "js" });
 				const transpiler = new Transpiler();
 				const shortModuleId = normalizePath(path.relative(root, moduleId));

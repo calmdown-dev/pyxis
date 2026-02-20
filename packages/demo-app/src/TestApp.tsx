@@ -47,12 +47,12 @@ export const TestApp = component(() => {
 
 	let interval = -1;
 	const endShuffle = () => {
-		shuffle();
 		clearInterval(interval);
 	};
 
 	const beginShuffle = () => {
 		endShuffle();
+		shuffle();
 		interval = setInterval(shuffle, 100);
 	};
 
