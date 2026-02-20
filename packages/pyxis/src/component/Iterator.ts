@@ -4,7 +4,7 @@ import { link } from "~/data/Dependency";
 import type { ReadonlyList } from "~/data/List";
 import { K_CHANGE, K_CLEAR, K_INSERT, K_REMOVE } from "~/data/ListDelta";
 import { proxyOf, type ProxyAtom } from "~/data/ProxyAtom";
-import type { DataTemplate, JsxProps, JsxResult } from "~/Component";
+import type { DataTemplate, JsxObject, JsxProps, JsxResult } from "~/Component";
 import { mount, split, track, unmount, untrack, type HierarchyNode, type MountingGroup } from "~/Renderer";
 
 export interface RemountIteratorProps<T> {
@@ -39,13 +39,13 @@ export function Iterator<T, P extends readonly (keyof T)[]>(props: JsxProps<Prox
 
 /** @internal */
 export function Iterator<TNode>(
-	jsx: NonNullable<JsxResult>,
+	jsx: JsxObject,
 	parent: HierarchyNode<TNode>,
 	before: TNode | null,
 ): void;
 
 export function Iterator<TNode, T>(
-	jsx: NonNullable<JsxResult>,
+	jsx: JsxObject,
 	parent: HierarchyNode<TNode>,
 	before: TNode | null,
 ) {

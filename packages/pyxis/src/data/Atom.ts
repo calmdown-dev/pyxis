@@ -131,7 +131,9 @@ function setValue<T>(this: DirectAtom<T>, value: T) {
 /**
  * Atom type guard, checks if the provided input is an Atom.
  */
-export function isAtom<T = unknown>(input: Nil<MaybeAtom<T>>): input is Atom<T> {
+export function isAtom<T = unknown>(input: Nil<MaybeAtom<T>>): input is Atom<T>;
+export function isAtom<T = unknown>(input: unknown): input is Atom<T>;
+export function isAtom(input: unknown): input is Atom<any> {
 	return (
 		input !== null &&
 		typeof input === "object" &&

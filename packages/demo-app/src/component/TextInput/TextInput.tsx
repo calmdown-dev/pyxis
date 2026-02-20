@@ -1,10 +1,11 @@
 import { component, write } from "@calmdown/pyxis";
 
-type ExtendedInputProps = JSX.IntrinsicElements["input"];
+import type { ExtendedProps } from "~/types";
 
-export interface TextInputProps extends Omit<ExtendedInputProps, "type"> {
+export type TextInputProps = ExtendedProps<"input", {
+	type?: never;
 	masked?: boolean;
-}
+}>;
 
 export const TextInput = component((props: TextInputProps) => (
 	<input

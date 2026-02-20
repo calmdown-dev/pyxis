@@ -3,10 +3,11 @@ import type { Adapter } from "@calmdown/pyxis/core";
 import type { IntrinsicElements } from "~/jsx/baked";
 import { PROP_MAP } from "~/jsx/mapping";
 
-import { insert, remove } from "./common";
+import { insert, remove, text } from "./common";
 
 export const DomAdapter: Adapter<Node, IntrinsicElements> = {
 	native,
+	text,
 	insert,
 	remove,
 	set,

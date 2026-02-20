@@ -1,7 +1,7 @@
 import { isAtom, read, type MaybeAtom } from "~/data/Atom";
 import { effect } from "~/data/Effect";
 import type { Nil } from "~/support/types";
-import type { DataTemplate, JsxProps, JsxResult, Template } from "~/Component";
+import type { DataTemplate, JsxObject, JsxProps, JsxResult, Template } from "~/Component";
 import { mount, mountJsx, split, unmount, type HierarchyNode } from "~/Renderer";
 
 export interface ShowProps {
@@ -27,13 +27,13 @@ export function Show<T>(props: JsxProps<ShowDataProps<T>>): JsxResult;
 
 /** @internal */
 export function Show<TNode>(
-	jsx: NonNullable<JsxResult>,
+	jsx: JsxObject,
 	parent: HierarchyNode<TNode>,
 	before: TNode | null,
 ): void;
 
 export function Show<TNode>(
-	jsx: NonNullable<JsxResult>,
+	jsx: JsxObject,
 	parent: HierarchyNode<TNode>,
 	before: TNode | null,
 ) {

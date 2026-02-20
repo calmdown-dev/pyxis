@@ -1,4 +1,3 @@
-export { Text, type TextProps } from "~/component/Text";
 export { MathML } from "~/component/MathML";
 export { Svg } from "~/component/Svg";
 

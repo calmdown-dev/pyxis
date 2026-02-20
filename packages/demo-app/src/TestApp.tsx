@@ -1,5 +1,4 @@
 import { atomOf, component, derived, Iterator, listOf, read, unmounted, write, type Atom } from "@calmdown/pyxis";
-import { Text } from "@calmdown/pyxis-dom";
 
 import { Button } from "~/component/Button";
 import { CheckBox } from "~/component/CheckBox";
@@ -61,21 +60,21 @@ export const TestApp = component(() => {
 	return (
 		<>
 			<label>
-				<Text>What needs to be done ({derived(() => todos.size())})?</Text>
+				What needs to be done ({derived(() => todos.size())})?
 				<TextInput value={todoText} />
 			</label>
 			<Button
 				disabled={derived(() => !read(todoText))}
 				on:click={addTodoItem}
 			>
-				<Text>Add</Text>
+				Add
 			</Button>
 			<Button
 				disabled={derived(() => todos.size() < 2)}
 				on:mousedown={beginShuffle}
 				on:mouseup={endShuffle}
 			>
-				<Text>Shuffle</Text>
+				Shuffle
 			</Button>
 			<ul>
 				<Iterator source={todos} proxy={[ "done", "text" ]}>
@@ -85,7 +84,7 @@ export const TestApp = component(() => {
 								{todo.text}
 							</CheckBox>
 							<Button on:click={() => todos.remove(todo.proxied)}>
-								<Text>Remove</Text>
+								Remove
 							</Button>
 						</li>
 					)}

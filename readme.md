@@ -152,17 +152,6 @@ results in a read-only Atom.
 const counter = consumerOf(CounterContext);
 ```
 
-### Rendering Text
-
-Pyxis is a platform agnostic framework and uses external adapters to enable
-rendering within a particular environment. As such it doesn't know how to render
-text. Typically adapter libraries will provide their own `<Text>` component
-which handles reactive text rendering.
-
-```jsx
-<Text>counter is {counter}</Text>
-```
-
 ### Rendering Conditionally
 
 Because Pyxis doesn't re-run component code, conditionally showing or hiding
@@ -171,9 +160,7 @@ content using patterns common in frameworks like React won't work as expected.
 ```tsx
 return (
   <>
-    {read(counter) < 10 ? null : (
-      <Text>That's too many!</Text>
-    )}
+    {read(counter) < 10 ? null : "That's too many!"}
   </>
 );
 ```
@@ -185,9 +172,7 @@ reactive conditional content, a builtin `<Show>` component is used.
 ```tsx
 return (
   <Show when={derived(() => read(counter) >= 10)}>
-    {() => (
-      <Text>That's too many!</Text>
-    )}
+    {() => "That's too many!</Text>"}
   </Show>
 );
 ```
@@ -205,9 +190,7 @@ const items = [ "foo", "bar" ];
 return (
   <ul>
     {items.map(it => (
-      <li>
-        <Text>{it}</Text>
-      </li>
+      <li>{it}</li>
     ))}
   </ul>
 );
@@ -224,9 +207,7 @@ return (
   <ul>
     <Iterator source={items}>
       {it => (
-        <li>
-          <Text>{it}</Text>
-        </li>
+        <li>{it}</li>
       )}
     </Iterator>
   </ul>

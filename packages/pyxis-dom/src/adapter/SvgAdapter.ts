@@ -2,10 +2,11 @@ import type { Adapter } from "@calmdown/pyxis/core";
 
 import type { IntrinsicElements } from "~/jsx/baked";
 
-import { insert, remove, setAttr } from "./common";
+import { insert, remove, text, setAttr } from "./common";
 
 export const SvgAdapter: Adapter<Node, IntrinsicElements> = {
 	native,
+	text,
 	insert,
 	remove,
 	set: setAttr,

@@ -1,4 +1,5 @@
 import type { S_TAG_NAME } from "~/component/Native";
+import type { MaybeAtom } from "~/data/Atom";
 import { getCurrentContainer, setCurrentContainer } from "~/data/Context";
 import { unmounted } from "~/data/Lifecycle";
 import type { Nil, PropsType } from "~/support/types";
@@ -114,6 +115,11 @@ export type JsxChildrenProp<T> = T extends readonly [ any, any, ...any[] ]
 			: T;
 
 /**
+ * Primitive types accepted to render as text.
+ */
+export type JsxText = MaybeAtom<Nil<string | number | boolean | bigint>>;
+
+/**
  * Describes the objects returned by JSX factories.
  *
  * Pyxis uses very lightweight factories returning the props object directly,
@@ -123,7 +129,7 @@ export type JsxChildrenProp<T> = T extends readonly [ any, any, ...any[] ]
  * - S_TAG_NAME ... hidden, specifies the tag name, only populated for native elements
  * - children ... always present and always an array, empty array for childless components
  */
-export type JsxResult = Nil<{
+export interface JsxObject {
 	[propName: string]: unknown;
 	readonly children: readonly unknown[];
 
@@ -132,7 +138,12 @@ export type JsxResult = Nil<{
 
 	/** @internal */
 	readonly [S_TAG_NAME]?: string;
-}>;
+}
+
+/**
+ * Union of all admissible values within JSX.
+ */
+export type JsxResult = JsxObject | JsxText;
 
 /**
  * The type of JSX elements accepted as individual children by common components.
@@ -147,7 +158,7 @@ export type WithChildren<T extends PropsType> = T & { children?: JsxChildren };
 /** @internal */
 export interface ComponentHandler {
 	<TNode>(
-		jsx: NonNullable<JsxResult>,
+		jsx: JsxObject,
 		parent: HierarchyNode<TNode>,
 		before: TNode | null,
 	): void;

@@ -1,6 +1,6 @@
 import { isAtom, read } from "~/data/Atom";
 import { effect } from "~/data/Effect";
-import type { JsxResult } from "~/Component";
+import type { JsxObject } from "~/Component";
 import { insert, type HierarchyNode } from "~/Renderer";
 
 const RE_EXT = /^([^:]+?):(.+)$/;
@@ -10,7 +10,7 @@ const RE_EXT = /^([^:]+?):(.+)$/;
 export const S_TAG_NAME: unique symbol = __DEV__ ? Symbol.for("pyxis:tagName") : Symbol();
 
 export function Native<TNode>(
-	jsx: NonNullable<JsxResult>,
+	jsx: JsxObject,
 	parent: HierarchyNode<TNode>,
 	before: TNode | null,
 ) {
@@ -33,7 +33,7 @@ export function Native<TNode>(
 			if (isAtom(value)) {
 				const prop = name;
 				const atom = value;
-				effect(() => adapter.set(node, prop, read(atom)));
+				effect(() => adapter.set(node, prop, read(atom)), parent.$ng);
 			}
 			else {
 				adapter.set(node, name, value);

@@ -1,10 +1,12 @@
+import { Text } from "~/component/Text";
+import { getCurrentContainer, setCurrentContainer, type ContextContainer } from "~/data/Context";
 import { notifyMounted, notifyUnmounted, onMounted, withLifecycle, type Lifecycle } from "~/data/Lifecycle";
 import { createScheduler } from "~/data/Scheduler";
 import type { ElementsType, Mutable, Nil } from "~/support/types";
 
 import type { Adapter, ExtensionsType } from "./Adapter";
-import type { DataTemplate, JsxResult, Template } from "./Component";
-import { getCurrentContainer, setCurrentContainer, type ContextContainer } from "./data/Context";
+import type { DataTemplate, JsxChildren, JsxObject, JsxResult, JsxText, Template } from "./Component";
+import { isAtom } from './data/Atom';
 
 /** @internal */
 // @ts-expect-error this is a unique symbol at runtime
@@ -398,23 +400,39 @@ export function unmount<TNode>(group: MountingGroup<TNode>) {
  * node tree.
  */
 export function mountJsx<TNode>(
-	jsx: unknown,
+	jsx: any,
 	parent: HierarchyNode<TNode>,
 	before: TNode | null,
 ) {
-	if (jsx === null || jsx === undefined) {
-		return;
-	}
+	switch (typeof jsx) {
+		case "object":
+			if (jsx === null) {
+				break;
+			}
 
-	if (Array.isArray(jsx)) {
-		const { length } = jsx;
-		let index = 0;
-		for (; index < length; index += 1) {
-			mountJsx(jsx[index], parent, before);
-		}
-	}
-	else if (jsx !== null && typeof jsx === "object") {
-		(jsx as Partial<NonNullable<JsxResult>>)[S_COMPONENT]?.(jsx as NonNullable<JsxResult>, parent, before);
+			if (Array.isArray(jsx)) {
+				const { length } = jsx;
+				let index = 0;
+				for (; index < length; index += 1) {
+					mountJsx(jsx[index], parent, before);
+				}
+
+				break;
+			}
+
+			if (!isAtom(jsx)) {
+				jsx[S_COMPONENT]?.(jsx, parent, before);
+				break;
+			}
+
+			// fall through
+
+		case "string":
+		case "number":
+		case "boolean":
+		case "bigint":
+			Text(jsx, parent, before);
+			break;
 	}
 }
 

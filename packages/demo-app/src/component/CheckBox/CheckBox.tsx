@@ -1,11 +1,12 @@
-import { component, write } from "@calmdown/pyxis";
-import { Text, type TextProps } from "@calmdown/pyxis-dom";
+import { component, write, type WithChildren } from "@calmdown/pyxis";
 
-type ExtendedInputProps = JSX.IntrinsicElements["input"];
+import type { ExtendedProps } from "~/types";
 
-export interface CheckBoxProps extends Omit<ExtendedInputProps, "children" | "on:input" | "type" | "value"> {
-	children?: TextProps["children"];
-}
+export type CheckBoxProps = ExtendedProps<"input", WithChildren<{
+	"on:input"?: never;
+	type?: never;
+	value?: never;
+}>>;
 
 export const CheckBox = component((props: CheckBoxProps) => (
 	<label>
@@ -17,6 +18,6 @@ export const CheckBox = component((props: CheckBoxProps) => (
 				write(props.checked, e.currentTarget.checked === true);
 			}}
 		/>
-		<Text>{props.children}</Text>
+		{props.children}
 	</label>
 ));

@@ -1,4 +1,4 @@
-import { Native, split, type HierarchyNode, type JsxProps, type JsxResult } from "@calmdown/pyxis/core";
+import { Native, split, type HierarchyNode, type JsxObject, type JsxProps, type JsxResult } from "@calmdown/pyxis/core";
 
 import { MathMLAdapter } from "~/adapter/MathMLAdapter";
 import type { MathMLMathElementProps } from "~/jsx/baked";
@@ -8,13 +8,13 @@ export function MathML(props: JsxProps<MathMLMathElementProps>): JsxResult;
 
 /** @internal */
 export function MathML(
-	jsx: NonNullable<JsxResult>,
+	jsx: JsxObject,
 	parent: HierarchyNode<Node>,
 	before: Node | null,
 ): void;
 
 export function MathML(
-	jsx: NonNullable<JsxResult>,
+	jsx: JsxObject,
 	parent: HierarchyNode<Node>,
 	before: Node | null,
 ) {

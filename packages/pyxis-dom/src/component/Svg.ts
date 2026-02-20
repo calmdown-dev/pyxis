@@ -1,4 +1,4 @@
-import { Native, split, type HierarchyNode, type JsxProps, type JsxResult } from "@calmdown/pyxis/core";
+import { Native, split, type HierarchyNode, type JsxObject, type JsxProps, type JsxResult } from "@calmdown/pyxis/core";
 
 import { SvgAdapter } from "~/adapter/SvgAdapter";
 import type { SVGSVGElementProps } from "~/jsx/baked";
@@ -8,13 +8,13 @@ export function Svg(props: JsxProps<SVGSVGElementProps>): JsxResult;
 
 /** @internal */
 export function Svg(
-	jsx: NonNullable<JsxResult>,
+	jsx: JsxObject,
 	parent: HierarchyNode<Node>,
 	before: Node | null,
 ): void;
 
 export function Svg(
-	jsx: NonNullable<JsxResult>,
+	jsx: JsxObject,
 	parent: HierarchyNode<Node>,
 	before: Node | null,
 ) {

@@ -22,6 +22,14 @@ export interface Adapter<TNode, TIntrinsicElements extends ElementsType = Elemen
 	) => TNode;
 
 	/**
+	 * Creates or updates a text node. In both cases the node is returned.
+	 */
+	readonly text: (
+		value: string,
+		node: TNode | null,
+	) => TNode;
+
+	/**
 	 * If provided, inserts the given node before the referenced existing child.
 	 * Otherwise appends the node as the last child of the parent.
 	 */

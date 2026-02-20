@@ -6,6 +6,15 @@ export function remove(node: Node) {
 	node.parentNode?.removeChild(node);
 }
 
+export function text(value: string, node: Node | null) {
+	if (!node) {
+		return document.createTextNode(value);
+	}
+
+	node.nodeValue = value;
+	return node;
+}
+
 export function setAttr(node: Node, attr: string, value: any) {
 	switch (typeof value) {
 		case "string":

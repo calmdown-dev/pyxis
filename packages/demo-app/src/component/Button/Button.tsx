@@ -1,8 +1,10 @@
 import { component } from "@calmdown/pyxis";
 
-type ExtendedButtonProps = JSX.IntrinsicElements["button"];
+import type { ExtendedProps } from "~/types";
 
-export const Button = component((props: ExtendedButtonProps) => (
+export type ButtonProps = ExtendedProps<"button", {}>;
+
+export const Button = component((props: ButtonProps) => (
 	<button
 		{...props}
 		type={props.type ?? "button"}
