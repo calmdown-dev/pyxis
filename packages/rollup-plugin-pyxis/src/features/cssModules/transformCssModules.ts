@@ -134,13 +134,6 @@ export function transformCssModules(options: ResolvedPyxisPluginOptions, registr
 				if (isVite) {
 					return {
 						code: transformedCode,
-						map: {
-							version: 3,
-							sources: [ moduleId ],
-							sourcesContent: [ originalCode ],
-							names: [],
-							mappings,
-						},
 					};
 				}
 
