@@ -1,8 +1,8 @@
 import type { ResolvedPyxisPluginOptions } from "~/options";
 import { walkDown, type AST, type TransformBlock, type TranspileCall } from "~/transpiler";
-import type { ModuleChecker } from "~/utils";
+import { trimQuery, type ModuleChecker } from "~/utils";
 
-import type { ClassNameMap } from "./common";
+import type { CssExportsMap } from "./CssExportsRegistry";
 
 interface SymbolInfo {
 	readonly name: string;
@@ -17,7 +17,7 @@ const isJsxFactory: { [K in string]?: true } = {
 
 export interface TranspileClassNamesContext {
 	isPyxisModule: ModuleChecker;
-	resolveCssExports: (source: string, moduleId: string) => Promise<ClassNameMap>;
+	resolveCssExports: (source: string, importer: string) => Promise<CssExportsMap>;
 }
 
 export async function transpileClassNames(
@@ -34,7 +34,7 @@ export async function transpileClassNames(
 ) {
 	// find CSS and pyxis imports of JSX factories within the program
 	const imported: { [N in string]?: SymbolInfo } = {};
-	const classNameMap: ClassNameMap = {};
+	const cssExportsMap: CssExportsMap = {};
 	let hasCssImports = false;
 
 	for (const node of ast.body) {
@@ -42,14 +42,15 @@ export async function transpileClassNames(
 			continue;
 		}
 
-		if (options.cssModules!.include.test(node.source.value)) {
-			const map = await resolveCssExports(node.source.value, moduleId);
-			Object.assign(classNameMap, map);
+		const importSource = trimQuery(node.source.value);
+		if (options.cssModules!.include.test(importSource)) {
+			const map = await resolveCssExports(importSource, moduleId);
+			Object.assign(cssExportsMap, map);
 			hasCssImports = true;
 			continue;
 		}
 
-		if (!(await isPyxisModule(node.source.value, moduleId))) {
+		if (!(await isPyxisModule(importSource, moduleId))) {
 			continue;
 		}
 
@@ -91,7 +92,7 @@ export async function transpileClassNames(
 		let newClassName;
 		if (attribute.name.type === "JSXNamespacedName" &&
 			attribute.name.namespace.name === extPrefix &&
-			(newClassName = classNameMap[attribute.name.name.name])
+			(newClassName = cssExportsMap[attribute.name.name.name])
 		) {
 			transpiler.addTransform(attribute.name.name, rewriteAttributeName(newClassName));
 		}
@@ -114,7 +115,7 @@ export async function transpileClassNames(
 				prop.key.type === "Literal" &&
 				typeof (key = prop.key.value) === "string" &&
 				key.startsWith(`${extPrefix}:`) &&
-				(newClassName = classNameMap[key.slice(extPrefix.length + 1)])
+				(newClassName = cssExportsMap[key.slice(extPrefix.length + 1)])
 			) {
 				transpiler.addTransform(prop.key, rewritePropKeyLiteral(`${extPrefix}:${newClassName}`));
 			}

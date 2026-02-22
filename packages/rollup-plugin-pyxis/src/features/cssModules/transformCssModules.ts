@@ -6,7 +6,7 @@ import type { ResolvedPyxisPluginOptions } from "~/options";
 import { replaceSourceIndex } from "~/transpiler";
 import { getShortModuleId } from "~/utils";
 
-import { CLASS_NAME_MAP_KEY, type ClassNameMap } from "./common";
+import type { CssExportsRegistry, CssExportsMap } from "./CssExportsRegistry";
 
 interface CssChunk {
 	readonly moduleId: string;
@@ -15,7 +15,7 @@ interface CssChunk {
 	readonly transformedCode: string;
 }
 
-export function transformCssModules(options: ResolvedPyxisPluginOptions): Plugin {
+export function transformCssModules(options: ResolvedPyxisPluginOptions, registry: CssExportsRegistry): Plugin {
 	const bundleCssChunks = new Map<string, CssChunk>();
 	const filter = {
 		id: {
@@ -103,12 +103,14 @@ export function transformCssModules(options: ResolvedPyxisPluginOptions): Plugin
 				}
 
 				// build and register CSS class name map
-				const classNameMap: ClassNameMap = {};
+				const classNameMap: CssExportsMap = {};
 				if (isModule) {
 					Object
 						.keys(result.exports!)
 						.reduce((map, key) => (map[key] = result.exports![key].name, map), classNameMap);
 				}
+
+				registry.upsertExports(moduleId, classNameMap);
 
 				// get source mappings
 				let mappings;
@@ -132,9 +134,6 @@ export function transformCssModules(options: ResolvedPyxisPluginOptions): Plugin
 				if (isVite) {
 					return {
 						code: transformedCode,
-						meta: {
-							[CLASS_NAME_MAP_KEY]: classNameMap,
-						},
 						map: {
 							version: 3,
 							sources: [ moduleId ],
@@ -158,9 +157,6 @@ export function transformCssModules(options: ResolvedPyxisPluginOptions): Plugin
 					moduleType: "js",
 					code: `export default ${JSON.stringify(classNameMap)};`,
 					moduleSideEffects: "no-treeshake",
-					meta: {
-						[CLASS_NAME_MAP_KEY]: classNameMap,
-					},
 				};
 			},
 		},

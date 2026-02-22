@@ -56,13 +56,13 @@ const resolveOptions = {
 	kind: "import-statement" as const,
 };
 
-async function resolveId(context: PluginContext, source: string, importer?: string) {
+export async function resolveId(context: PluginContext, source: string, importer?: string) {
 	const resolved = await context.resolve(source, importer, resolveOptions);
 	return resolved
 		? trimQuery(resolved.id)
 		: null;
 }
 
-function trimQuery(url: string) {
+export function trimQuery(url: string) {
 	return url.replace(/\?.*$/, "");
 }

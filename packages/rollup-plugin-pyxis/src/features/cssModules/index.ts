@@ -2,7 +2,7 @@ import type { ResolvedPyxisPluginOptions } from "~/options";
 import { transpile } from "~/transpiler";
 import { createModuleChecker } from "~/utils";
 
-import { CLASS_NAME_MAP_KEY } from "./common";
+import { CssExportsRegistry } from "./CssExportsRegistry";
 import { transformCssModules } from "./transformCssModules";
 import { transpileClassNames, type TranspileClassNamesContext } from "./transpileClassNames";
 
@@ -11,8 +11,9 @@ export function pyxisCssModules(options: ResolvedPyxisPluginOptions) {
 		return [];
 	}
 
+	const registry = new CssExportsRegistry();
 	return [
-		transformCssModules(options),
+		transformCssModules(options, registry),
 		transpile({
 			include: /\.m?[jt]sx?$/i,
 			exclude: [],
@@ -26,26 +27,14 @@ export function pyxisCssModules(options: ResolvedPyxisPluginOptions) {
 						`${options.pyxisModule}/jsx-runtime`,
 						`${options.pyxisModule}/jsx-dev-runtime`,
 					]),
-					resolveCssExports: async (source, moduleId) => {
-						const resolved = await this.resolve(source, moduleId, {
-							isEntry: false,
-							kind: "import-statement",
-						});
-
-						if (!resolved) {
-							return {};
-						}
-
-						const module = await this.load({
-							id: resolved.id,
-							resolveDependencies: false,
-						});
-
-						return module.meta[CLASS_NAME_MAP_KEY] ?? {};
-					},
+					resolveCssExports: (source, importer) => (
+						registry.getExports(this, source, importer)
+					),
 				};
 			},
-			process: call => transpileClassNames(options, call),
+			process: call => (
+				transpileClassNames(options, call)
+			),
 		})
 	];
 }
