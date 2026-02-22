@@ -1,6 +1,6 @@
 import type { ResolvedPyxisPluginOptions } from "~/options";
 import { walkDown, type AST, type TransformBlock, type TranspileCall } from "~/transpiler";
-import { getPackageChecker } from "~/utils";
+import type { ModuleChecker } from "~/utils";
 
 import type { ClassNameMap } from "./common";
 
@@ -15,15 +15,26 @@ const isJsxFactory: { [K in string]?: true } = {
 	jsxDEV: true,
 };
 
+export interface TranspileClassNamesContext {
+	isPyxisModule: ModuleChecker;
+	resolveCssExports: (source: string, moduleId: string) => Promise<ClassNameMap>;
+}
+
 export async function transpileClassNames(
-	{ ast, transpiler, shortModuleId }: TranspileCall,
-	{ pyxisModule, cssModules }: ResolvedPyxisPluginOptions,
-	resolveCssExports: (source: string) => Promise<ClassNameMap>,
+	options: ResolvedPyxisPluginOptions,
+	{
+		ast,
+		transpiler,
+		moduleId,
+		context: {
+			isPyxisModule,
+			resolveCssExports,
+		},
+	}: TranspileCall<TranspileClassNamesContext>,
 ) {
 	// find CSS and pyxis imports of JSX factories within the program
 	const imported: { [N in string]?: SymbolInfo } = {};
 	const classNameMap: ClassNameMap = {};
-	const isPyxisPackage = getPackageChecker(pyxisModule);
 	let hasCssImports = false;
 
 	for (const node of ast.body) {
@@ -31,14 +42,14 @@ export async function transpileClassNames(
 			continue;
 		}
 
-		if (cssModules!.include.test(node.source.value)) {
-			const map = await resolveCssExports(node.source.value);
+		if (options.cssModules!.include.test(node.source.value)) {
+			const map = await resolveCssExports(node.source.value, moduleId);
 			Object.assign(classNameMap, map);
 			hasCssImports = true;
 			continue;
 		}
 
-		if (!isPyxisPackage(node.source.value)) {
+		if (!isPyxisModule(node.source.value)) {
 			continue;
 		}
 
@@ -75,7 +86,7 @@ export async function transpileClassNames(
 	}
 
 	// identify and transpile relevant CSS class names within the program
-	const extPrefix = cssModules!.cssExtensionPrefix;
+	const extPrefix = options.cssModules!.cssExtensionPrefix;
 	const transpileJsxAttribute = (attribute: AST.JSXAttribute) => {
 		let newClassName;
 		if (attribute.name.type === "JSXNamespacedName" &&

@@ -1,6 +1,5 @@
-import type { ResolvedPyxisPluginOptions } from "~/options";
 import { walkDown, walkUp, type AST, type TransformBlock, type TranspileCall } from "~/transpiler";
-import { getPackageChecker } from "~/utils";
+import type { ModuleChecker } from "~/utils";
 
 interface SymbolInfo {
 	readonly kind: FactoryKind | "namespace";
@@ -30,19 +29,24 @@ const factoryArgCount: { [K in FactoryKind]: number } = {
 	provider: 2,
 };
 
-export function transpileFactoryCalls(
-	{ ast, shortModuleId, transpiler }: TranspileCall,
-	{ pyxisModule }: ResolvedPyxisPluginOptions,
-) {
+export interface TranspileFactoryCallsContext {
+	isPyxisModule: ModuleChecker;
+}
+
+export function transpileFactoryCalls({
+	ast,
+	shortModuleId,
+	transpiler,
+	context: { isPyxisModule },
+}: TranspileCall<TranspileFactoryCallsContext>) {
 	// find pyxis imports within the program
 	const imported: { [N in string]?: SymbolInfo } = {};
-	const isPyxisPackage = getPackageChecker(pyxisModule);
 	let hasPyxisImports = false;
 
 	for (const node of ast.body) {
 		if (node.type !== "ImportDeclaration" ||
 			node.importKind === "type" ||
-			!isPyxisPackage(node.source.value)
+			!isPyxisModule(node.source.value)
 		) {
 			continue;
 		}

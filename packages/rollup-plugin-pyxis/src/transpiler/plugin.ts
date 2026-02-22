@@ -1,19 +1,22 @@
 import * as path from "node:path";
 
-import type { Plugin, TransformPluginContext } from "rolldown";
+import type { Plugin, PluginContext, TransformPluginContext } from "rolldown";
 
 import { getShortModuleId, isPathWithin } from "~/utils";
 
 import type { AST } from "./ast";
 import { Transpiler } from "./Transpiler";
 
-export interface TranspileRoutine {
+export interface TranspileRoutine<TContext> {
 	include: MaybeArray<RegExp | string>;
 	exclude?: MaybeArray<RegExp | string>;
-	run: (this: TransformPluginContext, call: TranspileCall) => Promise<void> | void;
+	order?: "pre" | "post";
+	init?: (this: PluginContext) => Promise<TContext> | TContext;
+	process: (this: TransformPluginContext, call: TranspileCall<TContext>) => Promise<void> | void;
 }
 
-export interface TranspileCall {
+export interface TranspileCall<TContext = {}> {
+	readonly context: TContext;
 	readonly ast: AST.Program;
 	readonly transpiler: Transpiler;
 	readonly moduleId: string;
@@ -22,12 +25,14 @@ export interface TranspileCall {
 
 export type MaybeArray<T> = T[] | T;
 
-export function transpile(routine: TranspileRoutine): Plugin {
+export function transpile<TInit = void>(routine: TranspileRoutine<TInit>): Plugin {
 	let root: string;
+	let init!: TInit;
 	return {
 		name: `${__THIS_MODULE__}:Transpiler`,
-		buildStart(inputOptions) {
+		async buildStart(inputOptions) {
 			root = inputOptions.cwd ?? process.cwd();
+			init = await routine.init?.call(this)!;
 		},
 		transform: {
 			filter: {
@@ -36,7 +41,7 @@ export function transpile(routine: TranspileRoutine): Plugin {
 					exclude: routine.exclude,
 				},
 			},
-			order: "post",
+			order: routine.order,
 			async handler(code, moduleId) {
 				if (!isPathWithin(root, moduleId)) {
 					return null;
@@ -49,7 +54,8 @@ export function transpile(routine: TranspileRoutine): Plugin {
 
 				const transpiler = new Transpiler();
 				const shortModuleId = getShortModuleId(root, moduleId);
-				await routine.run.call(this, {
+				await routine.process.call(this, {
+					context: init,
 					ast: this.parse(code, {
 						astType: "js",
 						lang,

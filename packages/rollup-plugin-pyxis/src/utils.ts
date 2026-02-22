@@ -1,5 +1,7 @@
 import * as path from "node:path";
 
+import type { PluginContext } from "rolldown";
+
 export function getShortModuleId(root: string, moduleId: string) {
 	const relative = path.relative(root, moduleId).replace(/\\/g, "/");
 	return path.posix.normalize(relative);
@@ -14,17 +16,25 @@ export function isPathWithin(root: string, moduleId: string) {
 	);
 }
 
-export function getPackageChecker(name: string) {
-	const dir = name.replace(/\//g, "_");
-	return (source: string) => {
-		let i;
-		return (
-			// exact match or sub-import
-			source === name ||
-			source.startsWith(`${name}/`) ||
+export interface ModuleChecker {
+	(source: string): boolean;
+}
 
-			// also check resolved paths
-			((i = source.indexOf(`/${dir}`)) !== -1 && /[\/._]/.test(source[i + dir.length + 1]))
-		);
-	};
+export async function createModuleChecker(this: PluginContext, moduleName: string, subImports?: string[]): Promise<ModuleChecker> {
+	const sources = [ moduleName ];
+	if (subImports) {
+		sources.push(...subImports.map(it => `${moduleName}/${it}`));
+	}
+
+	const resolved = (
+		await Promise.all(
+			sources.map(async it => (await this.resolve(it))?.id!),
+		)
+	)
+	.filter(Boolean);
+
+	return source => (
+		sources.includes(source) ||
+		(/^\/@fs\/|^file:\/\//.test(source) && resolved.some(it => source.includes(it)))
+	);
 }

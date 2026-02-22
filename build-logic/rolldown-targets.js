@@ -16,12 +16,12 @@ export const TypeScriptLibrary = defineTarget("TypeScriptLibrary", target => tar
 		)
 		.plugin(Plugin.Declarations)
 		.output("Main", out => out
-			.configure({
+			.configure((_, context) => ({
 				dir: "./dist",
 				format: "es",
-				minify: true,
+				minify: inProduction(context),
 				sourcemap: true,
-			})
+			}))
 		)
 	)
 );

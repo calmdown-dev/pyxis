@@ -13,6 +13,7 @@ export function resolveDevCore(options: ResolvedPyxisPluginOptions): Plugin {
 			filter: {
 				id: /\/core$/,
 			},
+			order: "pre",
 			async handler(source, importer, extraOptions) {
 				if (source !== coreProd) {
 					return null;

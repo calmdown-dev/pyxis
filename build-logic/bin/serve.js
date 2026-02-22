@@ -72,6 +72,9 @@ try {
 				output: target.outputs,
 			},
 		},
+		css: {
+			transformer: "lightningcss",
+		},
 		plugins: [
 			tsconfigPaths(),
 			pyxis({

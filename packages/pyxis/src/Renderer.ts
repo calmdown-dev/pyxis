@@ -308,7 +308,7 @@ export function getAnchor<TNode>(group: MountingGroup<TNode>): TNode | null {
 	}
 
 	// checked all siblings to no avail
-	// ... within a node or top level? -> ok to append at the end (null)
+	// ... top level or within a node? -> ok to append at the end (null)
 	// ... otherwise check upwards
 	return !group.$ph || group.$ph?.kind === K_NATIVE
 		? null
@@ -375,7 +375,6 @@ export function unmount<TNode>(group: MountingGroup<TNode>) {
 
 	const { adapter } = group;
 	let current = group.$uh;
-	let tmp;
 
 	while (current) {
 		if (current.kind === K_GROUP) {
@@ -385,14 +384,13 @@ export function unmount<TNode>(group: MountingGroup<TNode>) {
 			adapter.remove(current.$nn);
 		}
 
-		tmp = current.$un;
-		current.$up = null;
-		current.$un = null;
-		current = tmp;
+		current = current.$un;
 	}
 
 	group.$uh = null;
 	group.$ut = null;
+	group.$hh = null;
+	group.$ht = null;
 }
 
 /**
@@ -455,11 +453,15 @@ function reinsertNodes<TNode>(group: MountingGroup<TNode>, parent: TNode, before
 }
 
 function first<TNode>(node: HierarchyNode<TNode>): TNode | null {
+	if (!node.$ng.mounted) {
+		return null;
+	}
+
 	if (node.kind === K_NATIVE) {
 		return node.$nn;
 	}
 
-	let current = node.$ht;
+	let current = node.$hh;
 	let tmp;
 	while (current) {
 		if (current.kind === K_GROUP) {
