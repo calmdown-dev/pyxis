@@ -32,8 +32,9 @@ export function transformCssModules(options: ResolvedPyxisPluginOptions, registr
 		name: `${__THIS_MODULE__}:CssModules`,
 		enforce: "pre",
 		config(config) {
-			// when running in Vite, it is necessary to disable its own CSS modules feature, as it
-			// would otherwise process modules twice
+			// Vite only
+			// it is necessary to disable Vite's own CSS modules feature, as it could otherwise
+			// process CSS modules a second time, breaking class names
 			if (config.css?.transformer !== "lightningcss") {
 				this.warn({
 					code: "E_CONFIG",
@@ -53,14 +54,15 @@ export function transformCssModules(options: ResolvedPyxisPluginOptions, registr
 			};
 		},
 		configResolved(config) {
-			// this hook is Vite-specific and will not be triggered in Rollup/Rolldown
+			// Vite only
 			root = config.root;
 			isVite = true;
 		},
 		async buildStart(inputOptions) {
+			// Rollup/Rolldown or Vite
 			root ??= inputOptions.cwd ?? process.cwd();
 			try {
-				LightningCss = await import("lightningcss");
+				LightningCss ??= await import("lightningcss");
 			}
 			catch (ex) {
 				this.error({

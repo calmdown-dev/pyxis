@@ -1,6 +1,6 @@
 import * as path from "node:path";
 
-import type { PluginContext } from "rolldown";
+import type { PluginContext, PluginContextResolveOptions } from "rolldown";
 
 export function getShortModuleId(root: string, moduleId: string) {
 	const relative = path.relative(root, moduleId).replace(/\\/g, "/");
@@ -51,15 +51,23 @@ export async function createModuleChecker(context: PluginContext, moduleNames: s
 	};
 }
 
-const resolveOptions = {
+const defaultResolveOptions: PluginContextResolveOptions = {
 	isEntry: false,
-	kind: "import-statement" as const,
+	kind: "import-statement",
 };
 
-export async function resolveId(context: PluginContext, source: string, importer?: string) {
-	const resolved = await context.resolve(source, importer, resolveOptions);
+export async function resolveId(context: PluginContext, source: string, importer?: string, options?: PluginContextResolveOptions) {
+	const resolved = await resolve(context, source, importer, options);
+	return resolved?.id ?? null;
+}
+
+export async function resolve(context: PluginContext, source: string, importer?: string, options: PluginContextResolveOptions = defaultResolveOptions) {
+	const resolved = await context.resolve(source, importer, options);
 	return resolved
-		? trimQuery(resolved.id)
+		? {
+			...resolved,
+			id: trimQuery(resolved.id),
+		}
 		: null;
 }
 
