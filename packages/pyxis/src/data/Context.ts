@@ -142,13 +142,16 @@ function getLocalValue<T>(this: ContextAtom<T>) {
 }
 
 function setValue<T>(this: ContextAtom<T>, value: T) {
-	let oldValue = this.$value;
+	let oldValue;
 	if (this.$ancestor) {
 		oldValue = this.$ancestor.$get();
 		unlink(this.$dep!);
 		this.$dep = null;
 		this.$ancestor = null;
 		this.$get = getLocalValue;
+	}
+	else {
+		oldValue = this.$value;
 	}
 
 	this.$value = value;
@@ -158,4 +161,3 @@ function setValue<T>(this: ContextAtom<T>, value: T) {
 
 	return oldValue !== value;
 }
-

@@ -264,12 +264,15 @@ export function notify<T>(input: Atom<T>) {
 		}
 
 		input.$lastValue = newValue;
-		input.$force = false;
 	}
 
+	input.$force = false;
+
 	let current = input.$dh;
+	let next;
 	while (current) {
+		next = current.$an;
 		invoke(current);
-		current = current.$an;
+		current = next;
 	}
 }

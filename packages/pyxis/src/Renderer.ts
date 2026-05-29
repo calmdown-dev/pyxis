@@ -189,8 +189,8 @@ export function track<TNode>(
 		if (before.$hp) {
 			node.$hp = before.$hp;
 			node.$hn = before;
-			before.$hp = node;
 			before.$hp.$hn = node;
+			before.$hp = node;
 		}
 		else if (parent.$hh === before) {
 			parent.$hh = node;

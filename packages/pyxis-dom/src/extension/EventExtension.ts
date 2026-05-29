@@ -1,4 +1,4 @@
-import { getLifecycle, peek, unmounted, withLifecycle, type ElementsType, type ExtensionProps, type MaybeAtom, type NodeType } from "@calmdown/pyxis/core";
+import { getLifecycle, peek, unmounted, withLifecycle, type ElementsType, type ExtensionProps, type MaybeAtom, type Nil, type NodeType } from "@calmdown/pyxis/core";
 
 export interface EventExtensionType {
 	<TExtensionKey extends string, TElements extends ElementsType>(extensionKey: TExtensionKey, elements: TElements): {
@@ -13,12 +13,12 @@ export interface EventExtensionType {
 }
 
 export type EventListenerType<TEvent, TNode = EventTarget, TEventName = string> =
-	| MaybeAtom<(e: ExtendedEvent<TEvent, TNode, TEventName>) => void>
+	| MaybeAtom<Nil<(e: ExtendedEvent<TEvent, TNode, TEventName>) => void>>
 	| (AddEventListenerOptions & { capture?: false } & {
-		readonly listener: MaybeAtom<(e: ExtendedEvent<TEvent, TNode, TEventName>) => void>;
+		readonly listener: MaybeAtom<Nil<(e: ExtendedEvent<TEvent, TNode, TEventName>) => void>>;
 	})
 	| (AddEventListenerOptions & { capture: true } & {
-		readonly listener: MaybeAtom<(e: ExtendedEvent<TEvent, EventTarget | null, TEventName>) => void>;
+		readonly listener: MaybeAtom<Nil<(e: ExtendedEvent<TEvent, EventTarget | null, TEventName>) => void>>;
 	});
 
 export type ExtendedEvent<TEvent, TNode = EventTarget, TEventName = string> =
@@ -60,12 +60,12 @@ export const EventExtension = {
 		listener: EventListenerType<unknown, unknown, string>,
 	) => {
 		// see if listener options have been given
-		type ListenerAtom = MaybeAtom<(e: unknown) => unknown>;
+		type ListenerAtom = MaybeAtom<Nil<(e: unknown) => unknown>>;
 		let listenerAtom = listener as ListenerAtom;
 		let options: AddEventListenerOptions | undefined;
 
 		const maybeOptions = peek(listener);
-		if (typeof maybeOptions === "object") {
+		if (maybeOptions !== null && typeof maybeOptions === "object") {
 			listenerAtom = maybeOptions.listener as ListenerAtom;
 			options = maybeOptions;
 		}
@@ -77,7 +77,8 @@ export const EventExtension = {
 		// listen
 		const lifecycle = getLifecycle();
 		const listenerWithLifecycle = (e: unknown) => {
-			withLifecycle(lifecycle, peek(listenerAtom), e);
+			const handler = peek(listenerAtom);
+			handler && withLifecycle(lifecycle, handler, e);
 		};
 
 		node.addEventListener(type, listenerWithLifecycle, options);

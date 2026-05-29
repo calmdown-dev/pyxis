@@ -9,17 +9,16 @@ export function Text<TNode>(
 	before: TNode | null,
 ) {
 	const { adapter } = parent.$ng;
-	let node: TNode;
+	let node: TNode | null = null;
 
 	if (isAtom(jsx)) {
-		node = adapter.text("", null);
-		bind(parent.$ng, jsx, () => (
-			adapter.text(jsx.$get()?.toString() ?? "", node)
-		));
+		bind(parent.$ng, jsx, () => {
+			node = adapter.text(jsx.$get()?.toString() ?? "", node);
+		});
 	}
 	else {
 		node = adapter.text(jsx.toString(), null);
 	}
 
-	insert(node, null, parent, before);
+	insert(node!, null, parent, before);
 }

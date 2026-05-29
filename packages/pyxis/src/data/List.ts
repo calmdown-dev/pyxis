@@ -11,6 +11,7 @@ export interface ReadonlyList<T> extends Iterable<T>, DependencyList {
 	readonly size: () => number;
 	readonly get: (index: number) => T;
 	readonly forEach: (callback: (item: T, index: number) => void, thisArg?: any) => void;
+	readonly toArray: () => T[];
 
 	/** @internal */
 	readonly $lifecycle: Lifecycle;
@@ -78,6 +79,7 @@ export function listOf<T>(source?: Nil<Iterable<T>>, lifecycle = getLifecycle(),
 		size,
 		get,
 		forEach,
+		toArray,
 		set,
 		clear,
 		insertAt,
@@ -100,7 +102,7 @@ export function listOf<T>(source?: Nil<Iterable<T>>, lifecycle = getLifecycle(),
  * Synchronizes the provided List with the given data source. After this operation, the list will
  * contain an exact copy of the source.
  *
- * Note: This function is separated and not rather than being a List method since the underlying diff
+ * Note: This function is separated instead of being a List method since the underlying diff
  * algorithm (Myers) is a relatively large chunk of code which would otherwise always get included
  * into bundled builds. This way, tools like Terser can eliminate the extra code when unused.
  */
@@ -123,11 +125,17 @@ function get(this: List<any>, index: number) {
 }
 
 function forEach<T>(this: List<T>, callback: (item: T, index: number) => void, thisArg?: any) {
+	reportAccess(this);
 	this.$items.forEach(callback, thisArg);
-	this.$items[Symbol.iterator]()
+}
+
+function toArray<T>(this: List<T>) {
+	reportAccess(this);
+	return this.$items.slice();
 }
 
 function getIterator<T>(this: List<T>) {
+	reportAccess(this);
 	return this.$items[Symbol.iterator]();
 }
 
@@ -225,9 +233,11 @@ function listMutated(list: List<any>) {
 
 function notify(list: List<any>) {
 	let current = list.$dh;
+	let next;
 	while (current) {
+		next = current.$an;
 		invoke(current);
-		current = current.$an;
+		current = next;
 	}
 
 	list.$delta = null;

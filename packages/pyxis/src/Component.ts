@@ -44,6 +44,7 @@ export function component(
 		try {
 			if (__DEV__) {
 				if (!import.meta.hot || !devId) {
+					setCurrentContainer(context); // allow child components to branch context
 					mountJsx(block(jsx), parent, before);
 					return;
 				}
@@ -60,6 +61,7 @@ export function component(
 				);
 			}
 			else {
+				setCurrentContainer(context); // allow child components to branch context
 				mountJsx(block(jsx), parent, before);
 			}
 		}

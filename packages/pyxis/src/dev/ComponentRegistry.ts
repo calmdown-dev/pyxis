@@ -88,6 +88,7 @@ export class ComponentRegistry {
 		entry.dirty = true;
 		if (!this.isPendingUpdate) {
 			queueMicrotask(this.update);
+			this.isPendingUpdate = true;
 		}
 	}
 
@@ -99,9 +100,11 @@ export class ComponentRegistry {
 			}
 
 			let current = entry.lh;
+			let next;
 			while (current) {
+				next = current.ln;
 				current.fn(entry.component);
-				current = current.ln;
+				current = next;
 			}
 
 			entry.dirty = false;

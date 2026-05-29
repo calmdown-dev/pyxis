@@ -3,6 +3,7 @@ import type { Nil } from "~/support/types";
 import { isAtom, notify, S_ATOM, type Atom, type MaybeAtom } from "./Atom";
 import { link, unlink, type Dependency } from "./Dependency";
 import { getLifecycle } from "./Lifecycle";
+import { schedule } from "./Scheduler";
 
 export interface ProxyAtom<T> extends Atom<T> {
 	/**
@@ -62,16 +63,35 @@ function use<T>(this: ProxyAtom<T>, value: MaybeAtom<T>) {
 	}
 
 	if (oldValue !== this.$get()) {
-		notify(this);
+		schedule(this.$lifecycle, this.$notify ??= {
+			$fn: notify,
+			$a0: this,
+		});
 	}
 }
 
 function getBoundValue<T>(this: ProxyAtom<T>) {
+	// calling raw $get doesn't report access, which is what we want
+	// sites accessing this proxy atom should do so via read, which will report
+	// access on the proxy rather than the bound atom which may change
 	return this.$bound!.$get();
 }
 
 function setBoundValue<T>(this: ProxyAtom<T>, value: T) {
-	return this.$bound!.$set(value);
+	// set the bound atom and schedule a notification if it changed - copies the
+	// behavior of `write`, skipping parts we don't need here.
+	const atom = this.$bound!;
+	if (atom.$set(value)) {
+		schedule(atom.$lifecycle, atom.$notify ??= {
+			$fn: notify,
+			$a0: atom,
+		});
+	}
+
+	// always return false, even if the bound atom changed - this way the
+	// `write` and `update` functions won't schedule a redundant notification
+	// for this proxy
+	return false;
 }
 
 function getStaticValue<T>(this: ProxyAtom<T>) {
