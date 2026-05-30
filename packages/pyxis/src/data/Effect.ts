@@ -19,16 +19,16 @@ export interface Effect<T> {
 	readonly $react: (effect: this, epoch: number) => void;
 
 	/** @internal */
+	$deps?: WeakMap<DependencyList, EffectDependency>;
+
+	/** @internal */
 	$epoch: number;
 
 	/** @internal */
 	$willUnmount?: boolean;
 
 	/** @internal */
-	$deps?: WeakMap<DependencyList, EffectDependency>;
-
-	/** @internal */
-	$resolve?: UpdateCallback<[ effect: Effect<T> ]>;
+	$resolve?: UpdateCallback<[ effect: this ]>;
 
 	/** @internal */
 	$dispose?: Nil<() => void>;
@@ -94,7 +94,7 @@ let $currentEffect: Effect<any> | null = null;
  * Returned value is forwarded.
  * @internal
  */
-export function resolve<TEffect extends Effect<any>>(effect: TEffect): TEffect extends Effect<infer T> ? T : never {
+export function resolve<TEffect extends Effect<any>>(effect: TEffect): TEffect extends Effect<infer T> ? T : unknown {
 	effect.$deps ??= new WeakMap();
 	effect.$epoch += 1;
 

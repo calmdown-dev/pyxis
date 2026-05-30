@@ -4,10 +4,6 @@ import { unlink } from "./Dependency";
 import { resolve, type Effect, type EffectDependency } from "./Effect";
 import { schedule } from "./Scheduler";
 
-// TODO: instead of the $dirty flag, re-run derivations when a notification is received
-//       compare if it changed and fan out notifs to observers in the same tick
-//       ...re-running derivations is likely faster on average than notifying everyone all the time
-
 /**
  * Holds a value derived from values of other Atoms, managing reactions to their changes.
  * Derivations are read-only. Use the `read` function to access its value.
@@ -18,24 +14,34 @@ export interface Derivation<T = unknown> extends Atom<T>, Effect<T> {
 	$dirty: boolean;
 
 	/** @internal */
-	$value?: T;
+	$value: T;
 }
 
 /**
- * Creates a Derivation - an Atom with a value computed from other Atoms. Derivations are updated
- * lazily, i.e. only when they're accessed and at least one of its source Atoms changed.
+ * Creates a Derivation - an Atom with its value computed from other Atoms. The block runs once
+ * eagerly to compute the initial value, then re-runs within scheduler ticks whenever its source
+ * Atoms change. Observers are only notified if the new value differs from the previous.
  */
 export function derived<T>(block: () => T, lifecycle = getLifecycle()): Derivation<T> {
-	return {
+	const atom: Derivation<T> = {
 		[S_ATOM]: true,
+		$dirty: false,
+		$value: null!,
+		$tracksValue: true,
 		$lifecycle: lifecycle,
-		$dirty: true,
+		$lastValue: null!,
 		$epoch: 0,
 		$block: block,
 		$react: scheduleNotify,
 		$get: getValue,
 		$set: setValue,
 	};
+
+	const value = resolve(atom) as T;
+	atom.$value = value;
+	atom.$lastValue = value;
+
+	return atom;
 }
 
 function scheduleNotify(this: EffectDependency, derivation: Derivation<any>, epoch: number) {
@@ -58,7 +64,7 @@ function scheduleNotify(this: EffectDependency, derivation: Derivation<any>, epo
 
 function getValue<T>(this: Derivation<T>): T {
 	if (this.$dirty) {
-		this.$value = resolve(this);
+		this.$value = resolve(this) as T;
 		this.$dirty = false;
 	}
 

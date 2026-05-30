@@ -1,14 +1,13 @@
 {
 	"compilerOptions": {
-		"baseUrl": "./src",
 		"forceConsistentCasingInFileNames": true,
 		"isolatedModules": true,
 		"lib": [ "ESNext" ],
 		"module": "ESNext",
 		"moduleResolution": "bundler",
 		"paths": {
-			"~/*": [ "*" ],
-			"@calmdown/pyxis/core": [ "./exports/core.ts" ]
+			"~/*": [ "./src/*" ],
+			"@calmdown/pyxis/core": [ "./src/exports/core.ts" ]
 		},
 		"skipLibCheck": true,
 		"stripInternal": true,

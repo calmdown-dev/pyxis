@@ -1,6 +1,5 @@
 {
 	"compilerOptions": {
-		"baseUrl": "./src",
 		"forceConsistentCasingInFileNames": true,
 		"isolatedModules": true,
 		"lib": [
@@ -10,8 +9,8 @@
 		"module": "ESNext",
 		"moduleResolution": "bundler",
 		"paths": {
-			"~/*": [ "*" ],
-			"@calmdown/pyxis-dom": [ "index.ts" ]
+			"~/*": [ "./src/*" ],
+			"@calmdown/pyxis-dom": [ "./src/index.ts" ]
 		},
 		"skipLibCheck": true,
 		"stripInternal": true,

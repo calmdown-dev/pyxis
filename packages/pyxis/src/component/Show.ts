@@ -70,5 +70,5 @@ export function Show<TNode>(
 		}
 
 		// return undefined;
-	});
+	}, group);
 }

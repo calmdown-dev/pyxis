@@ -80,9 +80,9 @@ update(123, increment); // does nothing, returns 123
 
 ### Derivations
 
-Derivations are a special, readonly type of atoms. Their value is derived from
-other atoms and get updated when a change is observed. Derivations are lazy and
-won't re-run any calculation until their value is accessed.
+Derivations are a special, readonly type of atoms. Their value is computed from
+other atoms and recomputes whenever its source atoms change. Observers are only
+notified when the computed value actually differs from the previous one.
 
 ```ts
 const totalPrice = derived(() => read(unitPrice) * read(quantity));

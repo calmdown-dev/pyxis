@@ -1,4 +1,5 @@
 import { Text } from "~/component/Text";
+import { isAtom } from "~/data/Atom";
 import { getCurrentContainer, setCurrentContainer, type ContextContainer } from "~/data/Context";
 import { notifyMounted, notifyUnmounted, onMounted, withLifecycle, type Lifecycle } from "~/data/Lifecycle";
 import { createScheduler } from "~/data/Scheduler";
@@ -6,7 +7,6 @@ import type { ElementsType, Mutable, Nil } from "~/support/types";
 
 import type { Adapter, ExtensionsType } from "./Adapter";
 import type { JsxResult } from "./Component";
-import { isAtom } from './data/Atom';
 
 /** @internal */
 // @ts-expect-error this is a unique symbol at runtime
@@ -419,7 +419,6 @@ export function mountJsx<TNode>(
 		case "number":
 		case "boolean":
 		case "bigint":
-			// TODO: gather text-ish stuff into an array and render into a single text node
 			Text(jsx, parent, before);
 			break;
 	}

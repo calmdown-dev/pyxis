@@ -1,7 +1,7 @@
 import { isAtom } from "~/data/Atom";
+import { bind } from "~/data/Dependency";
 import type { JsxText } from "~/Component";
 import { insert, type HierarchyNode } from "~/Renderer";
-import { bind } from "~/data/Dependency";
 
 export function Text<TNode>(
 	jsx: NonNullable<JsxText>,
