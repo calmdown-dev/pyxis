@@ -16,7 +16,7 @@
 		"serve": "./bin/serve.js"
 	},
 	"devDependencies": {
-		"@calmdown/rolldown-workspace": "1.0.0-rc.3",
+		"@calmdown/rolldown-workspace": "1.0.0-rc.4",
 		"@calmdown/rollup-plugin-copy": "1.0.0",
 		"@calmdown/rollup-plugin-delete": "1.0.0",
 		"@calmdown/rollup-plugin-pyxis": "workspace:*",

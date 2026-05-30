@@ -208,17 +208,17 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["@calmdown/rolldown-workspace", [\
-      ["npm:1.0.0-rc.3", {\
-        "packageLocation": "./.yarn/cache/@calmdown-rolldown-workspace-npm-1.0.0-rc.3-821015f497-5cba612ed5.zip/node_modules/@calmdown/rolldown-workspace/",\
+      ["npm:1.0.0-rc.4", {\
+        "packageLocation": "./.yarn/cache/@calmdown-rolldown-workspace-npm-1.0.0-rc.4-59fe6e5a37-f5571bdd46.zip/node_modules/@calmdown/rolldown-workspace/",\
         "packageDependencies": [\
-          ["@calmdown/rolldown-workspace", "npm:1.0.0-rc.3"]\
+          ["@calmdown/rolldown-workspace", "npm:1.0.0-rc.4"]\
         ],\
         "linkType": "SOFT"\
       }],\
-      ["virtual:b992d4f4d8a546a46d11d4f2e94e372c5091a7f79d2b9d76b67d58ee8a861fcba1f411d948301d09a34685c9a7d4fdcadb682a467db70b0e19fec6166f121411#npm:1.0.0-rc.3", {\
-        "packageLocation": "./.yarn/__virtual__/@calmdown-rolldown-workspace-virtual-50071f202d/0/cache/@calmdown-rolldown-workspace-npm-1.0.0-rc.3-821015f497-5cba612ed5.zip/node_modules/@calmdown/rolldown-workspace/",\
+      ["virtual:b992d4f4d8a546a46d11d4f2e94e372c5091a7f79d2b9d76b67d58ee8a861fcba1f411d948301d09a34685c9a7d4fdcadb682a467db70b0e19fec6166f121411#npm:1.0.0-rc.4", {\
+        "packageLocation": "./.yarn/__virtual__/@calmdown-rolldown-workspace-virtual-31964f3f52/0/cache/@calmdown-rolldown-workspace-npm-1.0.0-rc.4-59fe6e5a37-f5571bdd46.zip/node_modules/@calmdown/rolldown-workspace/",\
         "packageDependencies": [\
-          ["@calmdown/rolldown-workspace", "virtual:b992d4f4d8a546a46d11d4f2e94e372c5091a7f79d2b9d76b67d58ee8a861fcba1f411d948301d09a34685c9a7d4fdcadb682a467db70b0e19fec6166f121411#npm:1.0.0-rc.3"],\
+          ["@calmdown/rolldown-workspace", "virtual:b992d4f4d8a546a46d11d4f2e94e372c5091a7f79d2b9d76b67d58ee8a861fcba1f411d948301d09a34685c9a7d4fdcadb682a467db70b0e19fec6166f121411#npm:1.0.0-rc.4"],\
           ["@types/rolldown", null],\
           ["rolldown", "npm:1.0.3"]\
         ],\
@@ -800,7 +800,7 @@ const RAW_RUNTIME_STATE =
       ["workspace:build-logic", {\
         "packageLocation": "./build-logic/",\
         "packageDependencies": [\
-          ["@calmdown/rolldown-workspace", "virtual:b992d4f4d8a546a46d11d4f2e94e372c5091a7f79d2b9d76b67d58ee8a861fcba1f411d948301d09a34685c9a7d4fdcadb682a467db70b0e19fec6166f121411#npm:1.0.0-rc.3"],\
+          ["@calmdown/rolldown-workspace", "virtual:b992d4f4d8a546a46d11d4f2e94e372c5091a7f79d2b9d76b67d58ee8a861fcba1f411d948301d09a34685c9a7d4fdcadb682a467db70b0e19fec6166f121411#npm:1.0.0-rc.4"],\
           ["@calmdown/rollup-plugin-copy", "npm:1.0.0"],\
           ["@calmdown/rollup-plugin-delete", "npm:1.0.0"],\
           ["@calmdown/rollup-plugin-pyxis", "virtual:b992d4f4d8a546a46d11d4f2e94e372c5091a7f79d2b9d76b67d58ee8a861fcba1f411d948301d09a34685c9a7d4fdcadb682a467db70b0e19fec6166f121411#workspace:packages/rollup-plugin-pyxis"],\

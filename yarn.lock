@@ -130,12 +130,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@calmdown/rolldown-workspace@npm:1.0.0-rc.3":
-  version: 1.0.0-rc.3
-  resolution: "@calmdown/rolldown-workspace@npm:1.0.0-rc.3"
+"@calmdown/rolldown-workspace@npm:1.0.0-rc.4":
+  version: 1.0.0-rc.4
+  resolution: "@calmdown/rolldown-workspace@npm:1.0.0-rc.4"
   peerDependencies:
-    rolldown: 1.0.0-rc.10
-  checksum: 10/5cba612ed50cd48d35914a59c9eb0ad3d83e6f923c0b5f3ae9ec2cbf0a45598baa3e74c734c7f95db7b45791c8053edd026e056841c1a1fd3fd0c7e53f73dc97
+    rolldown: ">=1.0.3"
+  checksum: 10/f5571bdd462802c76eac37da6c5368ae087974b9eb377921af94683cd63c96f7e7d7524439d141956c570c1ba221e81f43fe4a92c7ded7f2058d9272509d7ac8
   languageName: node
   linkType: hard
 
@@ -617,7 +617,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "build-logic@workspace:build-logic"
   dependencies:
-    "@calmdown/rolldown-workspace": "npm:1.0.0-rc.3"
+    "@calmdown/rolldown-workspace": "npm:1.0.0-rc.4"
     "@calmdown/rollup-plugin-copy": "npm:1.0.0"
     "@calmdown/rollup-plugin-delete": "npm:1.0.0"
     "@calmdown/rollup-plugin-pyxis": "workspace:*"
