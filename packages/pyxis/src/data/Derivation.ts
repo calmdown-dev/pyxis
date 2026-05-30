@@ -4,6 +4,10 @@ import { unlink } from "./Dependency";
 import { resolve, type Effect, type EffectDependency } from "./Effect";
 import { schedule } from "./Scheduler";
 
+// TODO: instead of the $dirty flag, re-run derivations when a notification is received
+//       compare if it changed and fan out notifs to observers in the same tick
+//       ...re-running derivations is likely faster on average than notifying everyone all the time
+
 /**
  * Holds a value derived from values of other Atoms, managing reactions to their changes.
  * Derivations are read-only. Use the `read` function to access its value.

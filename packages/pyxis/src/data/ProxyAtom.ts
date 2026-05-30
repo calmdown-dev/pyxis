@@ -35,11 +35,12 @@ export function proxyOf<T>(initialValue: MaybeAtom<T>, lifecycle = getLifecycle(
 		$get: getStaticValue,
 	};
 
-	self.use(initialValue);
+	// @ts-expect-error canNotify=false hidden by public API
+	self.use(initialValue, false);
 	return self as ProxyAtom<T>;
 }
 
-function use<T>(this: ProxyAtom<T>, value: MaybeAtom<T>) {
+function use<T>(this: ProxyAtom<T>, value: MaybeAtom<T>, canNotify: boolean = true) {
 	if (this.$dep) {
 		unlink(this.$dep);
 	}
@@ -62,7 +63,7 @@ function use<T>(this: ProxyAtom<T>, value: MaybeAtom<T>) {
 		this.$set = setStaticValue;
 	}
 
-	if (oldValue !== this.$get()) {
+	if (canNotify && !Object.is(oldValue, this.$get())) {
 		schedule(this.$lifecycle, this.$notify ??= {
 			$fn: notify,
 			$a0: this,

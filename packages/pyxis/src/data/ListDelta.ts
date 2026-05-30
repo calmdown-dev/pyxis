@@ -265,11 +265,10 @@ export function listSynced<T>(delta: ListDelta<T>, oldState: readonly T[], newSt
 	}
 
 	// eliminate common suffix
-	do {
+	while (N > index && M > index && eq(oldState[N - 1], newState[M - 1])) {
 		N -= 1;
 		M -= 1;
 	}
-	while (N > index && M > index && eq(oldState[N], newState[M]));
 
 	// run Myers diff on the smallest possible sub-lists
 	const Z = (Math.min(N, M) + 1) * 2;

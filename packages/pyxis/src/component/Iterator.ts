@@ -115,7 +115,7 @@ export function Iterator<TNode, T>(
 						break;
 					}
 
-					mount(item, withLifecycle(item, template, change.$item));
+					mount(item, withLifecycle(item, template, item.$data));
 					break;
 
 				case K_REMOVE:
@@ -137,6 +137,14 @@ export function Iterator<TNode, T>(
 					if (isProxy) {
 						recycled = items;
 						recycled.forEach(untrack);
+						oi = items.length;
+					}
+					else {
+						while (oi < items.length) {
+							tmp = items[oi++];
+							unmount(tmp);
+							untrack(tmp);
+						}
 					}
 
 					break;

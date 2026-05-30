@@ -117,7 +117,7 @@ function getValue<T>(this: DirectAtom<T>) {
 }
 
 function setValue<T>(this: DirectAtom<T>, value: T) {
-	if (this.$value === value) {
+	if (Object.is(this.$value, value)) {
 		return false;
 	}
 
@@ -259,7 +259,7 @@ export function notify<T>(input: Atom<T>) {
 	// same value it started with, the notification is skipped
 	if (input.$tracksValue) {
 		const newValue = input.$get();
-		if (input.$lastValue === newValue && !input.$force) {
+		if (Object.is(input.$lastValue, newValue) && !input.$force) {
 			return;
 		}
 

@@ -140,8 +140,6 @@ export interface CSSStyleDeclarationProps {
 	readonly counterIncrement?: MaybeAtom<string>;
 	readonly counterReset?: MaybeAtom<string>;
 	readonly counterSet?: MaybeAtom<string>;
-	readonly cssFloat?: MaybeAtom<string>;
-	readonly cssText?: MaybeAtom<string>;
 	readonly cursor?: MaybeAtom<string>;
 	readonly cx?: MaybeAtom<string>;
 	readonly cy?: MaybeAtom<string>;

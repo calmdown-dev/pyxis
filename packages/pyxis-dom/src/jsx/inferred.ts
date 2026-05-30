@@ -73,6 +73,8 @@ interface CSSPropOverrides {
 	positionArea: string;
 
 	clip: never;
+	cssFloat: never;
+	cssText: never;
 	fontStretch: never;
 	gridColumnGap: never;
 	gridGap: never;

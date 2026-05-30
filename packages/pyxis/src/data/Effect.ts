@@ -97,13 +97,15 @@ let $currentEffect: Effect<any> | null = null;
 export function resolve<TEffect extends Effect<any>>(effect: TEffect): TEffect extends Effect<infer T> ? T : never {
 	effect.$deps ??= new WeakMap();
 	effect.$epoch += 1;
+
+	const previous = $currentEffect;
 	$currentEffect = effect;
 
 	try {
 		return effect.$block();
 	}
 	finally {
-		$currentEffect = null;
+		$currentEffect = previous;
 	}
 }
 

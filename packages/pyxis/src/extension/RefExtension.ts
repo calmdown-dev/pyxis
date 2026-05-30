@@ -39,7 +39,7 @@ export const RefExtension = {
 				break;
 
 			case "call":
-				value(node);
+				value?.(node);
 				break;
 		}
 	},

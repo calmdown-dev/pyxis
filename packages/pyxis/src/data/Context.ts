@@ -76,11 +76,7 @@ export function consumerOf<T>(context: Context<T>) {
 		ptr = ptr.$parent;
 	}
 
-	if (__DEV__ && isNewContainer && ptr === currentContainer) {
-		throw new Error("Component declares the same Context multiple times.");
-	}
-
-	return atom;
+	return atom ?? null;
 }
 
 /**
@@ -127,6 +123,9 @@ export function providerOf<T>(context: Context<T>, defaultValue?: T, devId?: str
 
 	if (__DEV__) {
 		localAtom.$devId = devId;
+		if (Object.hasOwn(currentContainer, context.$symbol)) {
+			throw new Error("Component declares multiple providers of the same Context.");
+		}
 	}
 
 	currentContainer[context.$symbol] = localAtom;
@@ -159,5 +158,5 @@ function setValue<T>(this: ContextAtom<T>, value: T) {
 		globalThis.__PYXIS_HMR__.state.preserve(this.$lifecycle, this.$devId, value);
 	}
 
-	return oldValue !== value;
+	return !Object.is(oldValue, value);
 }

@@ -91,8 +91,12 @@ export function link<TArgs extends ArgsMax2>(lifecycle: Lifecycle, target: Depen
  * @internal
  */
 export function unlink(dep: Dependency) {
+	const target = dep.$target;
+	if (!target) {
+		return; // already unlinked?
+	}
+
 	// unlink from target
-	const target = dep.$target!;
 	if (dep.$ap) {
 		dep.$ap.$an = dep.$an;
 	}

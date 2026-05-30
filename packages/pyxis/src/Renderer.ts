@@ -192,11 +192,17 @@ export function track<TNode>(
 			before.$hp.$hn = node;
 			before.$hp = node;
 		}
-		else if (parent.$hh === before) {
-			parent.$hh = node;
+		else {
 			node.$hp = null;
-			node.$hn = before;
-			before.$hp = node;
+			node.$hn = parent.$hh;
+			if (parent.$hh === before) {
+				// this should always run: since before has no previous sibling,
+				// it must be at the head, otherwise the hierarchy is malformed
+				// and bad things will happen...
+				before.$hp = node;
+			}
+
+			parent.$hh = node;
 		}
 	}
 	// append at the tail of the hierarchy
@@ -413,6 +419,7 @@ export function mountJsx<TNode>(
 		case "number":
 		case "boolean":
 		case "bigint":
+			// TODO: gather text-ish stuff into an array and render into a single text node
 			Text(jsx, parent, before);
 			break;
 	}
