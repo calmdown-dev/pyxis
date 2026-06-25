@@ -1,8 +1,9 @@
 import type { ResolvedPyxisPluginOptions } from "~/options";
-import { walkDown, type AST, type TransformBlock, type TranspileCall } from "~/transpiler";
-import { trimQuery, type ModuleChecker } from "~/utils";
+import type { PyxisLoader } from "~/PyxisLoader";
+import { walkDown, type AST, type TransformBlock, type TranspileTsxCall } from "~/transpiler";
+import { trimQuery } from "~/utils";
 
-import type { CssExportsMap } from "./CssExportsRegistry";
+import type { CssExportsMap, CssExportsRegistry } from "./CssExportsRegistry";
 
 interface SymbolInfo {
 	readonly name: string;
@@ -15,46 +16,54 @@ const isJsxFactory: { [K in string]?: true } = {
 	jsxDEV: true,
 };
 
-export interface TranspileClassNamesContext {
-	isPyxisModule: ModuleChecker;
-	resolveCssExports: (source: string, importer: string) => Promise<CssExportsMap>;
+export interface TranspileClassNamesCall extends TranspileTsxCall {
+	loader: PyxisLoader;
+	registry: CssExportsRegistry;
+	options: ResolvedPyxisPluginOptions;
 }
 
-export async function transpileClassNames(
-	options: ResolvedPyxisPluginOptions,
-	{
-		ast,
-		transpiler,
-		moduleId,
-		context: {
-			isPyxisModule,
-			resolveCssExports,
-		},
-	}: TranspileCall<TranspileClassNamesContext>,
-) {
+export async function transpileClassNames({
+	ast,
+	transpiler,
+	moduleId,
+	loader,
+	registry,
+	options,
+}: TranspileClassNamesCall) {
 	// find CSS and pyxis imports of JSX factories within the program
 	const imported: { [N in string]?: SymbolInfo } = {};
 	const cssExportsMap: CssExportsMap = {};
-	let hasCssImports = false;
 
-	for (const node of ast.body) {
+	let hasCssImports = false;
+	let node;
+	let spec;
+
+	for (node of ast.body) {
 		if (node.type !== "ImportDeclaration" || node.importKind === "type") {
 			continue;
 		}
 
 		const importSource = trimQuery(node.source.value);
-		if (options.cssModules!.include.test(importSource)) {
-			const map = await resolveCssExports(importSource, moduleId);
-			Object.assign(cssExportsMap, map);
-			hasCssImports = true;
+		if (isPotentialCssModule(options, importSource)) {
+			const map = await registry.getExports(importSource, moduleId);
+			if (map) {
+				Object.assign(cssExportsMap, map);
+				hasCssImports = true;
+			}
+
 			continue;
 		}
 
-		if (!(await isPyxisModule(importSource, moduleId))) {
+		const isPyxisModule = await loader.isPyxisModule({
+			source: importSource,
+			importer: moduleId,
+		});
+
+		if (!isPyxisModule) {
 			continue;
 		}
 
-		for (const spec of node.specifiers) {
+		for (spec of node.specifiers) {
 			switch (spec.type) {
 				case "ImportSpecifier":
 					if (spec.importKind !== "type" &&
@@ -131,7 +140,7 @@ export async function transpileClassNames(
 				let tmp;
 				switch (node.callee.type) {
 					case "Identifier":
-						if ((tmp = imported[node.callee.name]) && tmp.kind !== "namespace") {
+						if ((tmp = imported[node.callee.name]) && tmp.kind === "jsx") {
 							transpileJsxFactoryCall(node);
 						}
 
@@ -154,42 +163,52 @@ export async function transpileClassNames(
 	});
 }
 
-const rewriteAttributeName = (newName: string): TransformBlock => (originalCode, start) => {
-	const removed = originalCode.length;
-	return {
-		newCode: newName,
-		edits: [
-			{
-				at: start,
-				delta: -removed,
-			},
-			{
-				at: start + removed,
-				delta: newName.length,
-			},
-		],
-	};
-};
+function isPotentialCssModule(options: ResolvedPyxisPluginOptions, source: string) {
+	// under Vite CSS modules are suffixed as `.css.js` which breaks pattern matching -> trim it
+	const trimmedSource = /\.js$/.test(source) ? source.slice(0, -3) : source;
+	return options.cssModules!.modules.some(pattern => pattern.test(trimmedSource));
+}
 
-const rewritePropKeyLiteral = (newName: string): TransformBlock => (originalCode, start) => {
-	// verify it's a quoted string literal
-	if (originalCode[0] !== originalCode[originalCode.length - 1] || !/["'`]/.test(originalCode[0])) {
-		return null;
-	}
-
-	const newCode = JSON.stringify(newName);
-	const removed = originalCode.length;
-	return {
-		newCode,
-		edits: [
-			{
-				at: start,
-				delta: -removed,
-			},
-			{
-				at: start + removed,
-				delta: newCode.length,
-			},
-		],
+function rewriteAttributeName(newName: string): TransformBlock {
+	return (originalCode, start) => {
+		const removed = originalCode.length;
+		return {
+			newCode: newName,
+			edits: [
+				{
+					at: start,
+					delta: -removed,
+				},
+				{
+					at: start + removed,
+					delta: newName.length,
+				},
+			],
+		};
 	};
-};
+}
+
+function rewritePropKeyLiteral(newName: string): TransformBlock {
+	return (originalCode, start) => {
+		// verify it's a quoted string literal
+		if (originalCode[0] !== originalCode[originalCode.length - 1] || !/["'`]/.test(originalCode[0])) {
+			return null;
+		}
+
+		const newCode = JSON.stringify(newName);
+		const removed = originalCode.length;
+		return {
+			newCode,
+			edits: [
+				{
+					at: start,
+					delta: -removed,
+				},
+				{
+					at: start + removed,
+					delta: newCode.length,
+				},
+			],
+		};
+	};
+}

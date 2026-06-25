@@ -1,22 +1,27 @@
-import type { PluginContext, ResolvedId } from "rolldown";
+import type { ResolvedId } from "rolldown";
 import type { Plugin } from "vite";
 
 import type { ResolvedPyxisPluginOptions } from "~/options";
-import { resolve } from "~/utils";
+import type { PyxisLoader } from "~/PyxisLoader";
 
-export function resolveDevCore(options: ResolvedPyxisPluginOptions): Plugin {
+export interface PyxisDevInit {
+	loader: PyxisLoader;
+	options: ResolvedPyxisPluginOptions;
+}
+
+export function pyxisDev({ loader, options }: PyxisDevInit): Plugin {
 	const coreProd = `${options.pyxisModule}/core`;
 	const coreDev = `${options.pyxisModule}/core-dev`;
 
-	let coreDevId: ResolvedId | null = null;
+	let resolvedCoreDev: ResolvedId | null = null;
 	let isVite = false;
 
 	return {
-		name: `${__THIS_MODULE__}:DevResolver`,
+		name: `${__THIS_PLUGIN__}:dev`,
 		enforce: "pre",
+		apply: "serve",
 		config() {
-			// Vite only
-			// mix in resolution alias
+			// Vite: configure resolution alias
 			isVite = true;
 			return {
 				resolve: {
@@ -27,22 +32,20 @@ export function resolveDevCore(options: ResolvedPyxisPluginOptions): Plugin {
 			};
 		},
 		resolveId: {
+			order: "pre",
 			filter: {
 				id: /\/core$/,
 			},
-			order: "pre",
 			async handler(source, importer, extraOptions) {
 				if (isVite || source !== coreProd) {
 					return null;
 				}
 
-				coreDevId ??= await resolve(this as unknown as PluginContext, source, importer, {
-					isEntry: extraOptions.isEntry,
-					kind: extraOptions.kind,
-					skipSelf: true,
+				return resolvedCoreDev ??= await loader.resolve({
+					source,
+					importer,
+					options: extraOptions,
 				});
-
-				return coreDevId;
 			},
 		},
 	};

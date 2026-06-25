@@ -4,7 +4,6 @@ import * as path from "node:path";
 import { buildCommand, Builder, Dispatcher, Env, NoOpReporter, parseArgs, Workspace } from "@calmdown/rolldown-workspace";
 import pyxis from "@calmdown/rollup-plugin-pyxis";
 import { createServer } from "vite";
-import tsconfigPaths from "vite-tsconfig-paths";
 
 const ServeCommand = buildCommand()
 	.opt("debug", { flag: "d" })
@@ -72,12 +71,14 @@ try {
 				output: target.outputs,
 			},
 		},
+		resolve: {
+			tsconfigPaths: true,
+		},
 		css: {
 			devSourcemap: true,
 			transformer: "lightningcss",
 		},
 		plugins: [
-			tsconfigPaths(),
 			pyxis({
 				cssModules: true,
 				hmr: true,

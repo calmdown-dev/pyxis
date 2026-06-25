@@ -8,45 +8,54 @@ export interface PyxisPluginOptions {
 	pyxisModule?: string;
 
 	/**
-	 * Whether to enable transformations for CSS modules. A string may be passed
-	 * to specify a glob to match CSS module files.
+	 * Regular expression(s) matching file paths of source files to process.
+	 * @default /\.[cm]?[jt]sx?$/i
+	 */
+	include?: RegExp | RegExp[];
+
+	/**
+	 * Regular expression(s) matching file paths to exclude from processing.
+	 * @default undefined
+	 */
+	exclude?: RegExp | RegExp[];
+
+	/**
+	 * Whether to apply transformations to enable hot module replacement (HMR) with Vite dev server.
+	 * @default false
+	 */
+	hmr?: boolean;
+
+	/**
+	 * Whether to enable transformations for CSS modules. A string may be passed to specify a glob
+	 * to match CSS module files.
 	 *
-	 * Note that to use this feature, the optional `lightningcss` dependency
-	 * **must be installed**.
-	 *
+	 * Note that to use this feature, the optional `lightningcss` dependency **must be installed**.
 	 * @default false
 	 */
 	cssModules?: PyxisCssModulesOptions | null | boolean;
-
-	/**
-	 * Whether to apply transformations to enable hot module replacement (HMR)
-	 * with Vite dev server.
-	 * @default false
-	 */
-	hmr?: PyxisHMROptions | null | boolean;
 }
 
 export interface PyxisCssModulesOptions {
 	/**
-	 * Regular expression(s) matching file names to consider as CSS sources.
+	 * Regular expression(s) matching file paths to consider as CSS sources.
 	 * @default /\.css$/i
 	 */
-	include?: RegExp;
+	include?: RegExp | RegExp[];
 
 	/**
-	 * Regular expression(s) matching files NOT to consider as CSS sources.
+	 * Regular expression(s) matching file paths NOT to consider as CSS sources.
 	 * @default undefined
 	 */
-	exclude?: RegExp;
+	exclude?: RegExp | RegExp[];
 
 	/**
-	 * Regular expression matching CSS sources to consider as CSS modules.
+	 * Regular expression(s) matching CSS sources to consider as CSS modules.
 	 * @default /\.module\.css$/i
 	 */
-	modulePattern?: RegExp;
+	modules?: RegExp | RegExp[];
 
 	/**
-	 * The prefix of the `ClassListExtension` to rewrite class names.
+	 * The prefix of the `ClassListExtension` to rewrite class names for.
 	 * @default "cl"
 	 */
 	cssExtensionPrefix?: string;
@@ -60,44 +69,28 @@ export interface PyxisCssModulesOptions {
 	};
 }
 
-export interface PyxisHMROptions {
-	/**
-	 * Paths or globs to include in HMR.
-	 * @default /\.m?[jt]sx?$/i
-	 */
-	include?: (string | RegExp)[] | string | RegExp;
-
-	/**
-	 * Paths or globs to exclude from HMR.
-	 * @default []
-	 */
-	exclude?: (string | RegExp)[] | string | RegExp;
-}
-
 /** @internal */
 export type ResolvedPyxisPluginOptions = ReturnType<typeof resolveOptions>;
 
 /** @internal */
 export function resolveOptions(options?: PyxisPluginOptions) {
-	const cssModules = defaultObject(options?.cssModules);
-	const hmr = defaultObject(options?.hmr);
+	const cssModules = toObject(options?.cssModules);
 	return {
 		pyxisModule: options?.pyxisModule ?? "@calmdown/pyxis",
+		include: toArray(options?.include, /\.[cm]?[jt]sx?$/i),
+		exclude: toArray(options?.exclude),
+		hmr: options?.hmr ?? false,
 		cssModules: cssModules && {
-			include: cssModules.include ?? /\.css$/i,
-			exclude: cssModules.exclude ?? undefined,
-			modulePattern: cssModules.modulePattern ?? /\.module\.css$/i,
+			include: toArray(cssModules.include, /\.css$/i),
+			exclude: toArray(cssModules.exclude),
+			modules: toArray(cssModules.modules, /\.module\.css$/i),
 			cssExtensionPrefix: cssModules.cssExtensionPrefix ?? "cl",
 			lightningcss: cssModules.lightningcss ?? {},
-		},
-		hmr: hmr && {
-			include: hmr.include ?? /\.m?[jt]sx?$/i,
-			exclude: hmr.exclude ?? undefined,
 		},
 	} satisfies PyxisPluginOptions;
 }
 
-function defaultObject<T>(value: T | boolean | undefined) {
+function toObject<T>(value: T | boolean | undefined) {
 	switch (typeof value) {
 		case "boolean":
 			return value ? {} as T : null;
@@ -108,4 +101,14 @@ function defaultObject<T>(value: T | boolean | undefined) {
 		default:
 			return null;
 	}
+}
+
+function toArray<T>(value: T | T[] | undefined, defaultValue?: T) {
+	return value === undefined
+		? defaultValue === undefined
+			? []
+			: [ defaultValue ]
+		: Array.isArray(value)
+			? value
+			: [ value ];
 }

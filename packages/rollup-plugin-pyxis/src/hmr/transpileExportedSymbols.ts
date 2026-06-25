@@ -1,6 +1,7 @@
-import type { AST, TransformBlock, TranspileCall } from "~/transpiler";
+import type { AST, TransformBlock, TranspileTsxCall } from "~/transpiler";
 
 interface ExportInfo {
+	readonly shouldExport: boolean;
 	readonly localName: string;
 	readonly exportName: string;
 }
@@ -13,7 +14,7 @@ interface ExportInfo {
  * - HMR logic is appended
  * - finally a common export is added re-exporting all the original symbols
  */
-export function transpileExportedSymbols({ ast, transpiler }: TranspileCall) {
+export async function transpileExportedSymbols({ ast, transpiler }: TranspileTsxCall) {
 	// nodes keyed under their local names
 	const topScopeNodes: { [N in string]?: AST.VariableDeclaration | AST.Function | AST.Class } = {};
 	const exportedNodes = new Set<AST.VariableDeclaration | AST.Function | AST.Class | AST.Expression>();
@@ -35,8 +36,6 @@ export function transpileExportedSymbols({ ast, transpiler }: TranspileCall) {
 					break;
 				}
 
-				let isAffected = false;
-
 				// may be a direct named export, e.g.:
 				// export const a = 123;
 				const declaration = node.declaration;
@@ -45,12 +44,13 @@ export function transpileExportedSymbols({ ast, transpiler }: TranspileCall) {
 					findDeclaredSymbols(declaration, it => {
 						topScopeNodes[it.name] = declaration;
 						exportedNames.set(it.name, {
+							shouldExport: true,
 							localName: it.name,
 							exportName: it.name,
 						});
-
-						isAffected = true;
 					});
+
+					transpiler.addTransform(node, removeExport);
 				}
 
 				// or a named reference export:
@@ -66,23 +66,17 @@ export function transpileExportedSymbols({ ast, transpiler }: TranspileCall) {
 						const exportName = ref.exported.name;
 						exportedNodes.add(exportedNode);
 						exportedNames.set(exportName, {
+							shouldExport: false,
 							localName,
 							exportName,
 						});
-
-						isAffected = true;
 					}
-				}
-
-				if (isAffected) {
-					transpiler.addTransform(node, removeExport);
 				}
 
 				break;
 			}
 
 			case "ExportDefaultDeclaration": {
-				let isAffected = false;
 
 				// default export can be any expression -> detect references, otherwise use directly
 				if (node.declaration.type === "Identifier") {
@@ -90,20 +84,17 @@ export function transpileExportedSymbols({ ast, transpiler }: TranspileCall) {
 					const exportedNode = topScopeNodes[localName];
 					if (exportedNode) {
 						exportedNodes.add(exportedNode);
-						isAffected = true;
+						transpiler.addTransform(node, removeNode);
 					}
 				}
 				else if (!isTypeScriptNode(node.declaration)) {
 					exportedNodes.add(node.declaration);
 					exportedNames.set("default", {
+						shouldExport: true,
 						localName: "__default",
 						exportName: "default",
 					});
 
-					isAffected = true;
-				}
-
-				if (isAffected) {
 					transpiler.addTransform(node, removeExport);
 				}
 
@@ -147,17 +138,19 @@ export function transpileExportedSymbols({ ast, transpiler }: TranspileCall) {
 	let setters = "\n";
 	let exports = "";
 
-	for (const { localName, exportName } of exportedNames.values()) {
-		setters += `\t\t${JSON.stringify(exportName)}: value => { ${localName} = value; },\n`;
-		if (localName !== exportName) {
-			exports += `${localName} as ${exportName}, `;
-		}
-		else {
-			exports += `${localName}, `;
+	for (const it of exportedNames.values()) {
+		setters += `\t\t${JSON.stringify(it.exportName)}: value => { ${it.localName} = value; },\n`;
+		if (it.shouldExport) {
+			if (it.localName !== it.exportName) {
+				exports += `${it.localName} as ${it.exportName}, `;
+			}
+			else {
+				exports += `${it.localName}, `;
+			}
 		}
 	}
 
-	transpiler.addTransform(ast, appendCode(`
+	let hmrCode = `
 
 if (import.meta.hot) {
 	const setter = {${setters}\t};
@@ -167,9 +160,13 @@ if (import.meta.hot) {
 		});
 	});
 }
+`;
 
-export { ${exports.slice(0, -2)} };
-`));
+	if (exports) {
+		hmrCode += `\nexport { ${exports.slice(0, -2)} };\n`;
+	}
+
+	transpiler.addTransform(ast, appendCode(hmrCode));
 }
 
 function findDeclaredSymbols(
@@ -331,6 +328,16 @@ const removeExport: TransformBlock = (originalCode, start) => {
 		],
 	};
 };
+
+const removeNode: TransformBlock = (originalCode, start) => ({
+	newCode: "",
+	edits: [
+		{
+			at: start,
+			delta: -originalCode.length,
+		},
+	],
+});
 
 const appendCode = (code: string): TransformBlock => (originalCode, _start, end) => {
 	return {

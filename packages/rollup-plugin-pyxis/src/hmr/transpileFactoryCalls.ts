@@ -1,5 +1,5 @@
-import { positionAt, walkDown, walkUp, type AST, type TransformBlock, type TranspileCall } from "~/transpiler";
-import type { ModuleChecker } from "~/utils";
+import type { PyxisLoader } from "~/PyxisLoader";
+import { positionAt, walkDown, walkUp, type AST, type TransformBlock, type TranspileTsxCall } from "~/transpiler";
 
 interface SymbolInfo {
 	readonly kind: FactoryKind | "namespace";
@@ -29,27 +29,32 @@ const factoryArgCount: { [K in FactoryKind]: number } = {
 	provider: 2,
 };
 
-export interface TranspileFactoryCallsContext {
-	isPyxisModule: ModuleChecker;
+export interface TranspileFactoryCallsCall extends TranspileTsxCall {
+	loader: PyxisLoader;
 }
 
 export async function transpileFactoryCalls({
 	ast,
-	code,
 	moduleId,
-	shortModuleId,
+	relativeId,
 	transpiler,
-	context: { isPyxisModule },
-}: TranspileCall<TranspileFactoryCallsContext>) {
+	loader,
+}: TranspileFactoryCallsCall) {
 	// find pyxis imports within the program
 	const imported: { [N in string]?: SymbolInfo } = {};
 	let hasPyxisImports = false;
 
 	for (const node of ast.body) {
-		if (node.type !== "ImportDeclaration" ||
-			node.importKind === "type" ||
-			!(await isPyxisModule(node.source.value, moduleId))
-		) {
+		if (node.type !== "ImportDeclaration" || node.importKind === "type") {
+			continue;
+		}
+
+		const isPyxisModule = await loader.isPyxisModule({
+			source: node.source.value,
+			importer: moduleId,
+		});
+
+		if (!isPyxisModule) {
 			continue;
 		}
 
@@ -88,26 +93,20 @@ export async function transpileFactoryCalls({
 		return;
 	}
 
-	// identify and transpile factory calls within the program, passing a hopefully unique devId
+	// identify and transpile factory calls within the program, passing unique devId's
+	// uniqueness is not guaranteed from names alone, so we append counters when necessary (an order-sensitive fallback)
+	const assignedIds: { [K in string]?: number } = {};
 	const transpileCall = (factory: AST.CallExpression, kind: FactoryKind) => {
 		const name = findNameFor(factory);
 		const extraArgCount = factoryArgCount[kind] - factory.arguments.length;
 		if (name && extraArgCount >= 0) {
-			let devId;
-			switch (kind) {
-				case "atom":
-				case "list":
-				case "provider": {
-					const pos = positionAt(code, factory.start);
-					devId = `${shortModuleId}:${pos.line} ${name}`;
-					break;
-				}
-
-				default:
-					devId = `${shortModuleId} ${name}`;
-					break;
+			let devId = `${relativeId} ${name}`;
+			let counter;
+			if ((counter = assignedIds[devId]) !== undefined) {
+				devId += ` ${counter}`;
 			}
 
+			assignedIds[devId] = (counter ?? 0) + 1;
 			transpiler.addTransform(factory, appendDevIdArgument(devId, extraArgCount));
 		}
 	};
@@ -179,28 +178,30 @@ function findNameFor(node: AST.Node) {
 	});
 }
 
-const appendDevIdArgument = (devId: string, extraArgCount: number): TransformBlock => (originalCode, _start, end) => {
-	const match = /\s*\)$/.exec(originalCode);
-	if (!match) {
-		return null;
-	}
+function appendDevIdArgument(devId: string, extraArgCount: number): TransformBlock {
+	return (originalCode, _start, end) => {
+		const match = /\s*\)$/.exec(originalCode);
+		if (!match) {
+			return null;
+		}
 
-	const slicedStart = originalCode.slice(0, match.index);
-	let addedCode = "";
-	if (!/[(,]$/.test(slicedStart)) {
-		addedCode += ", ";
-	}
+		const slicedStart = originalCode.slice(0, match.index);
+		let addedCode = "";
+		if (!/[(,]$/.test(slicedStart)) {
+			addedCode += ", ";
+		}
 
-	addedCode += "undefined, ".repeat(extraArgCount);
-	addedCode += JSON.stringify(devId);
+		addedCode += "undefined, ".repeat(extraArgCount);
+		addedCode += JSON.stringify(devId);
 
-	return {
-		newCode: `${slicedStart}${addedCode})`,
-		edits: [
-			{
-				at: end - 1,
-				delta: addedCode.length,
-			},
-		],
+		return {
+			newCode: `${slicedStart}${addedCode})`,
+			edits: [
+				{
+					at: end - 1,
+					delta: addedCode.length,
+				},
+			],
+		};
 	};
-};
+}

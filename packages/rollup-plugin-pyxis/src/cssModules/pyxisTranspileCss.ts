@@ -1,66 +1,37 @@
-import * as path from "node:path";
+import * as Path from "node:path";
 
 import type { Plugin } from "vite";
 
 import type { ResolvedPyxisPluginOptions } from "~/options";
+import { PyxisLoader } from "~/PyxisLoader";
 import { replaceSourceIndex } from "~/transpiler";
-import { getShortModuleId } from "~/utils";
+import { normalizePath } from "~/utils";
 
-import type { CssExportsRegistry, CssExportsMap } from "./CssExportsRegistry";
+import type { CssExportsMap, CssExportsRegistry } from "./CssExportsRegistry";
+
+export interface PyxisTranspileTsxInit {
+	loader: PyxisLoader;
+	registry: CssExportsRegistry;
+	options: ResolvedPyxisPluginOptions;
+	tag: WeakKey;
+}
 
 interface CssChunk {
-	readonly moduleId: string;
+	readonly originalPath: string;
 	readonly mappings: string;
 	readonly originalCode: string;
 	readonly transformedCode: string;
 }
 
-export function transformCssModules(options: ResolvedPyxisPluginOptions, registry: CssExportsRegistry): Plugin {
+export function pyxisTranspileCss({ loader, registry, options, tag }: PyxisTranspileTsxInit): Plugin {
 	const bundleCssChunks = new Map<string, CssChunk>();
-	const filter = {
-		id: {
-			include: options.cssModules!.include,
-			exclude: options.cssModules!.exclude,
-		},
-	};
 
 	let LightningCss!: typeof import("lightningcss");
-	let root!: string;
-	let isVite = false;
 
 	return {
-		name: `${__THIS_MODULE__}:CssModules`,
+		name: `${__THIS_PLUGIN__}:transpile-css`,
 		enforce: "pre",
-		config(config) {
-			// Vite only
-			// it is necessary to disable Vite's own CSS modules feature, as it could otherwise
-			// process CSS modules a second time, breaking class names
-			if (config.css?.transformer !== "lightningcss") {
-				this.warn({
-					code: "E_CONFIG",
-					message: "When using the cssModules feature, Vite should be used with LightningCss.",
-				});
-			}
-
-			return {
-				css: {
-					...config.css,
-					transformer: "lightningcss",
-					lightningcss: {
-						...config.css?.lightningcss,
-						cssModules: false,
-					},
-				},
-			};
-		},
-		configResolved(config) {
-			// Vite only
-			root = config.root;
-			isVite = true;
-		},
-		async buildStart(inputOptions) {
-			// Rollup/Rolldown or Vite
-			root ??= inputOptions.cwd ?? process.cwd();
+		async buildStart() {
 			try {
 				LightningCss ??= await import("lightningcss");
 			}
@@ -73,16 +44,21 @@ export function transformCssModules(options: ResolvedPyxisPluginOptions, registr
 			}
 		},
 		transform: {
-			filter,
 			order: "pre",
-			handler(originalCode, moduleId) {
+			async handler(originalCode, moduleId) {
+				const module = loader.peek(moduleId);
+				if (module?.tags.has(tag) !== true) {
+					return null;
+				}
+
 				// transform CSS module with Lightning CSS
-				const isModule = options.cssModules!.modulePattern.test(moduleId);
+				const { originalPath, virtualPath } = module;
+				const isModule = options.cssModules!.modules.some(pattern => pattern.test(originalPath));
 				const result = LightningCss.transform({
 					...options.cssModules!.lightningcss,
 					code: Buffer.from(originalCode, "utf8"),
-					filename: moduleId,
-					projectRoot: root,
+					filename: originalPath,
+					projectRoot: loader.rootDir,
 					sourceMap: true,
 					cssModules: isModule && (
 						typeof options.cssModules!.lightningcss?.cssModules === "object"
@@ -112,7 +88,7 @@ export function transformCssModules(options: ResolvedPyxisPluginOptions, registr
 						.reduce((map, key) => (map[key] = result.exports![key].name, map), classNameMap);
 				}
 
-				registry.upsertExports(moduleId, classNameMap);
+				registry.upsertExports(virtualPath, classNameMap);
 
 				// get source mappings
 				let mappings;
@@ -133,16 +109,25 @@ export function transformCssModules(options: ResolvedPyxisPluginOptions, registr
 
 				// Vite handles the bundling, return CSS directly, no caching
 				const transformedCode = (result.code as Buffer).toString("utf8");
-				if (isVite) {
+				if (loader.isVite) {
+					const sourcePath = normalizePath(Path.relative(module.virtualPath, module.originalPath));
 					return {
-						code: transformedCode,
+						moduleType: "js",
+						moduleSideEffects: "no-treeshake",
+						code: getViteHMRLoaderSource(classNameMap, moduleId, transformedCode),
+						map: {
+							version: 3,
+							sources: [ sourcePath ],
+							sourcesContent: [ originalCode ],
+							names: [],
+							mappings,
+						},
 					};
 				}
 
-				// for raw Rollup/Rolldown builds, cache CSS and instead return
-				// a JS chunk with mappings
+				// for raw Rollup/Rolldown builds, cache CSS and instead return a JS chunk with mappings
 				bundleCssChunks.set(moduleId, {
-					moduleId,
+					originalPath,
 					mappings,
 					originalCode,
 					transformedCode,
@@ -150,38 +135,45 @@ export function transformCssModules(options: ResolvedPyxisPluginOptions, registr
 
 				return {
 					moduleType: "js",
-					code: `export default ${JSON.stringify(classNameMap)};`,
 					moduleSideEffects: "no-treeshake",
+					code: getMappingsSource(classNameMap),
+					map: {
+						version: 3,
+						sources: [ module.relativePath ],
+						sourcesContent: [ originalCode ],
+						names: [],
+						mappings: "",
+					},
 				};
 			},
 		},
-		generateBundle(outputOptions, bundleMap) {
+		generateBundle(outputOptions, bundle) {
 			// do nothing when used with Vite
-			if (isVite) {
+			if (loader.isVite) {
 				return;
 			}
 
 			const sourcemapEnabled = outputOptions.sourcemap ?? false;
-			const baseDir = path.resolve(root, outputOptions.dir ?? "./dist");
+			const baseDir = Path.resolve(loader.rootDir, outputOptions.dir ?? "./dist");
 			const baseUrl = outputOptions.sourcemapBaseUrl ? new URL(outputOptions.sourcemapBaseUrl) : null;
 			const bundles = Object
-				.values(bundleMap)
-				.filter(bundle => bundle.type === "chunk");
+				.values(bundle)
+				.filter(it => it.type === "chunk");
 
-			for (const bundle of bundles) {
-				const fileName = `${path.parse(bundle.fileName).name}.css`;
-				const chunks = bundle.moduleIds
+			for (const it of bundles) {
+				const fileName = `${Path.parse(it.fileName).name}.css`;
+				const chunks = it.moduleIds
 					.map(moduleId => bundleCssChunks.get(moduleId)!)
 					.filter(Boolean);
 
 				// merge CSS code
 				let code = chunks.map(chunk => chunk.transformedCode).join("\n");
 
-				// merge source mappings if enabled
+				// generate bundled sourcemap if enabled
 				if (sourcemapEnabled) {
 					const sourcemap = {
 						version: 3,
-						sources: chunks.map(chunk => getShortModuleId(baseDir, chunk.moduleId)),
+						sources: chunks.map(chunk => normalizePath(Path.relative(baseDir, chunk.originalPath))),
 						sourcesContent: chunks.map(chunk => chunk.originalCode),
 						names: [],
 						mappings: chunks
@@ -209,4 +201,30 @@ export function transformCssModules(options: ResolvedPyxisPluginOptions, registr
 			}
 		},
 	};
+}
+
+function getMappingsSource(classNameMap: CssExportsMap) {
+	return `
+export default ${JSON.stringify(classNameMap, null, "\t")};
+`;
+}
+
+function getViteHMRLoaderSource(
+	classNameMap: CssExportsMap,
+	moduleId: string,
+	cssCode: string,
+) {
+	// Vite populates `import.meta.hot` automatically
+	// we just need to add the raw CSS loader
+	return `
+import { removeStyle, updateStyle } from "/@vite/client";
+
+const moduleId = ${JSON.stringify(moduleId)};
+const cssCode = ${JSON.stringify(cssCode)};
+
+updateStyle(moduleId, cssCode);
+import.meta.hot.accept();
+import.meta.hot.prune(() => removeStyle(moduleId));
+${getMappingsSource(classNameMap)}
+`;
 }
