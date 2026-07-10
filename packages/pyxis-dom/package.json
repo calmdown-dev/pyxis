@@ -18,7 +18,7 @@
 	"devDependencies": {
 		"@calmdown/pyxis": "workspace:*",
 		"build-logic": "workspace:*",
-		"typescript": "7.0.2"
+		"typescript": "6.0.3"
 	},
 	"scripts": {
 		"bake": "bake ./src/jsx/inferred.ts ./src/jsx/baked.ts"
