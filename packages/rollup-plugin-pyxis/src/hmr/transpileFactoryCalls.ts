@@ -11,14 +11,14 @@ type FactoryKind =
 	| "component"
 	| "context"
 	| "list"
-	| "provider";
+	| "host";
 
 const factoryKindMap: { [N in string]?: FactoryKind } = {
 	atomOf: "atom",
 	component: "component",
 	createContext: "context",
 	listOf: "list",
-	providerOf: "provider",
+	host: "host",
 };
 
 const factoryArgCount: { [K in FactoryKind]: number } = {
@@ -26,7 +26,7 @@ const factoryArgCount: { [K in FactoryKind]: number } = {
 	component: 1,
 	context: 0,
 	list: 2,
-	provider: 2,
+	host: 2,
 };
 
 export interface TranspileFactoryCallsCall extends TranspileTsxCall {

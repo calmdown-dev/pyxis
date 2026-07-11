@@ -256,7 +256,7 @@ export function update<T>(input: MaybeAtom<T>, transform: (value: T) => T, force
  */
 export function notify<T>(input: Atom<T>) {
 	// optimization: when Atom changes multiple times within a single update and ends up with the
-	// same value it started with, the notification is skipped
+	// same value it started with, the notification can be skipped
 	if (input.$tracksValue) {
 		const newValue = input.$get();
 		if (Object.is(input.$lastValue, newValue) && !input.$force) {

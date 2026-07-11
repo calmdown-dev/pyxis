@@ -66,7 +66,7 @@ interface ContextAtom<T> extends Atom<T> {
 
 /**
  * Gets a consumer Atom for the given Context. This atom will be read-only.
- * @see {@link providerOf}
+ * @see {@link host}
  */
 export function consumerOf<T>(context: Context<T>) {
 	const { $symbol } = context;
@@ -80,13 +80,14 @@ export function consumerOf<T>(context: Context<T>) {
 }
 
 /**
- * Gets a provider Atom for the given Context. Any descendant components will be
- * able to consume the value and react to its updates.
+ * Marks the current component as a host for the given context. Returns a mutable ContextAtom;
+ * Values written to it will be propagated to any descendant component that consumes the context via
+ * `consumerOf(context)`.
  * @see {@link consumerOf}
  */
-export function providerOf<T>(context: Context<T>, defaultValue?: T, devId?: string) {
+export function host<T>(context: Context<T>, defaultValue?: T, devId?: string) {
 	if (!isNewContainer || !currentContainer) {
-		// split context, current component becomes a provider
+		// split context, current component becomes a host
 		isNewContainer = true;
 		currentContainer = {
 			$parent: currentContainer,
@@ -124,7 +125,7 @@ export function providerOf<T>(context: Context<T>, defaultValue?: T, devId?: str
 	if (__DEV__) {
 		localAtom.$devId = devId;
 		if (Object.hasOwn(currentContainer, context.$symbol)) {
-			throw new Error("Component declares multiple providers of the same Context.");
+			throw new Error("Component declares multiple hosts of the same Context.");
 		}
 	}
 

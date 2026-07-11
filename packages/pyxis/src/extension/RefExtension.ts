@@ -21,14 +21,12 @@ export interface RefExtensionType {
  * References can be stored into atoms:
  * ```tsx
  * const wrapperRef = atomOf<HTMLDivElement>();
- * // ...
  * <div ref:atom={wrapperRef} />
  * ```
  * or handled with a custom callback:
  * ```tsx
- * <div ref:call={ref => {
- *   // ...
- * }} />
+ * const onWrapperRef = (node: HTMLDivElement) => { ... };
+ * <div ref:call={onWrapperRef} />
  * ```
  */
 export const RefExtension = {

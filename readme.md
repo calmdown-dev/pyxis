@@ -130,15 +130,14 @@ contexts avoids polluting the intermediate components with data they don't need.
 const CounterContext = createContext<number>();
 ```
 
-With the context object ready, it can now be used in components. By requesting
-a provider atom, the enclosing component automatically acts as a provider of
-that context. All children and their descendants rendered by that component will
-gain access to this data. A single component can be a provider of multiple
-contexts.
+With the context object ready, it can now be used in components. By calling the
+`host` function, the enclosing component automatically acts as a host (aka
+provider) for that context. All children and their descendants will gain access
+to this data. A single component can be a host of multiple contexts at once.
 
 ```ts
-// request a provider atom for the given context, initialized to 0
-const counter = providerOf(CounterContext, 0);
+// request to host the given context, initialized to 0
+const counter = host(CounterContext, 0);
 
 // freely write the context atom as needed
 write(counter, 1);
