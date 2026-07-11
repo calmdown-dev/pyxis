@@ -1,4 +1,4 @@
-import { invokeAll } from "~/support/common";
+import { invoke } from "~/support/common";
 import type { ArgsMax5, Callback, Nil } from "~/support/types";
 
 import type { DependencyList } from "./Dependency";
@@ -106,7 +106,7 @@ export function withLifecycle(
 /** @internal */
 export function notifyMounted(lifecycle: Lifecycle) {
 	lifecycle.mounted = true;
-	invokeAll(lifecycle.$onMount);
+	lifecycle.$onMount?.forEach(invoke);
 	lifecycle.$onMount = null;
 }
 
@@ -152,6 +152,6 @@ export function notifyUnmounted(lifecycle: Lifecycle) {
 	lifecycle.$dt = null;
 
 	// run registered unmount callbacks
-	invokeAll(lifecycle.$onUnmount);
+	lifecycle.$onUnmount?.forEach(invoke);
 	lifecycle.$onUnmount = null;
 }

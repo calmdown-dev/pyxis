@@ -1,4 +1,4 @@
-import { invokeAll } from "~/support/common";
+import { invoke } from "~/support/common";
 import type { ArgsMax2, Callback, Nil } from "~/support/types";
 
 import type { Lifecycle } from "./Lifecycle";
@@ -9,7 +9,6 @@ import type { Lifecycle } from "./Lifecycle";
  */
 export interface Scheduler {
 	readonly $scheduleTick: () => void;
-	$isUpdating: boolean;
 	$epoch: number;
 	$pending?: Nil<UpdateCallback[]>;
 }
@@ -20,7 +19,16 @@ export interface Scheduler {
  * @internal
  */
 export interface UpdateCallback<TArgs extends ArgsMax2 = ArgsMax2> extends Callback<TArgs> {
-	$epoch?: number;
+	/**
+	 * Schedule epoch - tracked to prevent scheduling the same callback multiple times within
+	 * the same tick.
+	 */
+	$se?: number;
+
+	/**
+	 * Run epoch - only tracked in dev mode to detect dependency loops.
+	 */
+	$re?: number;
 }
 
 /**
@@ -35,7 +43,6 @@ export interface TickFn {
 export function createScheduler(tick: TickFn) {
 	let isPending = false;
 	const scheduler: Scheduler = {
-		$isUpdating: false,
 		$epoch: 1,
 		$scheduleTick: () => {
 			if (isPending) {
@@ -49,12 +56,20 @@ export function createScheduler(tick: TickFn) {
 
 	const update = () => {
 		try {
-			scheduler.$isUpdating = true;
-			invokeAll(scheduler.$pending);
+			const callbacks = scheduler.$pending!;
+
+			// re-read length on each cycle, as it may increase
+			let index = 0;
+			for (; index < callbacks.length; index += 1) {
+				if (__DEV__) {
+					callbacks[index].$re = scheduler.$epoch;
+				}
+
+				invoke(callbacks[index]);
+			}
 		}
 		finally {
 			isPending = false;
-			scheduler.$isUpdating = false;
 			scheduler.$pending = null;
 			scheduler.$epoch += 1;
 		}
@@ -68,17 +83,18 @@ export function createScheduler(tick: TickFn) {
  * @internal
  */
 export function schedule({ $scheduler }: Lifecycle, callback: UpdateCallback) {
-	if (callback.$epoch === $scheduler.$epoch) {
-		if (__DEV__ && $scheduler.$isUpdating) {
-			throw new Error("Refusing to reschedule an update as it may cause an infinite loop. Are you mutating an Atom inside an effect that observes it?");
+	if (callback.$se === $scheduler.$epoch) {
+		if (__DEV__ && callback.$re === $scheduler.$epoch) {
+			// if run epoch (::$re) matches, the callback already executed this tick and now is being
+			// scheduled again in the same tick -> this is potentially an infinite loop, complain:
+			throw new Error("Refusing to re-schedule an update after it already executed, as it may cause an infinite loop. Are you mutating an Atom inside an effect that observes it?");
 		}
 
-		// if the epoch matches but scheduler is not yet updating, it simply means the same update
-		// was requested multiple times, e.g. an Atom being set twice, this is OK
+		// if schedule epoch (::$se) matches, the callback was already scheduled -> bail
 		return;
 	}
 
-	callback.$epoch = $scheduler.$epoch;
+	callback.$se = $scheduler.$epoch;
 	($scheduler.$pending ??= []).push(callback);
 	$scheduler.$scheduleTick();
 }

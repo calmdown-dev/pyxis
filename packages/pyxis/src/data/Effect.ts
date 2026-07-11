@@ -62,7 +62,7 @@ function scheduleEffect(this: EffectDependency, effect: Effect<ReturnType<Effect
 
 	// we're already within a scheduler tick; the effect will therefore run synchronously despite
 	// being "scheduled" - this also gives priority to already scheduled updates and prevents
-	// infinite loops when dependency cycles exist
+	// potential infinite loops in case dependency cycles exist
 	schedule(effect.$lifecycle, effect.$resolve ??= {
 		$fn: runEffect,
 		$a0: effect,
