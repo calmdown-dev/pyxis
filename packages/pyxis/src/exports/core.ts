@@ -8,7 +8,7 @@ export { consumerOf, createContext, host, type Context } from "~/data/Context";
 export { derived, type Derivation } from "~/data/Derivation";
 export { bind } from "~/data/Dependency";
 export { effect, type EffectBlock } from "~/data/Effect";
-export { getLifecycle, mounted, unmounted, withLifecycle, type Lifecycle, type MountBlock, type UnmountBlock } from "~/data/Lifecycle";
+export { getLifecycle, mounted, tick, unmounted, withLifecycle, type Lifecycle, type MountBlock, type UnmountBlock } from "~/data/Lifecycle";
 export { listOf, sync, type List, type ReadonlyList } from "~/data/List";
 export type { Equals } from "~/data/ListDelta";
 export { proxyOf, type ProxyAtom } from "~/data/ProxyAtom";

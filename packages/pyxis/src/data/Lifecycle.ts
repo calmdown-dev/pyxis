@@ -2,7 +2,7 @@ import { invoke } from "~/support/common";
 import type { ArgsMax5, Callback, Nil } from "~/support/types";
 
 import type { DependencyList } from "./Dependency";
-import type { Scheduler } from "./Scheduler";
+import { schedule, type Scheduler } from "./Scheduler";
 
 export interface Lifecycle extends DependencyList {
 	/** whether this Lifecycle is currently mounted or not */
@@ -70,6 +70,9 @@ export function onUnmounted(lifecycle: Lifecycle, callback: Callback) {
 
 let currentLifecycle: Lifecycle | null = null;
 
+/**
+ * Gets the Lifecycle of the calling component.
+ */
 export function getLifecycle(): Lifecycle {
 	if (__DEV__ && !currentLifecycle) {
 		throw new Error("Cannot get current lifecycle. Are you creating an Atom outside of a Component?");
@@ -78,6 +81,11 @@ export function getLifecycle(): Lifecycle {
 	return currentLifecycle!;
 }
 
+/**
+ * Runs a block of code with the provided Lifecycle. Calls to `getLifecycle` within the block will
+ * return the specified object.
+ * @see {@link getLifecycle}
+ */
 export function withLifecycle<TArgs extends ArgsMax5, TReturn>(
 	lifecycle: Lifecycle,
 	block: (...args: TArgs) => TReturn,
@@ -102,6 +110,15 @@ export function withLifecycle(
 		currentLifecycle = previousLifecycle;
 	}
 }
+
+/**
+ * Runs a block of code on the next tick of the scheduler, synchronized with other updates. If a
+ * tick is not currently pending, a new one is scheduled.
+ */
+export function tick(block: () => void, lifecycle = getLifecycle()) {
+	schedule(lifecycle, { $fn: block });
+}
+
 
 /** @internal */
 export function notifyMounted(lifecycle: Lifecycle) {
