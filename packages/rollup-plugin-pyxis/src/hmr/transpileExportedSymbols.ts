@@ -1,10 +1,39 @@
 import type { AST, TransformBlock, TranspileTsxCall } from "~/transpiler";
 
-interface ExportInfo {
+type NodeInfo =
+	| VariableNodeInfo
+	| ClassNodeInfo
+	| FunctionNodeInfo
+	| DefaultExpressionNodeInfo;
+
+interface VariableNodeInfo {
+	readonly kind: "variable";
+	readonly node: AST.VariableDeclaration;
+}
+
+interface ClassNodeInfo {
+	readonly kind: "class";
+	readonly node: AST.Class;
+}
+
+interface FunctionNodeInfo {
+	readonly kind: "function";
+	node?: AST.Function;
+	overloads?: AST.Function[];
+}
+
+interface DefaultExpressionNodeInfo {
+	readonly kind: "default-expression";
+	readonly node: AST.Expression;
+}
+
+interface ExportedNameInfo {
 	readonly shouldExport: boolean;
 	readonly localName: string;
 	readonly exportName: string;
 }
+
+const HMR_PREFIX = "__HMR_";
 
 /**
  * applies transforms to exports:
@@ -15,10 +44,46 @@ interface ExportInfo {
  * - finally a common export is added re-exporting all the original symbols
  */
 export async function transpileExportedSymbols({ ast, transpiler }: TranspileTsxCall) {
-	// nodes keyed under their local names
-	const topScopeNodes: { [N in string]?: AST.VariableDeclaration | AST.Function | AST.Class } = {};
-	const exportedNodes = new Set<AST.VariableDeclaration | AST.Function | AST.Class | AST.Expression>();
-	const exportedNames = new Map<string, ExportInfo>();
+	const topScopeNodesByName: { [N in string]?: NodeInfo } = {};
+	const topScopeNodes = new Map<AST.Node, NodeInfo>();
+	const exportedNodes = new Set<AST.Node>();
+	const exportedNames = new Map<string, ExportedNameInfo>();
+
+	const visitTopScopeNode = (node: AST.VariableDeclaration | AST.Class | AST.Function, name: string) => {
+		let info: NodeInfo | undefined;
+		switch (node.type) {
+			case "VariableDeclaration":
+				topScopeNodesByName[name] = (info = { kind: "variable", node });
+				break;
+
+			case "ClassDeclaration":
+				topScopeNodesByName[name] = (info = { kind: "class", node });
+				break;
+
+			case "FunctionDeclaration":
+				info = topScopeNodesByName[name];
+				if (!info || info.kind !== "function") {
+					topScopeNodesByName[name] = (info = { kind: "function" });
+				}
+
+				info.node = node;
+				break;
+
+			case "TSDeclareFunction":
+				info = topScopeNodesByName[name];
+				if (!info || info.kind !== "function") {
+					topScopeNodesByName[name] = (info = { kind: "function" });
+				}
+
+				(info.overloads ??= []).push(node);
+				break;
+
+			default:
+				return;
+		}
+
+		topScopeNodes.set(node, info);
+	};
 
 	for (const node of ast.body) {
 		switch (node.type) {
@@ -26,23 +91,19 @@ export async function transpileExportedSymbols({ ast, transpiler }: TranspileTsx
 			case "FunctionDeclaration":
 			case "ClassDeclaration":
 				findDeclaredSymbols(node, it => {
-					topScopeNodes[it.name] = node;
+					visitTopScopeNode(node, it.name);
 				});
 
 				break;
 
 			case "ExportNamedDeclaration": {
-				if (node.exportKind === "type") {
-					break;
-				}
-
 				// may be a direct named export, e.g.:
 				// export const a = 123;
 				const declaration = node.declaration;
-				if (declaration && !isTypeScriptNode(declaration)) {
+				if (declaration && (declaration.type === "TSDeclareFunction" || !isTypeScriptNode(declaration))) {
 					exportedNodes.add(declaration);
 					findDeclaredSymbols(declaration, it => {
-						topScopeNodes[it.name] = declaration;
+						visitTopScopeNode(declaration, it.name);
 						exportedNames.set(it.name, {
 							shouldExport: true,
 							localName: it.name,
@@ -53,6 +114,10 @@ export async function transpileExportedSymbols({ ast, transpiler }: TranspileTsx
 					transpiler.addTransform(node, removeExport);
 				}
 
+				if (node.exportKind === "type") {
+					break;
+				}
+
 				// or a named reference export:
 				// export { a, b, c };
 				for (const ref of node.specifiers) {
@@ -61,7 +126,7 @@ export async function transpileExportedSymbols({ ast, transpiler }: TranspileTsx
 					}
 
 					const localName = ref.local.name;
-					const exportedNode = topScopeNodes[localName];
+					const exportedNode = topScopeNodesByName[localName]?.node;
 					if (exportedNode) {
 						const exportName = ref.exported.name;
 						exportedNodes.add(exportedNode);
@@ -81,17 +146,22 @@ export async function transpileExportedSymbols({ ast, transpiler }: TranspileTsx
 				// default export can be any expression -> detect references, otherwise use directly
 				if (node.declaration.type === "Identifier") {
 					const localName = node.declaration.name;
-					const exportedNode = topScopeNodes[localName];
+					const exportedNode = topScopeNodesByName[localName]?.node;
 					if (exportedNode) {
 						exportedNodes.add(exportedNode);
 						transpiler.addTransform(node, removeNode);
 					}
 				}
 				else if (!isTypeScriptNode(node.declaration)) {
+					topScopeNodes.set(node.declaration, {
+						kind: "default-expression",
+						node: node.declaration,
+					});
+
 					exportedNodes.add(node.declaration);
 					exportedNames.set("default", {
 						shouldExport: true,
-						localName: "__default",
+						localName: `${HMR_PREFIX}default`,
 						exportName: "default",
 					});
 
@@ -108,28 +178,51 @@ export async function transpileExportedSymbols({ ast, transpiler }: TranspileTsx
 		return;
 	}
 
+	const handled = new WeakSet<NodeInfo>();
 	for (const node of exportedNodes) {
-		switch (node.type) {
-			case "VariableDeclaration":
-				if (node.kind === "const") {
+		const info = topScopeNodes.get(node);
+		if (!info || handled.has(info)) {
+			continue;
+		}
+
+		handled.add(info);
+		switch (info.kind) {
+			case "variable":
+				if (info.node.kind === "const") {
 					transpiler.addTransform(node, convertToMutableVariable);
 				}
 
 				break;
 
-			case "FunctionDeclaration":
-			case "ClassDeclaration":
-				if (node.id) {
-					// id should always be present, otherwise the original code would have to
-					// contain something like `export function () { ... }` which is invalid
-					transpiler.addTransform(node, assignToMutableVariable(node.id!.name));
+			case "class":
+				if (info.node.id) {
+					transpiler.addTransform(node, assignToMutableVariable(info.node.id.name));
 				}
 
 				break;
 
-			default:
-				// expressions from default export
-				transpiler.addTransform(node, assignToMutableVariable("__default"));
+			case "function":
+				if (!info.node || !info.node.id) {
+					break;
+				}
+
+				if (info.overloads) {
+					const oldName = info.node.id.name;
+					const newName = `${HMR_PREFIX}${oldName}`;
+					[ ...info.overloads, info.node ].forEach(it => {
+						transpiler.addTransform(it, renameOverloadedFunction(newName));
+					});
+
+					transpiler.addTransform(info.node, appendCode(`\n\nlet ${oldName} = ${newName};`));
+				}
+				else {
+					transpiler.addTransform(node, assignToMutableVariable(info.node.id.name));
+				}
+
+				break;
+
+			case "default-expression":
+				transpiler.addTransform(node, assignToMutableVariable(`${HMR_PREFIX}default`));
 				break;
 		}
 	}
@@ -179,6 +272,7 @@ function findDeclaredSymbols(
 			break;
 
 		case "FunctionDeclaration":
+		case "TSDeclareFunction":
 		case "ClassDeclaration": {
 			if (!declaration.id) {
 				break;
@@ -306,6 +400,29 @@ const assignToMutableVariable = (name: string): TransformBlock => (originalCode,
 			{
 				at: end,
 				delta: 2,
+			},
+		],
+	};
+};
+
+const renameOverloadedFunction = (newName: string): TransformBlock => (originalCode, start) => {
+	const match = /^(\s*function\s+)([a-zA-Z_$][a-zA-Z0-9_$]*)(?=[(<\s])/.exec(originalCode);
+	if (!match) {
+		return null;
+	}
+
+	const offset = match[1].length;
+	const removed = match[2].length;
+	return {
+		newCode: match[1] + newName + originalCode.slice(offset + removed),
+		edits: [
+			{
+				at: start + offset,
+				delta: -removed,
+			},
+			{
+				at: start + offset + removed,
+				delta: newName.length,
 			},
 		],
 	};

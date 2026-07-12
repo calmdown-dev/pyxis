@@ -42,16 +42,18 @@ export function pyxisTranspileTsx({ loader, tag, transpile }: PyxisTranspileTsxI
 					return null;
 				}
 
+				const ast = this.parse(originalCode, {
+					astType: "js",
+					lang,
+				});
+
 				const transpiler = new Transpiler();
 				await transpile.call(this, {
 					code: originalCode,
 					transpiler,
 					moduleId,
 					relativeId: module.relativePath,
-					ast: this.parse(originalCode, {
-						astType: "js",
-						lang,
-					}),
+					ast,
 				});
 
 				const sourcePath = loader.isVite
