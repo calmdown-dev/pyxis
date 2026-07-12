@@ -1,7 +1,7 @@
 import { notify, S_ATOM, type Atom } from "./Atom";
 import { getLifecycle } from "./Lifecycle";
 import { unlink } from "./Dependency";
-import { resolve, type Effect, type EffectDependency } from "./Effect";
+import { __DEV__assertNotEffect, resolve, type Effect, type EffectDependency } from "./Effect";
 import { schedule } from "./Scheduler";
 
 /**
@@ -23,6 +23,10 @@ export interface Derivation<T = unknown> extends Atom<T>, Effect<T> {
  * Atoms change. Observers are only notified if the new value differs from the previous.
  */
 export function derived<T>(block: () => T, lifecycle = getLifecycle()): Derivation<T> {
+	if (__DEV__) {
+		__DEV__assertNotEffect();
+	}
+
 	const atom: Derivation<T> = {
 		[S_ATOM]: true,
 		$dirty: false,

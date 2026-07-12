@@ -68,17 +68,17 @@ export function onUnmounted(lifecycle: Lifecycle, callback: Callback) {
 }
 
 
-let currentLifecycle: Lifecycle | null = null;
+let $currentLifecycle: Lifecycle | null = null;
 
 /**
  * Gets the Lifecycle of the calling component.
  */
 export function getLifecycle(): Lifecycle {
-	if (__DEV__ && !currentLifecycle) {
+	if (__DEV__ && !$currentLifecycle) {
 		throw new Error("Cannot get current lifecycle. Are you creating an Atom outside of a Component?");
 	}
 
-	return currentLifecycle!;
+	return $currentLifecycle!;
 }
 
 /**
@@ -101,13 +101,14 @@ export function withLifecycle(
 	a3: any,
 	a4: any,
 ) {
-	const previousLifecycle = currentLifecycle;
+	const previousLifecycle = $currentLifecycle;
+	$currentLifecycle = lifecycle;
+
 	try {
-		currentLifecycle = lifecycle;
 		return block(a0, a1, a2, a3, a4);
 	}
 	finally {
-		currentLifecycle = previousLifecycle;
+		$currentLifecycle = previousLifecycle;
 	}
 }
 

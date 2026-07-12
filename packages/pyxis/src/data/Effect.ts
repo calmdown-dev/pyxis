@@ -98,14 +98,14 @@ export function resolve<TEffect extends Effect<any>>(effect: TEffect): TEffect e
 	effect.$deps ??= new WeakMap();
 	effect.$epoch += 1;
 
-	const previous = $currentEffect;
+	const previousEffect = $currentEffect;
 	$currentEffect = effect;
 
 	try {
 		return effect.$block();
 	}
 	finally {
-		$currentEffect = previous;
+		$currentEffect = previousEffect;
 	}
 }
 
@@ -131,5 +131,15 @@ export function reportAccess(atom: DependencyList) {
 		});
 
 		$currentEffect.$deps!.set(atom, dep);
+	}
+}
+
+/**
+ * Asserts that the current code is not running within an effect block.
+ * Only used in development; In production, this function should be removed by the bundler.
+ */
+export function __DEV__assertNotEffect() {
+	if ($currentEffect) {
+		throw new Error("Attempt to create an Atom inside an effect block.");
 	}
 }

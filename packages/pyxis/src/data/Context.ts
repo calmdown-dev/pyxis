@@ -2,6 +2,7 @@ import type { Nil } from "~/support/types";
 
 import { notify, S_ATOM, type Atom } from "./Atom";
 import { link, unlink, type Dependency } from "./Dependency";
+import { __DEV__assertNotEffect } from "./Effect";
 import { getLifecycle } from "./Lifecycle";
 
 /**
@@ -69,6 +70,10 @@ interface ContextAtom<T> extends Atom<T> {
  * @see {@link host}
  */
 export function consumerOf<T>(context: Context<T>) {
+	if (__DEV__) {
+		__DEV__assertNotEffect();
+	}
+
 	const { $symbol } = context;
 	let ptr: Nil<ContextContainer> = currentContainer;
 	let atom;
@@ -86,6 +91,10 @@ export function consumerOf<T>(context: Context<T>) {
  * @see {@link consumerOf}
  */
 export function host<T>(context: Context<T>, defaultValue?: T, devId?: string) {
+	if (__DEV__) {
+		__DEV__assertNotEffect();
+	}
+
 	if (!isNewContainer || !currentContainer) {
 		// split context, current component becomes a host
 		isNewContainer = true;

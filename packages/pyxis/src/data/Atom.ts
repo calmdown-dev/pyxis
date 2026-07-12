@@ -1,10 +1,10 @@
 import { invoke } from "~/support/common";
+import type { Nil } from "~/support/types";
 
 import { getLifecycle, type Lifecycle } from "./Lifecycle";
 import type { DependencyList } from "./Dependency";
-import { reportAccess } from "./Effect";
+import { __DEV__assertNotEffect, reportAccess } from "./Effect";
 import { schedule, type UpdateCallback } from "./Scheduler";
-import type { Nil } from "~/support/types";
 
 /**
  * Pyxis Atom type guard marker.
@@ -88,6 +88,10 @@ export function atomOf<T>(): Atom<T | undefined>;
 export function atomOf<T>(initialValue: MaybeAtom<T>, lifecycle?: Lifecycle): Atom<T>;
 
 export function atomOf<T>(initialValue?: MaybeAtom<T>, lifecycle = getLifecycle(), devId?: string) {
+	if (__DEV__) {
+		__DEV__assertNotEffect();
+	}
+
 	if (isAtom(initialValue)) {
 		return initialValue;
 	}

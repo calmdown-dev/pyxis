@@ -3,7 +3,7 @@ import type { Nil } from "~/support/types";
 
 import { getLifecycle, type Lifecycle } from "./Lifecycle";
 import type { DependencyList } from "./Dependency";
-import { reportAccess } from "./Effect";
+import { __DEV__assertNotEffect, reportAccess } from "./Effect";
 import { createDelta, itemChanged, itemInserted, itemRemoved, listCleared, listSynced, type Equals, type ListDelta } from "./ListDelta";
 import { schedule, type UpdateCallback } from "./Scheduler";
 
@@ -64,6 +64,7 @@ export function listOf<T>(source: Iterable<T>, lifecycle?: Lifecycle): List<T>;
 
 export function listOf<T>(source?: Nil<Iterable<T>>, lifecycle = getLifecycle(), devId?: string): List<T> {
 	if (__DEV__) {
+		__DEV__assertNotEffect();
 		globalThis.__PYXIS_HMR__.state.restore(lifecycle, devId, value => {
 			if (Array.isArray(value)) {
 				source = value;
