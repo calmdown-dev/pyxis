@@ -122,6 +122,11 @@ export function reportAccess(atom: DependencyList) {
 	if (dep) {
 		// refresh dependency to the current epoch
 		dep.$a1 = $currentEffect.$epoch;
+		if (!dep.$lifecycle) {
+			// dep has become temporarily stale and got unlinked while still lingering in the
+			// $deps WeakMap - that's okay, but must be re-linked now to work again
+			link($currentEffect.$lifecycle, atom, dep);
+		}
 	}
 	else {
 		link($currentEffect.$lifecycle, atom, dep = {

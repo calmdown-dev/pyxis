@@ -25,9 +25,9 @@ export interface AriaExtensionType {
 export const AriaExtension = {
 	set: (node, key, value, group) => {
 		if (isAtom(value)) {
-			bind(group, value, () => (
-				node[key] = get(value)
-			));
+			bind(group, value, () => {
+				node[key] = get(value);
+			});
 		}
 		else {
 			node[key] = value;

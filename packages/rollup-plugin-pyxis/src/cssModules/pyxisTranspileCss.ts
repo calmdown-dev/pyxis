@@ -166,6 +166,10 @@ export function pyxisTranspileCss({ loader, registry, options, tag }: PyxisTrans
 					.map(moduleId => bundleCssChunks.get(moduleId)!)
 					.filter(Boolean);
 
+				if (chunks.length === 0) {
+					continue;
+				}
+
 				// merge CSS code
 				let code = chunks.map(chunk => chunk.transformedCode).join("\n");
 

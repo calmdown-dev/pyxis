@@ -28,9 +28,9 @@ export interface CssStyleExtensionType {
 export const CssStyleExtension = {
 	set: (node, ruleName: any, value, group) => {
 		if (isAtom(value)) {
-			bind(group, value, () => (
-				node.style[ruleName] = get(value)
-			));
+			bind(group, value, () => {
+				node.style[ruleName] = get(value);
+			});
 		}
 		else if (value) {
 			node.style[ruleName] = value;

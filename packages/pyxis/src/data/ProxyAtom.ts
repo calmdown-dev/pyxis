@@ -56,7 +56,7 @@ function use<T>(this: ProxyAtom<T>, value: MaybeAtom<T>, canNotify: boolean = tr
 		this.$value = null;
 		this.$get = getBoundValue;
 		this.$set = setBoundValue;
-		link(value.$lifecycle, value, this.$dep ??= {
+		link(this.$lifecycle, value, this.$dep ??= {
 			$fn: notify<T>,
 			$a0: this,
 		});

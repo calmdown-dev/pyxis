@@ -30,9 +30,9 @@ export interface CssVariableExtensionType {
 export const CssVariableExtension = {
 	set: (node, varName, value, group) => {
 		if (isAtom(value)) {
-			bind(group, value, () => (
-				setProp(node.style, varName, get(value))
-			));
+			bind(group, value, () => {
+				setProp(node.style, varName, get(value));
+			});
 		}
 		else if (value) {
 			setProp(node.style, varName, value);

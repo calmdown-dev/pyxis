@@ -28,11 +28,17 @@ export interface DatasetExtensionType {
 export const DatasetExtension = {
 	set: (node, key, value, group) => {
 		if (isAtom(value)) {
-			bind(group, value, () => (
-				node.dataset[key] = get(value)
-			));
+			bind(group, value, () => {
+				const tmp = get(value);
+				if (tmp === undefined) {
+					delete node.dataset[key];
+				}
+				else {
+					node.dataset[key] = tmp;
+				}
+			});
 		}
-		else {
+		else if (value !== undefined) {
 			node.dataset[key] = value;
 		}
 	},

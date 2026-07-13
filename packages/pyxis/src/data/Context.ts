@@ -108,7 +108,7 @@ export function host<T>(context: Context<T>, defaultValue?: T) {
 
 	const lifecycle = getLifecycle();
 	if (__DEV__) {
-		const devId = arguments[0];
+		const devId = arguments[2];
 		globalThis.__PYXIS_HMR__.state.restore(lifecycle, devId, value => {
 			defaultValue = value;
 		});

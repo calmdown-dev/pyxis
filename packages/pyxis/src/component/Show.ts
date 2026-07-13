@@ -1,4 +1,4 @@
-import { isAtom, peek, read, type Atom, type MaybeAtom } from "~/data/Atom";
+import { isAtom, read, type Atom, type MaybeAtom } from "~/data/Atom";
 import { link } from "~/data/Dependency";
 import { effect } from "~/data/Effect";
 import { withLifecycle } from "~/data/Lifecycle";
@@ -59,25 +59,7 @@ export function Show<TNode>(
 		? children[0] as MaybeAtom<DataTemplate<any>> // enforced by overload typings
 		: () => children;
 
-	// a sub-group for re-mounting is only necessary when either:
-	// - `when` can change
-	// - `template` can change
-	// - `data` can change and we're not using a proxy
-
 	let dataOrProxy: unknown = data;
-	if (!(isAtom(when) || isAtom(template) || (!proxyKeys && isAtom(data)))) {
-		if (proxyKeys) {
-			dataOrProxy = createProxy(parent.$ng, peek(data), proxyKeys);
-		}
-
-		mountJsx(withLifecycle(parent.$ng, template, dataOrProxy), parent, before);
-		return;
-	}
-
-	// re-mounts may be necessary -> create a sub-group
-	const group = split(parent);
-
-	// init a proxy if requested
 	if (proxyKeys) {
 		if (isAtom(data)) {
 			dataOrProxy = createProxy(parent.$ng, data.$get(), proxyKeys);
@@ -91,6 +73,19 @@ export function Show<TNode>(
 			dataOrProxy = createProxy(parent.$ng, data, proxyKeys);
 		}
 	}
+
+	// a sub-group for re-mounting is only necessary when either:
+	// - `when` can change
+	// - `template` can change
+	// - `data` can change and we're not using a proxy
+
+	if (!(isAtom(when) || isAtom(template) || (!proxyKeys && isAtom(data)))) {
+		mountJsx(withLifecycle(parent.$ng, template, dataOrProxy), parent, before);
+		return;
+	}
+
+	// re-mounts may be necessary -> create a sub-group
+	const group = split(parent);
 
 	// (re-)render effect
 	effect(() => {

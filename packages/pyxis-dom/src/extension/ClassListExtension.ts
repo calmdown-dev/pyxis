@@ -28,9 +28,9 @@ export interface ClassListExtensionType {
 export const ClassListExtension = {
 	set: (node, className, toggle, group) => {
 		if (isAtom(toggle)) {
-			bind(group, toggle, () => (
-				node.classList.toggle(className, get(toggle))
-			));
+			bind(group, toggle, () => {
+				node.classList.toggle(className, get(toggle));
+			});
 		}
 		else if (toggle) {
 			node.classList.add(className);
