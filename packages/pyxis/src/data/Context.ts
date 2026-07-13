@@ -25,11 +25,12 @@ export interface Context<T> {
  * trees without "prop drilling."
  * @see {@link context}
  */
-export function createContext<T>(): Context<T>;
+export function createContext<T>(devId?: string): Context<T>;
 
-export function createContext<T>(devId?: string): Context<T> {
+export function createContext<T>(): Context<T> {
 	let $symbol = Symbol();
 	if (__DEV__) {
+		const devId = arguments[0];
 		$symbol = globalThis.__PYXIS_HMR__.state.restore(createContext, devId) ?? $symbol;
 		globalThis.__PYXIS_HMR__.state.preserve(createContext, devId, $symbol);
 	}
@@ -90,7 +91,9 @@ export function consumerOf<T>(context: Context<T>) {
  * `consumerOf(context)`.
  * @see {@link consumerOf}
  */
-export function host<T>(context: Context<T>, defaultValue?: T, devId?: string) {
+export function host<T>(context: Context<T>, defaultValue?: T, devId?: string): ContextAtom<T>;
+
+export function host<T>(context: Context<T>, defaultValue?: T) {
 	if (__DEV__) {
 		__DEV__assertNotEffect();
 	}
@@ -105,6 +108,7 @@ export function host<T>(context: Context<T>, defaultValue?: T, devId?: string) {
 
 	const lifecycle = getLifecycle();
 	if (__DEV__) {
+		const devId = arguments[0];
 		globalThis.__PYXIS_HMR__.state.restore(lifecycle, devId, value => {
 			defaultValue = value;
 		});
@@ -132,7 +136,7 @@ export function host<T>(context: Context<T>, defaultValue?: T, devId?: string) {
 	}
 
 	if (__DEV__) {
-		localAtom.$devId = devId;
+		localAtom.$devId = arguments[2];
 		if (Object.hasOwn(currentContainer, context.$symbol)) {
 			throw new Error("Component declares multiple hosts of the same Context.");
 		}

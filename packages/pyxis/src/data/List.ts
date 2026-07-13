@@ -54,17 +54,19 @@ export interface List<T> extends ReadonlyList<T> {
  * Components to efficiently update the rendered state.
  */
 export function listOf<T>(): List<T>;
-export function listOf<T>(source: Nil<never>, lifecycle: Lifecycle): List<T>;
+export function listOf<T>(source: Nil<never>, lifecycle?: Lifecycle, devId?: string): List<T>;
 
 /**
  * Creates a List initialized with items copied from the provided Iterable. This List emits deltas
  * with each mutation which can be observed by Components to efficiently update the rendered state.
  */
-export function listOf<T>(source: Iterable<T>, lifecycle?: Lifecycle): List<T>;
+export function listOf<T>(source: Iterable<T>, lifecycle?: Lifecycle, devId?: string): List<T>;
 
-export function listOf<T>(source?: Nil<Iterable<T>>, lifecycle = getLifecycle(), devId?: string): List<T> {
+export function listOf<T>(source?: Nil<Iterable<T>>, lifecycle = getLifecycle()): List<T> {
 	if (__DEV__) {
 		__DEV__assertNotEffect();
+
+		const devId = arguments[2];
 		globalThis.__PYXIS_HMR__.state.restore(lifecycle, devId, value => {
 			if (Array.isArray(value)) {
 				source = value;
@@ -93,7 +95,7 @@ export function listOf<T>(source?: Nil<Iterable<T>>, lifecycle = getLifecycle(),
 	};
 
 	if (__DEV__) {
-		list.$devId = devId;
+		list.$devId = arguments[2];
 	}
 
 	return list;

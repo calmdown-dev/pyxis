@@ -43,7 +43,7 @@ export interface Atom<T = unknown> extends DependencyList {
 	$notify?: UpdateCallback<[ self: Atom<T> ]>;
 
 	/**
-	 * The ID of this Atom, used in development mode.
+	 * The ID of this Atom, only present in development mode with transpiler.
 	 * @internal
 	 */
 	$devId?: string;
@@ -85,9 +85,9 @@ export function atomOf<T>(): Atom<T | undefined>;
  * is returned as-is.
  * @see {@link isAtom}
  */
-export function atomOf<T>(initialValue: MaybeAtom<T>, lifecycle?: Lifecycle): Atom<T>;
+export function atomOf<T>(initialValue: MaybeAtom<T>, lifecycle?: Lifecycle, devId?: string): Atom<T>;
 
-export function atomOf<T>(initialValue?: MaybeAtom<T>, lifecycle = getLifecycle(), devId?: string) {
+export function atomOf<T>(initialValue?: MaybeAtom<T>, lifecycle = getLifecycle()) {
 	if (__DEV__) {
 		__DEV__assertNotEffect();
 	}
@@ -107,6 +107,7 @@ export function atomOf<T>(initialValue?: MaybeAtom<T>, lifecycle = getLifecycle(
 	};
 
 	if (__DEV__) {
+		const devId = arguments[2];
 		atom.$devId = devId;
 		globalThis.__PYXIS_HMR__.state.restore(lifecycle, devId, value => {
 			atom.$value = value;

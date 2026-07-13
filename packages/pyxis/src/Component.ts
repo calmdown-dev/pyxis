@@ -29,13 +29,15 @@ export interface ComponentBlock {
 
 export function component<TPropsArg extends [ {} ]>(
 	block: (...args: TPropsArg) => JsxResult,
+	devId?: string,
 ): (...args: [ props: JsxProps<TPropsArg[0]> ]) => JsxResult;
 
 export function component(
 	block: ComponentBlock,
-	devId?: string,
 ): ComponentHandler {
+	let devId: string | undefined; // gets removed by bundler in production
 	if (__DEV__) {
+		devId = arguments[1];
 		devId && globalThis.__PYXIS_HMR__.component.upsert(devId, block);
 	}
 
