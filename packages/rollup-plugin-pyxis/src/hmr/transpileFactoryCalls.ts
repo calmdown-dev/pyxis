@@ -96,7 +96,18 @@ export async function transpileFactoryCalls({
 	// identify and transpile factory calls within the program, passing unique devId's
 	// uniqueness is not guaranteed from names alone, so we append counters when necessary (an order-sensitive fallback)
 	const assignedIds: { [K in string]?: number } = {};
+
+	// track component nodes - devId must only be assigned to factories within a component scope, not e.g. within event handlers.
+	const componentNodes = new WeakSet<AST.Node>();
+
 	const transpileCall = (factory: AST.CallExpression, kind: FactoryKind) => {
+		if (kind === "component") {
+			componentNodes.add(factory);
+		}
+		else if (!isComponentScope(componentNodes, factory)) {
+			return;
+		}
+
 		const name = findNameFor(factory);
 		const extraArgCount = factoryArgCount[kind] - factory.arguments.length;
 		if (name && extraArgCount >= 0) {
@@ -142,6 +153,20 @@ export async function transpileFactoryCalls({
 
 		},
 	});
+}
+
+function isComponentScope(componentNodes: WeakSet<AST.Node>, node: AST.Node) {
+	const nearestFn = walkUp(node, it => (
+		it.type === "FunctionDeclaration" || it.type === "ArrowFunctionExpression"
+			? it
+			: null
+	));
+
+	return (
+		nearestFn &&
+		nearestFn.parent?.type === "CallExpression" &&
+		componentNodes.has(nearestFn.parent)
+	);
 }
 
 function findNameFor(node: AST.Node) {
