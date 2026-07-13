@@ -110,7 +110,7 @@ export interface Hierarchy<TNode> {
 
 	/**
 	 * Cache of the first native node within this hierarchy node.
-	 * When null, a re-scan is needed.
+	 * When undefined, a re-scan is needed.
 	 */
 	$fn?: TNode | null;
 }
@@ -143,8 +143,8 @@ export function createRenderer<TNode, TIntrinsicElements extends ElementsType>(
 }
 
 /**
- * Creates a sub-group of the provided MountingGroup. Needed whenever a subtree may need to mount or
- * unmount dynamically.
+ * Creates a sub-group of the provided MountingGroup. Needed whenever a subtree may need to mount
+ * or unmount dynamically.
  */
 export function split<TNode>(
 	parent: HierarchyNode<TNode>,
@@ -190,16 +190,13 @@ export function track<TNode>(
 			node.$hp = null;
 			node.$hn = parent.$hh;
 			if (parent.$hh === before) {
-				// this should always run: since before has no previous sibling,
-				// it must be at the head, otherwise the hierarchy is malformed
-				// and bad things will happen...
+				// this should always run: since before has no previous sibling, it must be at the
+				// head, otherwise the hierarchy is malformed and bad things will happen...
 				before.$hp = node;
 			}
 
 			parent.$hh = node;
 		}
-
-		invalidateFirstNodeCache(node, false);
 	}
 	// append at the tail of the hierarchy
 	else {
@@ -214,40 +211,77 @@ export function track<TNode>(
 		parent.$ht = node;
 	}
 
+	invalidateByInsertion(node);
 }
 
 /**
- * Invalidates the first node cache of the provided node and any of its previous siblings and
- * parents sharing the same reference.
+ * Invalidates the first node cache of the provided node and any of its previous siblings or
+ * ancestors sharing the same reference, assuming an insertion operation preceded.
  * @internal
  */
-function invalidateFirstNodeCache<TNode>(node: HierarchyNode<TNode>, isRemoval: boolean) {
+function invalidateByInsertion<TNode>(node: HierarchyNode<TNode>) {
+	// find first previous h-node with defined cache
+	let current = node.$hp;
+	while (current) {
+		if (current.$fn !== undefined) {
+			if (current.$isGroup) {
+				doInvalidate(current, current.$fn);
+			}
 
-	// bail when:
-	// - no ref is cached
-	// - node will be removed and the same ref is used by the *next* sibling - cache remains valid after removal
+			return;
+		}
 
+		current = current.$hp;
+	}
+
+	// recurse upwards if no previous sibling had anything cached and the parent is a group holding
+	// a cached ref - otherwise, previous runs have already cleared upwards, so we can bail
+	if (
+		(current = node.$ph) &&
+		current.$isGroup &&
+		current.$fn !== undefined
+	) {
+		doInvalidate(current, current.$fn);
+	}
+}
+
+/**
+ * Invalidates the first node cache of the provided node and any of its previous siblings or
+ * ancestors sharing the same reference, assuming a removal operation will follow.
+ * @internal
+ */
+function invalidateByRemoval<TNode>(node: HierarchyNode<TNode>) {
+	// bail if:
+	// - h-node is a native node, it acts as a boundary and remains valid
+	// - no cache exists, nothing to invalidate
+	// - next sibling has the same ref, cache remains valid after this removal
+	//   if there's no next sibling, searching for one would defeat the purpose of this early-exit
+	//   so just run the invalidation in such cases
 	const ref = node.$fn;
 	if (
+		node.$isNode ||
 		ref === undefined ||
-		(isRemoval && (node.$hn ?? node.$ph?.$hn)?.$fn === ref)
+		node.$hn?.$fn === ref
 	) {
 		return;
 	}
 
-	doInvalidateFirstNodeCache(node, ref);
+	doInvalidate(node, ref);
 }
 
 /**
- * Only used by `invalidateFirstNodeCache`, do not call directly.
- * @see {@link invalidateFirstNodeCache}
+ * Only used by `invalidateByInsertion` and `invalidateByRemoval`, do not call directly.
+ * @see {@link invalidateByInsertion}
+ * @see {@link invalidateByRemoval}
  * @internal
  */
-function doInvalidateFirstNodeCache<TNode>(node: HierarchyNode<TNode>, ref: TNode | null) {
+function doInvalidate<TNode>(node: HierarchyNode<TNode>, ref: TNode | null) {
 	node.$fn = undefined;
 
 	let current = node.$hp;
 	while (current) {
+		// stop when a boundary is found - also implicitly stops on native nodes, as they will
+		// never match a ref coming from this direction
 		if (current.$fn !== ref) {
 			return;
 		}
@@ -256,17 +290,22 @@ function doInvalidateFirstNodeCache<TNode>(node: HierarchyNode<TNode>, ref: TNod
 		current = current.$hp;
 	}
 
-	if (node.$ph) {
-		doInvalidateFirstNodeCache(node.$ph, ref);
+	// recurse upwards if there's a group with a matching ref
+	if (
+		(current = node.$ph) &&
+		current.$isGroup &&
+		current.$fn === ref
+	) {
+		doInvalidate(current, ref);
 	}
 }
 
 /**
- * Removes a MountingGroup from the tracking hierarchy. Necessary to call before a group is disposed
- * of to preserve rendering order.
+ * Removes a MountingGroup from the tracking hierarchy. Necessary to call before a group is
+ * disposed of to preserve rendering order.
  */
 export function untrack<TNode>(node: MountingGroup<TNode>) {
-	invalidateFirstNodeCache(node, true);
+	invalidateByRemoval(node);
 
 	// remove from hierarchy
 	if (node.$hp) {
@@ -285,6 +324,7 @@ export function untrack<TNode>(node: MountingGroup<TNode>) {
 
 	node.$hp = null;
 	node.$hn = null;
+	node.$fn = undefined;
 }
 
 /**
@@ -309,9 +349,6 @@ export function insert<TNode>(
 	track(hNode, parent);
 	mountJsx(jsx, hNode, null);
 	parent.$ng.adapter.insert(node, parent.$nn, before);
-
-	// no first node cache invalidation here, since this function should only be called within
-	// components -> those get mounted via `mount` which takes care of the cache
 }
 
 /**
@@ -334,16 +371,15 @@ function getAnchor<TNode>(group: MountingGroup<TNode>): TNode | null {
 		return doGetAnchor(next);
 	}
 
-	// no next sibling, check the parent: if no parent exists (we're in the topmost node) or if it's
-	// a native node -> resolve to null (no anchor, append to end)
+	// no next sibling, check the parent: if no parent exists (we're in the topmost node) or if
+	// it's a native node -> resolve to null (no anchor needed, append to end)
 	next = group.$ph;
 	if (!next || next.$isNode) {
 		return null;
 	}
 
-	// the parent is also a group -> advance to its sibling
-	next = group.$hn;
-	return next ? doGetAnchor(next) : null;
+	// the parent is also a group -> recurse
+	return getAnchor(next);
 }
 
 /**
@@ -352,9 +388,8 @@ function getAnchor<TNode>(group: MountingGroup<TNode>): TNode | null {
  * @internal
  */
 function doGetAnchor<TNode>(node: HierarchyNode<TNode>): TNode | null {
-	// we don't check or update cache here, since `getFirstNode` does that already
 	let tmp;
-	if (tmp = getFirstNode(node)) {
+	if ((tmp = getFirstNode(node)) !== undefined) {
 		return tmp;
 	}
 
@@ -364,16 +399,15 @@ function doGetAnchor<TNode>(node: HierarchyNode<TNode>): TNode | null {
 		return (node.$fn = doGetAnchor(next));
 	}
 
-	// no next sibling, check the parent: if no parent exists (we're in the topmost node) or if it's
-	// a native node -> resolve to null (no anchor, append to end)
+	// no next sibling, check the parent: if no parent exists (we're in the topmost node) or if
+	// it's a native node -> resolve to null (no anchor needed, append to end)
 	next = node.$ph;
 	if (!next || next.$isNode) {
 		return (node.$fn = null);
 	}
 
-	// the parent is a group -> advance to its sibling
-	next = node.$hn;
-	return (node.$fn = next ? doGetAnchor(next) : null);
+	// the parent is also a group -> recurse
+	return (node.$fn = getAnchor(next));
 }
 
 /**
@@ -384,7 +418,7 @@ function doGetAnchor<TNode>(node: HierarchyNode<TNode>): TNode | null {
  * @see {@link getAnchor}
  * @internal
  */
-function getFirstNode<TNode>(node: HierarchyNode<TNode>): TNode | null {
+function getFirstNode<TNode>(node: HierarchyNode<TNode>): TNode | null | undefined {
 	let tmp = node.$fn;
 	if (tmp !== undefined) {
 		return tmp; // cached result
@@ -402,26 +436,32 @@ function getFirstNode<TNode>(node: HierarchyNode<TNode>): TNode | null {
 		}
 	}
 
-	return (node.$fn = null);
+	// return undefined; ... implicit
 }
 
 /**
- * Mounts a MountingGroup to the specified location in the node tree. If the
- * group is already mounted, it is moved to the new location without re-mounting
- * its components.
+ * Mounts a MountingGroup to the specified location in the node tree. If the group is already
+ * mounted (i.e. its native nodes are already rendered somewhere), it is moved to the new location
+ * without re-mounting Pyxis components.
+ *
+ * Note that for successfully moving a group within the tree, you should first `untrack` the group,
+ * then re-`track` it to the new location and only then call `mount` to commit the move.
+ * @see {@link track}
+ * @see {@link untrack}
  */
 export function mount<TNode>(
 	group: MountingGroup<TNode>,
 	jsx: any,
-	before?: Nil<TNode>,
+	before: Nil<TNode> = getAnchor(group),
 ) {
 	if (group.mounted) {
+		reinsertNodes(group, group.$nn, before);
 		return;
 	}
 
 	setCurrentContainer(group.$context);
-	withLifecycle(group, mountJsx, jsx, group, before ?? getAnchor(group));
-	invalidateFirstNodeCache(group, false);
+	withLifecycle(group, mountJsx, jsx, group, before);
+	invalidateByInsertion(group);
 
 	if (group.$pg?.mounted === false) {
 		onMounted(group.$pg, {
@@ -435,6 +475,30 @@ export function mount<TNode>(
 }
 
 /**
+ * Only used by `mount`, do not call directly.
+ *
+ * Re-inserts native nodes of the given group at a new location in the DOM tree. Only moves the
+ * uppermost nodes - any children move with them.
+ * @see {@link mount}
+ * @internal
+ */
+function reinsertNodes<TNode>(group: MountingGroup<TNode>, parent: TNode, before: TNode | null) {
+	const { adapter } = group;
+
+	let current = group.$hh;
+	while (current) {
+		if (current.$isGroup) {
+			current.mounted && reinsertNodes(current, parent, before);
+		}
+		else {
+			adapter.insert(current.$nn, parent, before);
+		}
+
+		current = current.$hn;
+	}
+}
+
+/**
  * Unmounts the contents of a MountingGroup from the node tree. Although empty, the group itself
  * remains usable and can be remounted later.
  */
@@ -444,7 +508,7 @@ export function unmount<TNode>(group: MountingGroup<TNode>) {
 	}
 
 	notifyUnmounted(group);
-	invalidateFirstNodeCache(group, true);
+	invalidateByRemoval(group);
 
 	const { adapter } = group;
 	let current = group.$hh;
@@ -468,8 +532,8 @@ export function unmount<TNode>(group: MountingGroup<TNode>) {
 
 /**
  * Unmounts a sub-tree of hierarchy nodes. Unlike `unmount`, does not invalidate first node cache
- * and does not remove native nodes - assumes native parent nodes will be removed, handing the whole
- * sub-tree at once.
+ * and does not remove native nodes - assumes native parent nodes will be removed, handing the
+ * whole sub-tree at once.
  * @internal
  */
 function unmountSubTree<TNode>(node: HierarchyNode<TNode>) {
