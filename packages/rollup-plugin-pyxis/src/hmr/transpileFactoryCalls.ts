@@ -1,5 +1,5 @@
 import type { PyxisLoader } from "~/PyxisLoader";
-import { positionAt, walkDown, walkUp, type AST, type TransformBlock, type TranspileTsxCall } from "~/transpiler";
+import { walkDown, walkUp, type AST, type TransformBlock, type TranspileTsxCall } from "~/transpiler";
 
 interface SymbolInfo {
 	readonly kind: FactoryKind | "namespace";

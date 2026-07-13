@@ -55,8 +55,12 @@ export function component(
 						unmount(group);
 						mount(group, {
 							...jsx,
-							[S_COMPONENT]: () => mountJsx(impl(jsx), group, null),
+							[S_COMPONENT]: () => mountJsx(impl(jsx), group, before),
 						});
+
+						// first call runs synchronously with `subscribe`, so the `before` ref is up-to-date
+						// but the hierarchy may change between later invocations, so it must be invalidated
+						before = null;
 					})
 				);
 			}

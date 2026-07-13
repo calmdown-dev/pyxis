@@ -28,10 +28,13 @@ export type ElementsOf<TRenderer> = TRenderer extends { readonly __elements?: in
 	: {};
 
 
-const K_NATIVE = 1;
-const K_GROUP = 2;
+export interface MountingGroup<TNode> extends Lifecycle, Hierarchy<TNode> {
+	/** @internal */
+	readonly $isGroup: true;
 
-export interface MountingGroup<TNode> extends Lifecycle, Hierarchy<typeof K_GROUP, TNode> {
+	/** @internal */
+	readonly $isNode?: never;
+
 	/** the Adapter usable with this MountingGroup */
 	readonly adapter: Adapter<TNode>;
 
@@ -40,25 +43,22 @@ export interface MountingGroup<TNode> extends Lifecycle, Hierarchy<typeof K_GROU
 
 	/** @internal */
 	readonly $context?: ContextContainer;
-
-	/**
-	 * the first node in the unmount linked list
-	 * @internal
-	 */
-	$uh?: Nil<HierarchyNode<TNode>>;
-
-	/**
-	 * the last node in the unmount linked list
-	 * @internal
-	 */
-	$ut?: Nil<HierarchyNode<TNode>>;
 }
 
-export interface NativeNode<TNode> extends Hierarchy<typeof K_NATIVE, TNode> {
+export interface NativeNode<TNode> extends Hierarchy<TNode> {
+	/** @internal */
+	readonly $isGroup?: never;
+
+	/** @internal */
+	readonly $isNode: true;
 }
 
-export interface Hierarchy<TKind, TNode> {
-	readonly kind: TKind;
+export interface Hierarchy<TNode> {
+	/** @internal */
+	readonly $isGroup?: true;
+
+	/** @internal */
+	readonly $isNode?: true;
 
 	/**
 	 * the ancestor group this node belongs to
@@ -109,16 +109,10 @@ export interface Hierarchy<TKind, TNode> {
 	$hn?: Nil<HierarchyNode<TNode>>;
 
 	/**
-	 * the previous node in the unmount linked list
-	 * @internal
+	 * Cache of the first native node within this hierarchy node.
+	 * When null, a re-scan is needed.
 	 */
-	$up?: Nil<HierarchyNode<TNode>>;
-
-	/**
-	 * the next node in the unmount linked list
-	 * @internal
-	 */
-	$un?: Nil<HierarchyNode<TNode>>;
+	$fn?: TNode | null;
 }
 
 export type HierarchyNode<TNode> = NativeNode<TNode> | MountingGroup<TNode>;
@@ -129,7 +123,7 @@ export function createRenderer<TNode, TIntrinsicElements extends ElementsType>(
 	extensions: ExtensionsType<TNode>,
 ): Renderer<TNode, TIntrinsicElements> {
 	const group: Mutable<MountingGroup<TNode> & Renderer<TNode, TIntrinsicElements>> = {
-		kind: K_GROUP,
+		$isGroup: true,
 		mounted: false,
 		adapter: adapter,
 		$scheduler: createScheduler(adapter.tick),
@@ -148,8 +142,8 @@ export function createRenderer<TNode, TIntrinsicElements extends ElementsType>(
 }
 
 /**
- * Creates a sub-group of the provided MountingGroup. Needed whenever a subtree
- * may need to dynamically re-render or unmount entirely.
+ * Creates a sub-group of the provided MountingGroup. Needed whenever a subtree may need to mount or
+ * unmount dynamically.
  */
 export function split<TNode>(
 	parent: HierarchyNode<TNode>,
@@ -158,6 +152,7 @@ export function split<TNode>(
 ): MountingGroup<TNode> {
 	const group = parent.$ng;
 	const subGroup: Mutable<MountingGroup<TNode>> = {
+		$isGroup: true,
 		mounted: false,
 		adapter: adapter ?? group.adapter,
 		$scheduler: group.$scheduler,
@@ -167,7 +162,6 @@ export function split<TNode>(
 		$ph: parent,
 		$ng: null!,
 		$nn: parent.$nn,
-		kind: K_GROUP,
 	};
 
 	subGroup.$ng = subGroup;
@@ -176,8 +170,7 @@ export function split<TNode>(
 }
 
 /**
- * Adds a MountingGroup to the tracking hierarchy. Necessary to preserve
- * rendering order.
+ * Adds a MountingGroup to the tracking hierarchy. Necessary to preserve rendering order.
  */
 export function track<TNode>(
 	node: HierarchyNode<TNode>,
@@ -204,6 +197,8 @@ export function track<TNode>(
 
 			parent.$hh = node;
 		}
+
+		invalidateFirstNodeCache(node, false);
 	}
 	// append at the tail of the hierarchy
 	else {
@@ -218,25 +213,60 @@ export function track<TNode>(
 		parent.$ht = node;
 	}
 
-	// append unmount list
-	if (parent.kind === K_GROUP) {
-		if (parent.$ut) {
-			parent.$ut.$un = node;
-			node.$up = parent.$ut;
-		}
-		else {
-			parent.$uh = node;
+}
+
+/**
+ * Invalidates the first node cache of the provided node and any of its previous siblings and
+ * parents sharing the same reference.
+ * @internal
+ */
+function invalidateFirstNodeCache<TNode>(node: HierarchyNode<TNode>, isRemoval: boolean) {
+
+	// bail when:
+	// - no ref is cached
+	// - node will be removed and the same ref is used by the *next* sibling - cache remains valid after removal
+
+	const ref = node.$fn;
+	if (
+		ref === undefined ||
+		(isRemoval && (node.$hn ?? node.$ph?.$hn)?.$fn === ref)
+	) {
+		return;
+	}
+
+	doInvalidateFirstNodeCache(node, ref);
+}
+
+/**
+ * Used by `invalidateFirstNodeCache`, do not call directly.
+ * @see {@link invalidateFirstNodeCache}
+ * @internal
+ */
+function doInvalidateFirstNodeCache<TNode>(node: HierarchyNode<TNode>, ref: TNode | null) {
+	node.$fn = undefined;
+
+	let current = node.$hp;
+	while (current) {
+		if (current.$fn !== ref) {
+			return;
 		}
 
-		parent.$ut = node;
+		current.$fn = undefined;
+		current = current.$hp;
+	}
+
+	if (node.$ph) {
+		doInvalidateFirstNodeCache(node.$ph, ref);
 	}
 }
 
 /**
- * Removes a MountingGroup from the tracking hierarchy. Necessary to call before
- * a group is disposed of to preserve rendering order.
+ * Removes a MountingGroup from the tracking hierarchy. Necessary to call before a group is disposed
+ * of to preserve rendering order.
  */
 export function untrack<TNode>(node: MountingGroup<TNode>) {
+	invalidateFirstNodeCache(node, true);
+
 	// remove from hierarchy
 	if (node.$hp) {
 		node.$hp.$hn = node.$hn;
@@ -254,29 +284,11 @@ export function untrack<TNode>(node: MountingGroup<TNode>) {
 
 	node.$hp = null;
 	node.$hn = null;
-
-	// remove from group
-	if (node.$up) {
-		node.$up.$un = node.$un;
-	}
-	else if (node.$pg?.$uh === node) {
-		node.$pg.$uh = node.$un;
-	}
-
-	if (node.$un) {
-		node.$un.$up = node.$up;
-	}
-	else if (node.$pg?.$ut === node) {
-		node.$pg.$ut = node.$up;
-	}
-
-	node.$up = null;
-	node.$un = null;
 }
 
 /**
- * Inserts a native node and dds it to the tracking hierarchy. Necessary to
- * preserve render order.
+ * Inserts a native node and adds it to the tracking hierarchy. Necessary to preserve render order.
+ * Should only be called from within components!
  */
 export function insert<TNode>(
 	node: TNode,
@@ -285,40 +297,72 @@ export function insert<TNode>(
 	before: Nil<TNode> = null,
 ) {
 	const hNode: NativeNode<TNode> = {
-		kind: K_NATIVE,
+		$isNode: true,
 		$pg: parent.$ng,
 		$ph: parent,
 		$ng: parent.$ng,
 		$nn: node,
+		$fn: node,
 	};
 
 	track(hNode, parent);
 	mountJsx(jsx, hNode, null);
 	parent.$ng.adapter.insert(node, parent.$nn, before);
-	return hNode;
+
+	// no first node cache invalidation here, since this function should only be called within
+	// components -> those get mounted via `mount` which takes care of the cache
 }
 
 /**
- * Gets the effective next native sibling node for the given group to anchor
- * against.
+ * Gets the next native sibling node for the given group to anchor new renders against.
+ *
+ * Search goes sibling by sibling. Recurses upwards when no anchor is found within a group.
+ * Results are cached to optimize future lookups.
+ * @internal
  */
-export function getAnchor<TNode>(group: MountingGroup<TNode>): TNode | null {
-	let current = group.$hn; // don't check self, start from next sibling
-	let node;
-	while (current) {
-		if (node = first(current)) {
-			return node;
-		}
-
-		current = current.$hn;
+function getAnchor<TNode>(node: HierarchyNode<TNode>): TNode | null {
+	// we don't check or update cache here, since `getFirstNode` does that already
+	let tmp;
+	if (tmp = getFirstNode(node)) {
+		return tmp;
 	}
 
-	// checked all siblings to no avail
-	// ... top level or within a node? -> ok to append at the end (null)
-	// ... otherwise check upwards
-	return !group.$ph || group.$ph?.kind === K_NATIVE
-		? null
-		: getAnchor(group.$ph);
+	// no native nodes found within this hierarchy node
+	// 1. advance to this h-node's sibling, if it has one
+	// 2. or advance to this h-node's parent's sibling, if it has one
+
+	// we don't search the parent itself, since at this point, we must've already done so!
+
+	const next = node.$hn ?? node.$ph?.$hn;
+	return (
+		node.$fn = next ? getAnchor(next) : null
+	);
+}
+
+/**
+ * Scans the hierarchy downwards (depth-first) looking for the first rendered native node.
+ * Results are cached to optimize future lookups.
+ * @internal
+ */
+function getFirstNode<TNode>(node: HierarchyNode<TNode>): TNode | null {
+	let tmp = node.$fn;
+	if (tmp !== undefined) {
+		return tmp; // cached result
+	}
+
+	// native nodes always have `$fn` cache set, so here `node` is certainly a group
+	if ((node as MountingGroup<TNode>).mounted) {
+		let current = node.$hh;
+		while (current) {
+			if ((tmp = getFirstNode(current)) !== undefined) {
+				return (node.$fn = tmp);
+			}
+
+			current = current.$hn;
+		}
+	}
+
+	return (node.$fn = null);
 }
 
 /**
@@ -332,14 +376,18 @@ export function mount<TNode>(
 	before?: Nil<TNode>,
 ) {
 	if (group.mounted) {
-		// already mounted -> move nodes
-		reinsertNodes(group, group.$nn, before ?? getAnchor(group));
 		return;
+	}
+
+	if (!before) {
+		const next = group.$hn ?? group.$ph?.$hn;
+		before = next ? getAnchor(next) : null;
 	}
 
 	// new render
 	setCurrentContainer(group.$context);
-	withLifecycle(group, mountJsx, jsx, group, before ?? getAnchor(group));
+	withLifecycle(group, mountJsx, jsx, group, before);
+	invalidateFirstNodeCache(group, false);
 
 	if (group.$pg?.mounted === false) {
 		onMounted(group.$pg, {
@@ -353,8 +401,8 @@ export function mount<TNode>(
 }
 
 /**
- * Unmounts a MountingGroup from the node tree. The group remains usable and can
- * be remounted later.
+ * Unmounts the contents of a MountingGroup from the node tree. Although empty, the group itself
+ * remains usable and can be remounted later.
  */
 export function unmount<TNode>(group: MountingGroup<TNode>) {
 	if (!group.mounted) {
@@ -362,30 +410,56 @@ export function unmount<TNode>(group: MountingGroup<TNode>) {
 	}
 
 	notifyUnmounted(group);
+	invalidateFirstNodeCache(group, true);
 
 	const { adapter } = group;
-	let current = group.$uh;
+	let current = group.$hh;
+	let next;
 
 	while (current) {
-		if (current.kind === K_GROUP) {
-			unmount(current);
-		}
-		else {
+		unmountSubTree(current);
+		if (current.$isNode) {
 			adapter.remove(current.$nn);
 		}
 
-		current = current.$un;
+		next = current.$hn;
+		current.$hp = null;
+		current.$hn = null;
+		current = next;
 	}
 
-	group.$uh = null;
-	group.$ut = null;
 	group.$hh = null;
 	group.$ht = null;
 }
 
 /**
- * Mounts components described by the JsxResult to the specified location in the
- * node tree.
+ * Unmounts a sub-tree of hierarchy nodes. Unlike `unmount`, does not invalidate first node cache
+ * and does not remove native nodes - assumes native parent nodes will be removed, handing the whole
+ * sub-tree at once.
+ * @internal
+ */
+function unmountSubTree<TNode>(node: HierarchyNode<TNode>) {
+	if (node.$isGroup) {
+		notifyUnmounted(node);
+		node.$fn = undefined;
+	}
+
+	let current = node.$hh;
+	let next;
+	while (current) {
+		unmountSubTree(current);
+		next = current.$hn;
+		current.$hp = null;
+		current.$hn = null;
+		current = next;
+	}
+
+	node.$hh = null;
+	node.$ht = null;
+}
+
+/**
+ * Mounts components described by the JsxResult to the specified location in the node tree.
  */
 export function mountJsx<TNode>(
 	jsx: any,
@@ -422,49 +496,4 @@ export function mountJsx<TNode>(
 			Text(jsx, parent, before);
 			break;
 	}
-}
-
-function reinsertNodes<TNode>(group: MountingGroup<TNode>, parent: TNode, before: TNode | null) {
-	const { adapter } = group;
-	let current = group.$hh;
-
-	while (current) {
-		if (current.kind === K_GROUP) {
-			if (current.mounted) {
-				reinsertNodes(current, parent, before);
-			}
-		}
-		else {
-			adapter.insert(current.$nn, parent, before);
-		}
-
-		current = current.$hn;
-	}
-}
-
-function first<TNode>(node: HierarchyNode<TNode>): TNode | null {
-	if (!node.$ng.mounted) {
-		return null;
-	}
-
-	if (node.kind === K_NATIVE) {
-		return node.$nn;
-	}
-
-	let current = node.$hh;
-	let tmp;
-	while (current) {
-		if (current.kind === K_GROUP) {
-			if (tmp = first(current)) {
-				return tmp;
-			}
-		}
-		else {
-			return current.$nn;
-		}
-
-		current = current.$hn;
-	}
-
-	return null;
 }

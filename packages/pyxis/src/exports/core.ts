@@ -23,4 +23,4 @@ export type { Adapter, Extension, ExtensionProps, ExtensionsType } from "~/Adapt
 export { pyxis, type PyxisBuilder } from "~/Builder";
 export { component, type Component, type DataTemplate, type JsxChildren, type JsxChildrenProp, type JsxObject, type JsxProps, type JsxResult, type JsxText, type PropsOf, type WithChildren } from "~/Component";
 export { jsx, jsxs } from "~/jsx";
-export { getAnchor, insert, mount, mountJsx, split, track, unmount, untrack, type ElementsOf, type Hierarchy, type HierarchyNode, type MountingGroup, type NativeNode, type Renderer } from "~/Renderer";
+export { insert, mount, mountJsx, split, track, unmount, untrack, type ElementsOf, type Hierarchy, type HierarchyNode, type MountingGroup, type NativeNode, type Renderer } from "~/Renderer";

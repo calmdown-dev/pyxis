@@ -74,6 +74,9 @@ try {
 		resolve: {
 			tsconfigPaths: true,
 		},
+		define: {
+			__DEV__: "true",
+		},
 		css: {
 			devSourcemap: true,
 			transformer: "lightningcss",
