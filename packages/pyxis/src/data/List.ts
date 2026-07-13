@@ -9,7 +9,7 @@ import { schedule, type UpdateCallback } from "./Scheduler";
 
 export interface ReadonlyList<T> extends Iterable<T>, DependencyList {
 	readonly size: () => number;
-	readonly get: (index: number) => T;
+	readonly get: (index: number) => T | undefined;
 	readonly forEach: (callback: (item: T, index: number) => void, thisArg?: any) => void;
 	readonly toArray: () => T[];
 
@@ -122,7 +122,6 @@ function size(this: List<any>) {
 }
 
 function get(this: List<any>, index: number) {
-	assertIndex(this, index);
 	reportAccess(this);
 	return this.$items[index];
 }

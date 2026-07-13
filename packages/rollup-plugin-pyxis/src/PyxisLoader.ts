@@ -42,8 +42,6 @@ export class PyxisLoader {
 	public constructor(options: ResolvedPyxisPluginOptions) {
 		const self = this;
 
-		const lmao: number = "XD";
-
 		this.plugin = {
 			name: PyxisLoader.name,
 			enforce: "pre",

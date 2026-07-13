@@ -130,6 +130,7 @@ export function createRenderer<TNode, TIntrinsicElements extends ElementsType>(
 		$extensions: extensions,
 		$ng: null!,
 		$nn: null!,
+		$fn: null,
 		unmount: () => unmount(group),
 		mount: (root, jsx) => {
 			group.$nn = root;
@@ -238,7 +239,7 @@ function invalidateFirstNodeCache<TNode>(node: HierarchyNode<TNode>, isRemoval: 
 }
 
 /**
- * Used by `invalidateFirstNodeCache`, do not call directly.
+ * Only used by `invalidateFirstNodeCache`, do not call directly.
  * @see {@link invalidateFirstNodeCache}
  * @internal
  */
@@ -320,28 +321,61 @@ export function insert<TNode>(
  * Results are cached to optimize future lookups.
  * @internal
  */
-function getAnchor<TNode>(node: HierarchyNode<TNode>): TNode | null {
+function getAnchor<TNode>(group: MountingGroup<TNode>): TNode | null {
+	// group is mounting but has no anchor - begin by checking the next sibling
+	let next = group.$hn;
+	if (next) {
+		return doGetAnchor(next);
+	}
+
+	// no next sibling, check the parent: if no parent exists (we're in the topmost node) or if it's
+	// a native node -> resolve to null (no anchor, append to end)
+	next = group.$ph;
+	if (!next || next.$isNode) {
+		return null;
+	}
+
+	// the parent is also a group -> advance to its sibling
+	next = group.$hn;
+	return next ? doGetAnchor(next) : null;
+}
+
+/**
+ * Only used by `getAnchor`, do not call directly.
+ * @see {@link getAnchor}
+ * @internal
+ */
+function doGetAnchor<TNode>(node: HierarchyNode<TNode>): TNode | null {
 	// we don't check or update cache here, since `getFirstNode` does that already
 	let tmp;
 	if (tmp = getFirstNode(node)) {
 		return tmp;
 	}
 
-	// no native nodes found within this hierarchy node
-	// 1. advance to this h-node's sibling, if it has one
-	// 2. or advance to this h-node's parent's sibling, if it has one
+	// no native nodes found within this hierarchy node -> check this h-node's next sibling
+	let next = node.$hn;
+	if (next) {
+		return (node.$fn = doGetAnchor(next));
+	}
 
-	// we don't search the parent itself, since at this point, we must've already done so!
+	// no next sibling, check the parent: if no parent exists (we're in the topmost node) or if it's
+	// a native node -> resolve to null (no anchor, append to end)
+	next = node.$ph;
+	if (!next || next.$isNode) {
+		return (node.$fn = null);
+	}
 
-	const next = node.$hn ?? node.$ph?.$hn;
-	return (
-		node.$fn = next ? getAnchor(next) : null
-	);
+	// the parent is a group -> advance to its sibling
+	next = node.$hn;
+	return (node.$fn = next ? doGetAnchor(next) : null);
 }
 
 /**
+ * Only used by `getAnchor`, do not call directly.
+ *
  * Scans the hierarchy downwards (depth-first) looking for the first rendered native node.
  * Results are cached to optimize future lookups.
+ * @see {@link getAnchor}
  * @internal
  */
 function getFirstNode<TNode>(node: HierarchyNode<TNode>): TNode | null {
@@ -379,14 +413,8 @@ export function mount<TNode>(
 		return;
 	}
 
-	if (!before) {
-		const next = group.$hn ?? group.$ph?.$hn;
-		before = next ? getAnchor(next) : null;
-	}
-
-	// new render
 	setCurrentContainer(group.$context);
-	withLifecycle(group, mountJsx, jsx, group, before);
+	withLifecycle(group, mountJsx, jsx, group, before ?? getAnchor(group));
 	invalidateFirstNodeCache(group, false);
 
 	if (group.$pg?.mounted === false) {

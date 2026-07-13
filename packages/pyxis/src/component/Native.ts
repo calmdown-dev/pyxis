@@ -34,9 +34,9 @@ export function Native<TNode>(
 			if (isAtom(value)) {
 				const prop = name;
 				const atom = value;
-				bind(group, atom, () => (
-					adapter.set(node, prop, atom.$get())
-				));
+				bind(group, atom, () => {
+					adapter.set(node, prop, atom.$get());
+				});
 			}
 			else {
 				adapter.set(node, name, value);

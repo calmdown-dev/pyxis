@@ -17,6 +17,7 @@ export function Text<TNode>(
 		});
 	}
 	else {
+		// static nil values are already filtered out by Renderer, never passed to this component
 		node = adapter.text(jsx.toString(), null);
 	}
 

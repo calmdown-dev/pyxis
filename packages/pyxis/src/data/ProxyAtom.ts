@@ -3,7 +3,7 @@ import type { Nil } from "~/support/types";
 import { isAtom, notify, S_ATOM, type Atom, type MaybeAtom } from "./Atom";
 import { link, unlink, type Dependency } from "./Dependency";
 import { __DEV__assertNotEffect } from "./Effect";
-import { getLifecycle } from "./Lifecycle";
+import { getLifecycle, type Lifecycle } from "./Lifecycle";
 import { schedule } from "./Scheduler";
 
 export interface ProxyAtom<T> extends Atom<T> {
@@ -56,7 +56,7 @@ function use<T>(this: ProxyAtom<T>, value: MaybeAtom<T>, canNotify: boolean = tr
 		this.$value = null;
 		this.$get = getBoundValue;
 		this.$set = setBoundValue;
-		link(this.$lifecycle, value, this.$dep ??= {
+		link(value.$lifecycle, value, this.$dep ??= {
 			$fn: notify<T>,
 			$a0: this,
 		});
@@ -106,4 +106,62 @@ function getStaticValue<T>(this: ProxyAtom<T>) {
 
 function setStaticValue(this: ProxyAtom<any>) {
 	return false;
+}
+
+/** @internal */
+export type ProxyObject =
+	& { proxied: any }
+	& { [_ in PropertyKey]?: ProxyAtom<any> };
+
+export type Proxied<T, P extends readonly (keyof T)[]> =
+	& { readonly proxied: T }
+	& { readonly [K in P[number]]: ProxyAtom<T[K] extends MaybeAtom<infer V> ? V : T[K]> };
+
+/**
+ * Copies select keys from a data object into a new object where values are all wrapped in
+ * ProxyAtoms and can be updated later.
+ * @see {@link updateProxy}
+ * @internal
+ **/
+export function createProxy(lifecycle: Lifecycle, data: any, keys: readonly PropertyKey[]) {
+	const source = isObject(data) ? data : {};
+	const proxy: ProxyObject = { proxied: data };
+	const { length } = keys;
+
+	let index = 0;
+	let key;
+
+	for (; index < length; index += 1) {
+		key = keys[index];
+		proxy[key] = proxyOf(source[key], lifecycle);
+	}
+
+	return proxy;
+}
+
+/**
+ * Updates the values proxied by a previously created proxy object. The keys array must be the same
+ * as was used during creation (or a subset).
+ * @see {@link createProxy}
+ * @internal
+ **/
+export function updateProxy(proxy: ProxyObject, data: any, keys: readonly PropertyKey[]) {
+	proxy.proxied = data;
+	if (!isObject(data)) {
+		return;
+	}
+
+	const { length } = keys;
+
+	let index = 0;
+	let key;
+
+	for (; index < length; index += 1) {
+		key = keys[index];
+		proxy[key]!.use(data[key]);
+	}
+}
+
+function isObject(value: unknown): value is Record<PropertyKey, unknown> {
+	return value !== null && typeof value === "object";
 }

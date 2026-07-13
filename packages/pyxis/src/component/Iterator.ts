@@ -1,22 +1,21 @@
-import type { MaybeAtom } from "~/data/Atom";
-import { withLifecycle, type Lifecycle } from "~/data/Lifecycle";
+import { withLifecycle } from "~/data/Lifecycle";
 import { link } from "~/data/Dependency";
 import type { ReadonlyList } from "~/data/List";
 import { K_CHANGE, K_CLEAR, K_INSERT, K_REMOVE } from "~/data/ListDelta";
-import { proxyOf, type ProxyAtom } from "~/data/ProxyAtom";
+import { createProxy, updateProxy, type Proxied } from "~/data/ProxyAtom";
 import type { DataTemplate, JsxObject, JsxProps, JsxResult } from "~/Component";
 import { mount, split, track, unmount, untrack, type HierarchyNode, type MountingGroup } from "~/Renderer";
 
 export interface RemountIteratorProps<T> {
 	source: ReadonlyList<T>;
 	proxy?: never; // discriminator
-	children: [ DataTemplate<T> ];
+	children: [ template: DataTemplate<T> ];
 }
 
 export interface ProxyIteratorProps<T, P extends readonly (keyof T)[]> {
 	source: ReadonlyList<T>;
-	proxy?: P;
-	children: [ DataTemplate<{ [K in P[number]]: ProxyAtom<T[K] extends MaybeAtom<infer V> ? V : T[K]> } & { readonly proxied: T }> ];
+	proxy: P;
+	children: [ template: DataTemplate<Proxied<T, P>> ];
 }
 
 interface IteratorItemGroup<TNode> extends MountingGroup<TNode> {
@@ -50,8 +49,8 @@ export function Iterator<TNode, T>(
 	before: TNode | null,
 ) {
 	const source = jsx.source as ReadonlyList<T>;
-	const proxy = jsx.proxy as readonly PropertyKey[] | undefined;
-	const isProxy = proxy !== undefined;
+	const proxyKeys = jsx.proxy as readonly PropertyKey[] | undefined;
+	const isProxy = proxyKeys !== undefined;
 	const template = jsx.children[0] as DataTemplate<T>;
 
 	const group = split(parent) as MountingGroup<TNode>;
@@ -88,7 +87,7 @@ export function Iterator<TNode, T>(
 				case K_CHANGE:
 					item = (newItems[ni++] = items[oi++]);
 					if (isProxy) {
-						updateProxy(item.$data, change.$item, proxy);
+						updateProxy(item.$data, change.$item, proxyKeys);
 					}
 					else {
 						// no need to untrack and re-track, position doesn't change
@@ -102,7 +101,7 @@ export function Iterator<TNode, T>(
 					if (!isProxy || inserted < delta.$lengthDelta) {
 						// we're either in remount mode, or no more items are available for recycling
 						item = (newItems[ni++] = split(group, items[oi]) as IteratorItemGroup<TNode>);
-						item.$data = isProxy ? createProxy(item, change.$item, proxy) : change.$item;
+						item.$data = isProxy ? createProxy(item, change.$item, proxyKeys) : change.$item;
 						inserted += 1;
 					}
 					else {
@@ -162,7 +161,7 @@ export function Iterator<TNode, T>(
 		while (pi >= 0) {
 			tmp = pending[pi--];
 			item = (newItems[tmp.$index] = recycled[ri--]);
-			updateProxy(item.$data, tmp.$item, proxy!);
+			updateProxy(item.$data, tmp.$item, proxyKeys!);
 			track(item, group, newItems[tmp.$index + 1]);
 			mount(item, withLifecycle(item, template, item.$data));
 		}
@@ -182,35 +181,8 @@ export function Iterator<TNode, T>(
 	// initial render
 	items = source.$items.map(data => {
 		const item = split(group) as IteratorItemGroup<TNode>;
-		item.$data = isProxy ? createProxy(item, data, proxy) : data;
+		item.$data = isProxy ? createProxy(item, data, proxyKeys) : data;
 		mount(item, withLifecycle(item, template, item.$data), before);
 		return item;
 	});
-}
-
-type ProxyObject = { [_ in PropertyKey]?: ProxyAtom<any> };
-
-function createProxy(lifecycle: Lifecycle, data: any, keys: readonly PropertyKey[]) {
-	const obj: ProxyObject = { proxied: data };
-	const { length } = keys;
-	let index = 0;
-	let key;
-	for (; index < length; index += 1) {
-		key = keys[index];
-		obj[key] = proxyOf(data[key], lifecycle);
-	}
-
-	return obj;
-}
-
-function updateProxy(obj: ProxyObject, data: any, keys: readonly PropertyKey[]) {
-	const { length } = keys;
-	let index = 0;
-	let key;
-	for (; index < length; index += 1) {
-		key = keys[index];
-		obj[key]!.use(data[key]);
-	}
-
-	obj.proxied = data;
 }
