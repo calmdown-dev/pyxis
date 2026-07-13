@@ -322,7 +322,13 @@ export function insert<TNode>(
  * @internal
  */
 function getAnchor<TNode>(group: MountingGroup<TNode>): TNode | null {
-	// group is mounting but has no anchor - begin by checking the next sibling
+	// this function is called when a group is mounting, but no `before` ref was provided
+	// nothing is cached in *this* group, since it is likely to render at least one native node,
+	// which would invalidate the cache anyway...
+	//
+	// nodes visited via `doGetAnchor` can and do update their cache as needed
+
+	// begin by checking the next sibling
 	let next = group.$hn;
 	if (next) {
 		return doGetAnchor(next);
