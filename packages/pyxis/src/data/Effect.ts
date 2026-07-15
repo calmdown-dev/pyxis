@@ -70,6 +70,12 @@ function scheduleEffect(this: EffectDependency, effect: Effect<ReturnType<Effect
 }
 
 function runEffect(effect: Effect<ReturnType<EffectBlock>>) {
+	// lifecycle may have unmounted before a re-run triggered -> bail to avoid resurrecting the
+	// effect, otherwise we'd run code in a dead component
+	if (effect.$epoch > 1 && !effect.$lifecycle.mounted) {
+		return;
+	}
+
 	effect.$dispose?.();
 	effect.$dispose = resolve(effect) as Nil<() => void>;
 

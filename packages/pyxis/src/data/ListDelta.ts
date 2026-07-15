@@ -148,21 +148,13 @@ export function itemInserted<T>(delta: ListDelta<T>, at: number, item: T) {
 	else {
 		// delta(s) exist at this index already, there can only be:
 		// - change -> prepend with insert
-		// - insert -> append another
+		// - insert -> prepend another (new item before, existing get shifted right)
 		// - remove -> replace with change
 		const current = $changes[ci];
 		switch (current.$kind) {
 			case K_CHANGE:
-				$changes.splice(ci, 0, {
-					$kind: K_INSERT,
-					$index: at,
-					$item: item,
-				});
-
-				break;
-
 			case K_INSERT:
-				$changes.splice(ci + 1, 0, {
+				$changes.splice(ci, 0, {
 					$kind: K_INSERT,
 					$index: at,
 					$item: item,
@@ -213,7 +205,9 @@ export function itemRemoved<T>(delta: ListDelta<T>, at: number) {
 				break;
 
 			case K_INSERT:
-				$changes.splice(ci, 1);
+				// canceling the insert shifts subsequent entries left so they must be re-indexed
+				// -> adjust `ci` to start from the correct offset
+				$changes.splice(ci--, 1);
 				break;
 
 			case K_REMOVE:
