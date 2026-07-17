@@ -160,7 +160,11 @@ export function reportAccess(atom: DependencyList) {
  * Only used in development; In production, this function should be removed by the bundler.
  */
 export function __DEV__assertNotEffect() {
-	if ($currentEffect) {
+	if (
+		$currentEffect &&
+		$currentEffect.$lifecycle === getLifecycle() &&
+		$currentEffect.$life === $currentEffect.$lifecycle.$life
+	) {
 		throw new Error("Attempt to create an Atom inside an effect block.");
 	}
 }

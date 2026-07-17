@@ -40,6 +40,8 @@ export interface Atom<T = unknown> extends ReadonlyAtom<T> {
 	 * Sets the value of this Atom. Does nothing if this Atom is readonly. Only use this method when
 	 * the target is guaranteed to be an Atom, otherwise it is recommended to use the `write` or
 	 * `update` functions.
+	 *
+	 * This method does *not* send out any change notifications to observers!
 	 * @returns Boolean indicating whether the value of this Atom changed.
 	 * @see {@link write}
 	 * @see {@link update}
