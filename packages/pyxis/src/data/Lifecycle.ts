@@ -1,8 +1,7 @@
-import { invoke } from "~/support/common";
-import type { ArgsMax5, Callback, Nil } from "~/support/types";
+import type { ArgsMax6, Callback, Nil } from "~/support/types";
 
 import type { DependencyList } from "./Dependency";
-import { schedule, type Scheduler } from "./Scheduler";
+import type { Scheduler } from "./Scheduler";
 
 export interface Lifecycle extends DependencyList {
 	/** whether this Lifecycle is currently mounted or not */
@@ -30,7 +29,8 @@ export interface UnmountBlock {
 /**
  * Registers a callback to run just after the current Component has mounted.
  *
- * If a teardown callback is returned, it will be run just before the Component unmounts.
+ * If a teardown callback is returned, it will be run just before the Component unmounts (equivalent
+ * to adding a separate `unmounted` block).
  * @see {@link unmounted}
  */
 export function mounted(block: MountBlock, lifecycle = getLifecycle()) {
@@ -86,7 +86,7 @@ export function getLifecycle(): Lifecycle {
  * return the specified object.
  * @see {@link getLifecycle}
  */
-export function withLifecycle<TArgs extends ArgsMax5, TReturn>(
+export function withLifecycle<TArgs extends ArgsMax6, TReturn>(
 	lifecycle: Lifecycle,
 	block: (...args: TArgs) => TReturn,
 	...args: TArgs
@@ -94,82 +94,21 @@ export function withLifecycle<TArgs extends ArgsMax5, TReturn>(
 
 export function withLifecycle(
 	lifecycle: Lifecycle,
-	block: (...args: ArgsMax5) => any,
+	block: (...args: ArgsMax6) => any,
 	a0: any,
 	a1: any,
 	a2: any,
 	a3: any,
 	a4: any,
+	a5: any,
 ) {
 	const previousLifecycle = $currentLifecycle;
 	$currentLifecycle = lifecycle;
 
 	try {
-		return block(a0, a1, a2, a3, a4);
+		return block(a0, a1, a2, a3, a4, a5);
 	}
 	finally {
 		$currentLifecycle = previousLifecycle;
 	}
-}
-
-/**
- * Runs a block of code on the next tick of the scheduler, synchronized with other updates. If a
- * tick is not currently pending, a new one is scheduled.
- */
-export function tick(block: () => void, lifecycle = getLifecycle()) {
-	schedule(lifecycle, { $fn: block });
-}
-
-
-/** @internal */
-export function notifyMounted(lifecycle: Lifecycle) {
-	lifecycle.mounted = true;
-	lifecycle.$onMount?.forEach(invoke);
-	lifecycle.$onMount = null;
-}
-
-/** @internal */
-export function notifyUnmounted(lifecycle: Lifecycle) {
-	lifecycle.mounted = false;
-
-	// unlink all contextual dependencies
-	let dep = lifecycle.$dh;
-	let tmp;
-	let atom;
-
-	while (dep) {
-		tmp = dep.$ln;
-		atom = dep.$target!;
-
-		if (dep.$ap) {
-			dep.$ap.$an = dep.$an;
-		}
-		else if (atom.$dh === dep) {
-			atom.$dh = dep.$an;
-		}
-
-		if (dep.$an) {
-			dep.$an.$ap = dep.$ap;
-		}
-		else if (atom.$dt === dep) {
-			atom.$dt = dep.$ap;
-		}
-
-		dep.$target = null;
-		dep.$ap = null;
-		dep.$an = null;
-
-		dep.$lifecycle = null;
-		dep.$lp = null;
-		dep.$ln = null;
-
-		dep = tmp;
-	}
-
-	lifecycle.$dh = null;
-	lifecycle.$dt = null;
-
-	// run registered unmount callbacks
-	lifecycle.$onUnmount?.forEach(invoke);
-	lifecycle.$onUnmount = null;
 }

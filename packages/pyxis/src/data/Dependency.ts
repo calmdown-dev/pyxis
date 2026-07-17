@@ -7,7 +7,7 @@ import type { Lifecycle } from "./Lifecycle";
  */
 export interface Dependency<TArgs extends ArgsMax2 = ArgsMax2> extends Callback<TArgs> {
 	/** @internal */
-	$lifecycle?: Nil<DependencyList>;
+	$lifecycle?: Nil<Lifecycle>;
 
 	/** @internal */
 	$target?: Nil<DependencyList<TArgs>>;
@@ -134,4 +134,44 @@ export function unlink(dep: Dependency) {
 	dep.$lifecycle = null;
 	dep.$lp = null;
 	dep.$ln = null;
+}
+
+/**
+ * Unlinks all Dependencies managed by the given Lifecycle.
+ * @internal
+ */
+export function unlinkAll(lifecycle: Lifecycle) {
+	let dep = lifecycle.$dh;
+	let atom;
+	let next;
+
+	while (dep) {
+		atom = dep.$target!;
+
+		if (dep.$ap) {
+			dep.$ap.$an = dep.$an;
+		}
+		else if (atom.$dh === dep) {
+			atom.$dh = dep.$an;
+		}
+
+		if (dep.$an) {
+			dep.$an.$ap = dep.$ap;
+		}
+		else if (atom.$dt === dep) {
+			atom.$dt = dep.$ap;
+		}
+
+		next = dep.$ln;
+		dep.$lifecycle = null;
+		dep.$target = null;
+		dep.$ap = null;
+		dep.$an = null;
+		dep.$lp = null;
+		dep.$ln = null;
+		dep = next;
+	}
+
+	lifecycle.$dh = null;
+	lifecycle.$dt = null;
 }

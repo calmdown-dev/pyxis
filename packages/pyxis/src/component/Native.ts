@@ -1,6 +1,6 @@
 import { isAtom } from "~/data/Atom";
 import type { JsxObject } from "~/Component";
-import { insert, type HierarchyNode } from "~/Renderer";
+import { insert, type HNode } from "~/Renderer";
 import { bind } from "~/data/Dependency";
 
 const RE_EXT = /^([^:]+?):(.+)$/;
@@ -11,12 +11,15 @@ export const S_TAG_NAME: unique symbol = __DEV__ ? Symbol.for("pyxis:tagName") :
 
 export function Native<TNode>(
 	jsx: JsxObject,
-	parent: HierarchyNode<TNode>,
-	before: TNode | null,
+	hParent: HNode<TNode>,
+	nUsedParent: TNode,
+	_nRealParent: TNode,
+	nBefore: TNode | null,
+	isBatch: boolean,
 ) {
-	const group = parent.$ng;
-	const { adapter, $extensions } = group;
-	const node = adapter.native(jsx[S_TAG_NAME]!);
+	const hGroup = hParent.$ng;
+	const { adapter, $extensions } = hGroup;
+	const nNode = adapter.element(jsx[S_TAG_NAME]!);
 
 	let name;
 	let match;
@@ -28,21 +31,21 @@ export function Native<TNode>(
 		match = RE_EXT.exec(name);
 		value = jsx[name];
 		if (match) {
-			$extensions[match[1]]?.set(node, match[2], value, group);
+			$extensions[match[1]]?.set(nNode, match[2], value, hGroup);
 		}
 		else if (name !== "children") {
 			if (isAtom(value)) {
 				const prop = name;
 				const atom = value;
-				bind(group, atom, () => {
-					adapter.set(node, prop, atom.$get());
+				bind(hGroup, atom, () => {
+					adapter.set(nNode, prop, atom.$get());
 				});
 			}
 			else {
-				adapter.set(node, name, value);
+				adapter.set(nNode, name, value);
 			}
 		}
 	}
 
-	insert(node, jsx.children, parent, before);
+	insert(nNode, jsx.children, hParent, nUsedParent, nBefore, isBatch);
 }

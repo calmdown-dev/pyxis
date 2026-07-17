@@ -1,18 +1,21 @@
 import { isAtom } from "~/data/Atom";
 import { bind } from "~/data/Dependency";
 import type { JsxText } from "~/Component";
-import { insert, type HierarchyNode } from "~/Renderer";
+import { insert, type HNode } from "~/Renderer";
 
 export function Text<TNode>(
 	jsx: NonNullable<JsxText>,
-	parent: HierarchyNode<TNode>,
-	before: TNode | null,
+	hParent: HNode<TNode>,
+	nUsedParent: TNode,
+	_nRealParent: TNode,
+	nBefore: TNode | null,
+	isBatch: boolean,
 ) {
-	const { adapter } = parent.$ng;
+	const { adapter } = hParent.$ng;
 	let node: TNode | null = null;
 
 	if (isAtom(jsx)) {
-		bind(parent.$ng, jsx, () => {
+		bind(hParent.$ng, jsx, () => {
 			node = adapter.text(jsx.$get()?.toString() ?? "", node);
 		});
 	}
@@ -21,5 +24,5 @@ export function Text<TNode>(
 		node = adapter.text(jsx.toString(), null);
 	}
 
-	insert(node!, null, parent, before);
+	insert(node!, null, hParent, nUsedParent, nBefore, isBatch);
 }

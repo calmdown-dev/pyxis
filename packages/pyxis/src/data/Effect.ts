@@ -24,8 +24,12 @@ export interface Effect<T> {
 	/** @internal */
 	$epoch: number;
 
-	/** @internal */
-	$willUnmount?: boolean;
+	/**
+	 * Set once the Lifecycle of this Effect has unmounted. Needed since Lifecycles may get reused
+	 * and only checking its `::mounted` flag is insufficient.
+	 * @internal
+	 */
+	$disposed?: true;
 
 	/** @internal */
 	$resolve?: UpdateCallback<[ effect: this ]>;
@@ -39,17 +43,25 @@ export type EffectDependency = Dependency<[ effect: Effect<any>, epoch: number ]
 
 /**
  * Creates an Effect - a block of logic executed each time any of the Atoms accessed within it
- * change. The block is initially executed when the Effect is created.
+ * change. The block is first synchronously executed when the Effect is created.
  *
- * If a teardown callback is returned, it will be run before the next effect run.
+ * If a teardown callback is returned, it will be run before the next effect re-run, or on component
+ * unmount.
  */
 export function effect(block: EffectBlock, lifecycle = getLifecycle()) {
-	runEffect({
+	const self: Effect<any> = {
 		$lifecycle: lifecycle,
 		$block: block,
 		$react: scheduleEffect,
 		$epoch: 1,
+	};
+
+	onUnmounted(lifecycle, {
+		$fn: teardownEffect,
+		$a0: self,
 	});
+
+	runEffect(self);
 }
 
 function scheduleEffect(this: EffectDependency, effect: Effect<ReturnType<EffectBlock>>, epoch: number) {
@@ -70,25 +82,16 @@ function scheduleEffect(this: EffectDependency, effect: Effect<ReturnType<Effect
 }
 
 function runEffect(effect: Effect<ReturnType<EffectBlock>>) {
-	// lifecycle may have unmounted before a re-run triggered -> bail to avoid resurrecting the
-	// effect, otherwise we'd run code in a dead component
-	if (effect.$epoch > 1 && !effect.$lifecycle.mounted) {
+	if (effect.$disposed) {
 		return;
 	}
 
 	effect.$dispose?.();
 	effect.$dispose = resolve(effect) as Nil<() => void>;
-
-	if (effect.$dispose && !effect.$willUnmount) {
-		effect.$willUnmount = true;
-		onUnmounted(effect.$lifecycle, {
-			$fn: teardownEffect,
-			$a0: effect,
-		});
-	}
 }
 
 function teardownEffect(effect: Effect<ReturnType<EffectBlock>>) {
+	effect.$disposed = true;
 	effect.$dispose?.();
 	effect.$dispose = null;
 }

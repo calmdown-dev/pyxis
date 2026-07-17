@@ -1,6 +1,6 @@
 import type { Nil } from "~/support/types";
 import type { JsxObject, JsxProps, JsxResult } from "~/Component";
-import { mountJsx, type HierarchyNode } from "~/Renderer";
+import { mountJsx, type HNode } from "~/Renderer";
 
 // FUTURE: currently TypeScript has a bug causing it to skip checking fragment props in "react-jsx" mode
 //         allowing users to supply fragment with invalid children
@@ -16,17 +16,13 @@ export interface FragmentProps {
 // @ts-expect-error fake overload to enable use with JSX
 export function Fragment(props: JsxProps<FragmentProps>): JsxResult;
 
-/** @internal */
 export function Fragment<TNode>(
 	jsx: JsxObject,
-	parent: HierarchyNode<TNode>,
-	before: TNode | null,
-): void;
-
-export function Fragment<TNode>(
-	jsx: JsxObject,
-	parent: HierarchyNode<TNode>,
-	before: TNode | null,
+	hParent: HNode<TNode>,
+	nUsedParent: TNode,
+	nRealParent: TNode,
+	nBefore: TNode | null,
+	isBatch: boolean,
 ) {
-	mountJsx(jsx.children, parent, before);
+	mountJsx(jsx.children, hParent, nUsedParent, nRealParent, nBefore, isBatch);
 }

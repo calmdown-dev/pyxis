@@ -1,11 +1,3 @@
-export function insert(node: Node, parent: Node, before: Node | null) {
-	parent.insertBefore(node, before);
-}
-
-export function remove(node: Node) {
-	node.parentNode?.removeChild(node);
-}
-
 export function text(value: string, node: Node | null) {
 	if (!node) {
 		return document.createTextNode(value);
@@ -13,6 +5,22 @@ export function text(value: string, node: Node | null) {
 
 	node.nodeValue = value;
 	return node;
+}
+
+export function marker(comment: string = "") {
+	return document.createComment(comment);
+}
+
+export function batch() {
+	return document.createDocumentFragment();
+}
+
+export function insert(node: Node, parent: Node, before: Node | null) {
+	parent.insertBefore(node, before);
+}
+
+export function remove(node: Node) {
+	node.parentNode?.removeChild(node);
 }
 
 export function setAttr(node: Node, attr: string, value: any) {

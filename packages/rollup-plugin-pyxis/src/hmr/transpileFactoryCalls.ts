@@ -111,11 +111,12 @@ export async function transpileFactoryCalls({
 		const name = findNameFor(factory);
 		const extraArgCount = factoryArgCount[kind] - factory.arguments.length;
 		if (name && extraArgCount >= 0) {
-			const baseId = `${relativeId} ${name}`;
+			const baseId = `${name}@${relativeId}`;
 			const counter = (assignedIds[baseId] ?? 0) + 1;
 			assignedIds[baseId] = counter;
 
-			transpiler.addTransform(factory, appendDevIdArgument(`${baseId} ${counter}`, extraArgCount));
+			const devId = counter > 1 ? `${baseId} ${counter}` : baseId;
+			transpiler.addTransform(factory, appendDevIdArgument(devId, extraArgCount));
 		}
 	};
 

@@ -5,7 +5,7 @@ import { withLifecycle } from "~/data/Lifecycle";
 import { createProxy, updateProxy, type Proxied, type ProxyObject } from "~/data/ProxyAtom";
 import type { Nil } from "~/support/types";
 import type { DataTemplate, JsxChildren, JsxObject, JsxProps, JsxResult } from "~/Component";
-import { mount, mountJsx, split, unmount, type HierarchyNode } from "~/Renderer";
+import { insert, mount, mountJsx, fork, unmount, type HNode } from "~/Renderer";
 
 export interface ShowProps {
 	when?: MaybeAtom<boolean>;
@@ -35,17 +35,13 @@ export function Show(props: JsxProps<ShowProps>): JsxResult;
 export function Show<T>(props: JsxProps<ShowDataProps<T>>): JsxResult;
 export function Show<T, P extends readonly (keyof T)[]>(props: JsxProps<ShowProxyDataProps<T, P>>): JsxResult;
 
-/** @internal */
 export function Show<TNode>(
 	jsx: JsxObject,
-	parent: HierarchyNode<TNode>,
-	before: TNode | null,
-): void;
-
-export function Show<TNode>(
-	jsx: JsxObject,
-	parent: HierarchyNode<TNode>,
-	before: TNode | null,
+	hParent: HNode<TNode>,
+	nUsedParent: TNode,
+	nRealParent: TNode,
+	nBefore: TNode | null,
+	isBatch: boolean,
 ) {
 	const when = jsx.when as MaybeAtom<boolean> | undefined;
 	if (!isAtom(when) && when === false) {
@@ -62,17 +58,21 @@ export function Show<TNode>(
 	let dataOrProxy: unknown = data;
 	if (proxyKeys) {
 		if (isAtom(data)) {
-			dataOrProxy = createProxy(parent.$ng, data.$get(), proxyKeys);
-			link(parent.$ng, data, {
+			dataOrProxy = createProxy(hParent.$ng, data.$get(), proxyKeys);
+			link(hParent.$ng, data, {
 				$fn: () => {
 					updateProxy(dataOrProxy as ProxyObject, data.$get(), proxyKeys);
 				},
 			});
 		}
 		else {
-			dataOrProxy = createProxy(parent.$ng, data, proxyKeys);
+			dataOrProxy = createProxy(hParent.$ng, data, proxyKeys);
 		}
 	}
+
+	// prepare batching
+	const adapter = hParent.$ng.adapter;
+	const shouldBatch = Boolean(adapter.batch);
 
 	// a sub-group for re-mounting is only necessary when either:
 	// - `when` can change
@@ -80,20 +80,76 @@ export function Show<TNode>(
 	// - `data` can change and we're not using a proxy
 
 	if (!(isAtom(when) || isAtom(template) || (!proxyKeys && isAtom(data)))) {
-		mountJsx(withLifecycle(parent.$ng, template, dataOrProxy), parent, before);
+		const isLocalBatch = shouldBatch && !isBatch;
+		let nBatchParent = nUsedParent;
+		let nBatchBefore = nBefore;
+		if (isLocalBatch) {
+			nBatchParent = adapter.batch!();
+			nBatchBefore = null;
+		}
+
+		mountJsx(
+			/* jsx = */ withLifecycle(hParent.$ng, template, dataOrProxy),
+			/* hParent = */ hParent,
+			/* nUsedParent = */ nBatchParent,
+			/* nRealParent = */ nRealParent,
+			/* nBefore = */ nBatchBefore,
+			/* isBatch = */ isLocalBatch || isBatch,
+		);
+
+		if (isLocalBatch) {
+			adapter.insert(nBatchParent, nUsedParent, nBefore);
+		}
+
 		return;
 	}
 
 	// re-mounts may be necessary -> create a sub-group
-	const group = split(parent);
+	const hGroup = fork(hParent);
 
 	// (re-)render effect
+	let nMarker: TNode | null = nBefore;
 	effect(() => {
 		if (read(when) === false) {
 			return undefined;
 		}
 
-		mount(group, withLifecycle(group, read(template), read(dataOrProxy)));
-		return () => unmount(group);
-	}, parent.$ng);
+		const isLocalBatch = shouldBatch && !isBatch;
+		let nBatchParent = nUsedParent;
+		let nBatchBefore = nMarker;
+		if (isLocalBatch) {
+			nBatchParent = adapter.batch!();
+			nBatchBefore = null;
+		}
+
+		mount(
+			/* jsx = */ withLifecycle(hGroup, read(template), read(dataOrProxy)),
+			/* hGroup = */ hGroup,
+			/* nUsedParent = */ nBatchParent,
+			/* nRealParent = */ nRealParent,
+			/* nBefore = */ nBatchBefore,
+			/* isBatch = */ isLocalBatch || isBatch,
+		);
+
+		if (isLocalBatch) {
+			adapter.insert(nBatchParent, nUsedParent, nMarker);
+		}
+
+		return () => unmount(hGroup);
+	}, hParent.$ng);
+
+	// insert marker to preserve position in the document
+	nMarker = __DEV__ ? adapter.marker("/Show") : adapter.marker();
+	insert(
+		/* hNode = */ nMarker,
+		/* children = */ null,
+		/* hParent = */ hParent,
+		/* nUsedParent = */ nUsedParent,
+		/* nBefore = */ nBefore,
+		/* isBatch = */ isBatch,
+	);
+
+	// forget stale batch before future re-renders
+	isBatch = false;
+	nUsedParent = nRealParent;
 }

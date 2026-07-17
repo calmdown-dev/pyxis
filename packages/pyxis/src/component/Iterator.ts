@@ -4,7 +4,7 @@ import type { ReadonlyList } from "~/data/List";
 import { K_CHANGE, K_CLEAR, K_INSERT, K_REMOVE } from "~/data/ListDelta";
 import { createProxy, updateProxy, type Proxied } from "~/data/ProxyAtom";
 import type { DataTemplate, JsxObject, JsxProps, JsxResult } from "~/Component";
-import { mount, split, track, unmount, untrack, type HierarchyNode, type MountingGroup } from "~/Renderer";
+import { fork, insert, mount, track, unmount, untrack, type MountingGroup, type HNode } from "~/Renderer";
 
 export interface RemountIteratorProps<T> {
 	source: ReadonlyList<T>;
@@ -19,6 +19,7 @@ export interface ProxyIteratorProps<T, P extends readonly (keyof T)[]> {
 }
 
 interface IteratorItemGroup<TNode> extends MountingGroup<TNode> {
+	$marker: TNode;
 	$data?: any;
 }
 
@@ -36,25 +37,25 @@ export function Iterator<T>(props: JsxProps<RemountIteratorProps<T>>): JsxResult
 
 export function Iterator<T, P extends readonly (keyof T)[]>(props: JsxProps<ProxyIteratorProps<T, P>>): JsxResult;
 
-/** @internal */
-export function Iterator<TNode>(
-	jsx: JsxObject,
-	parent: HierarchyNode<TNode>,
-	before: TNode | null,
-): void;
-
 export function Iterator<TNode, T>(
 	jsx: JsxObject,
-	parent: HierarchyNode<TNode>,
-	before: TNode | null,
+	hParent: HNode<TNode>,
+	nUsedParent: TNode,
+	nRealParent: TNode,
+	nBefore: TNode | null,
+	isBatch: boolean,
 ) {
 	const source = jsx.source as ReadonlyList<T>;
 	const proxyKeys = jsx.proxy as readonly PropertyKey[] | undefined;
 	const isProxy = proxyKeys !== undefined;
 	const template = jsx.children[0] as DataTemplate<T>;
 
-	const group = split(parent) as MountingGroup<TNode>;
-	group.mounted = true;
+	// create master group
+	const hGroup = fork(hParent) as MountingGroup<TNode>;
+
+	const { adapter } = hGroup;
+	const shouldBatch = Boolean(adapter.batch);
+	const nListEndMarker = __DEV__ ? adapter.marker("/Iterator") : adapter.marker();
 
 	// list change handler
 	let items: IteratorItemGroup<TNode>[];
@@ -68,9 +69,9 @@ export function Iterator<TNode, T>(
 		}
 
 		const delta = source.$delta!;
-		const { $changes } = delta;
+		const { $changes, $lengthDelta } = delta;
 		const cMax = $changes.length;
-		const iMax = items.length + delta.$lengthDelta;
+		const iMax = items.length + $lengthDelta;
 		const newItems = new Array<IteratorItemGroup<TNode>>(iMax);
 		const pending: PendingItem<T>[] = [];
 		let recycled: IteratorItemGroup<TNode>[] = [];
@@ -80,7 +81,13 @@ export function Iterator<TNode, T>(
 		let oi = 0; // old items index
 		let ni = 0; // new items index
 		let change;
+		let ref;
 		let tmp;
+
+		// batching
+		let isLocalBatch = false;
+		let nBatchParent = nRealParent;
+		let nBatchBefore: TNode | null = null;
 
 		for (; ci < cMax; ci += 1) {
 			change = $changes[ci];
@@ -100,17 +107,80 @@ export function Iterator<TNode, T>(
 					else {
 						// no need to untrack and re-track, position doesn't change
 						unmount(item);
-						mount(item, withLifecycle(item, template, change.$item));
+
+						// unmount removes marker, we must re-insert it
+						ref = items[oi]?.$marker ?? nListEndMarker;
+						insert(
+							/* hNode = */ item.$marker,
+							/* children = */ null,
+							/* hParent = */ item,
+							/* nUsedParent = */ nRealParent,
+							/* nBefore = */ ref,
+							/* isBatch = */ false,
+						);
+
+						mount(
+							/* jsx = */ withLifecycle(item, template, (item.$data = change.$item)),
+							/* hGroup = */ item,
+							/* nUsedParent = */ nRealParent,
+							/* nRealParent = */ nRealParent,
+							/* nBefore = */ ref,
+							/* isBatch = */ false,
+						);
 					}
 
 					break;
 
 				case K_INSERT:
-					if (!isProxy || inserted < delta.$lengthDelta) {
+					if (!isProxy || inserted < $lengthDelta) {
 						// we're either in remount mode, or no more items are available for recycling
-						item = (newItems[ni++] = split(group, items[oi]) as IteratorItemGroup<TNode>);
+						item = (newItems[ni++] = fork(hGroup, items[oi]) as IteratorItemGroup<TNode>);
+						item.$marker = __DEV__ ? adapter.marker("IteratorItem") : adapter.marker();
 						item.$data = isProxy ? createProxy(item, change.$item, proxyKeys) : change.$item;
 						inserted += 1;
+
+						ref = items[oi]?.$marker ?? nListEndMarker;
+						if (!isLocalBatch) {
+							if (shouldBatch) {
+								isLocalBatch = true;
+								nBatchParent = adapter.batch!();
+								nBatchBefore = null;
+							}
+							else {
+								nBatchBefore = ref;
+							}
+						}
+
+						// insert start marker to preserve position in the document
+						insert(
+							/* hNode = */ item.$marker,
+							/* children = */ null,
+							/* hParent = */ item,
+							/* nUsedParent = */ nBatchParent,
+							/* nBefore = */ nBatchBefore,
+							/* isBatch = */ isLocalBatch,
+						);
+
+						mount(
+							/* jsx = */ withLifecycle(item, template, item.$data),
+							/* hGroup = */ item,
+							/* nUsedParent = */ nBatchParent,
+							/* nRealParent = */ nRealParent,
+							/* nBefore = */ nBatchBefore,
+							/* isBatch = */ isLocalBatch,
+						);
+
+						if (isLocalBatch && (
+							// we must commit the current batch if:
+							inserted >= $lengthDelta ||		// next insert will use recycled
+							!(tmp = $changes[ci + 1]) ||	// no next change exists
+							tmp.$kind !== K_INSERT ||		// next change is not an insert
+							tmp.$index !== ni				// next insert is not consecutive
+						)) {
+							adapter.insert(nBatchParent, nRealParent, ref);
+							nBatchParent = nRealParent;
+							isLocalBatch = false;
+						}
 					}
 					else {
 						// we know enough items will be removed -> add a pending item
@@ -118,29 +188,26 @@ export function Iterator<TNode, T>(
 							$index: ni++,
 							$item: change.$item,
 						});
-
-						break;
 					}
 
-					mount(item, withLifecycle(item, template, item.$data));
 					break;
 
 				case K_REMOVE:
-					tmp = items[oi++];
+					item = items[oi++];
 					if (isProxy) {
-						recycled.push(tmp);
+						recycled.push(item);
 					}
 					else {
-						unmount(tmp);
+						unmount(item);
 					}
 
-					untrack(tmp);
+					untrack(item);
 					break;
 
 				case K_CLEAR:
-					// clear is always the first change within a delta, has index = -1 and is never
-					// followed by removals - thus we can directly recycle the items array, it won't
-					// get mutated
+					// clear is always the first change within a delta, has index = -1 and is only
+					// ever followed by inserts - thus we can directly recycle the items array, it
+					// won't get mutated
 					if (isProxy) {
 						recycled = items;
 						recycled.forEach(untrack);
@@ -148,9 +215,9 @@ export function Iterator<TNode, T>(
 					}
 					else {
 						while (oi < items.length) {
-							tmp = items[oi++];
-							unmount(tmp);
-							untrack(tmp);
+							item = items[oi++];
+							unmount(item);
+							untrack(item);
 						}
 					}
 
@@ -170,27 +237,68 @@ export function Iterator<TNode, T>(
 			tmp = pending[pi--];
 			item = (newItems[tmp.$index] = recycled[ri--]);
 			updateProxy(item.$data, tmp.$item, proxyKeys!);
-			track(item, group, newItems[tmp.$index + 1]);
-			mount(item, withLifecycle(item, template, item.$data));
+			track(item, hGroup, ref = newItems[tmp.$index + 1]);
+			mount(
+				/* jsx = */ withLifecycle(item, template, item.$data),
+				/* hGroup = */ item,
+				/* nUsedParent = */ nRealParent,
+				/* nRealParent = */ nRealParent,
+				/* nBefore = */ ref?.$marker ?? nListEndMarker,
+				/* isBatch = */ false,
+			);
 		}
 
 		// unmount unused
 		while (ri >= 0) {
-			tmp = recycled[ri--];
-			unmount(tmp);
-			untrack(tmp);
+			item = recycled[ri--];
+			unmount(item);
+			untrack(item);
 		}
 
 		items = newItems;
 	};
 
-	link(group, source, { $fn: onDelta });
+	link(hGroup, source, { $fn: onDelta });
 
 	// initial render
-	items = source.$items.map(data => {
-		const item = split(group) as IteratorItemGroup<TNode>;
-		item.$data = isProxy ? createProxy(item, data, proxyKeys) : data;
-		mount(item, withLifecycle(item, template, item.$data), before);
-		return item;
-	});
+	{
+		let nBatchParent = nUsedParent;
+		let nBatchBefore = nBefore;
+
+		const isLocalBatch = shouldBatch && !isBatch && source.$items.length > 0;
+		if (isLocalBatch) {
+			nBatchParent = adapter.batch!();
+			nBatchBefore = null;
+		}
+
+		const isAnyBatch = isLocalBatch || isBatch;
+		items = source.$items.map((data) => {
+			const item = fork(hGroup) as IteratorItemGroup<TNode>;
+			item.$marker = __DEV__ ? adapter.marker("IteratorItem") : adapter.marker();
+			item.$data = isProxy ? createProxy(item, data, proxyKeys) : data;
+
+			insert(item.$marker, null, item, nBatchParent, nBatchBefore, isAnyBatch);
+			mount(
+				/* jsx = */ withLifecycle(item, template, item.$data),
+				/* hGroup = */ item,
+				/* nUsedParent = */ nBatchParent,
+				/* nRealParent = */ nRealParent,
+				/* nBefore = */ nBatchBefore,
+				/* isBatch = */ isAnyBatch,
+			);
+
+			return item;
+		});
+
+		// insert end marker to preserve position in the document
+		insert(nListEndMarker, null, hGroup, nBatchParent, nBatchBefore, isAnyBatch);
+
+		// commit batch, if it's local
+		if (isLocalBatch) {
+			adapter.insert(nBatchParent, nUsedParent, nBefore);
+		}
+	}
+
+	// content is already rendered, only call mount (with empty jsx) to propagate mount notifications
+	mount(null, hGroup, nUsedParent, nRealParent, nBefore, isBatch);
 }

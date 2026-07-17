@@ -8,7 +8,7 @@ export interface Adapter<TNode, TIntrinsicElements extends ElementsType = Elemen
 	 * Carries information about the available intrinsic elements when using this Adapter.
 	 * @deprecated **Type only, does not exist at runtime!**
 	 */
-	readonly __elements?: TIntrinsicElements;
+	readonly $elements?: TIntrinsicElements;
 
 	/**
 	 * A function able to schedule a callback to be executed at a later time, e.g. `queueMicrotask`.
@@ -19,7 +19,7 @@ export interface Adapter<TNode, TIntrinsicElements extends ElementsType = Elemen
 	/**
 	 * Creates a native (intrinsic) element node by its name.
 	 */
-	readonly native: (
+	readonly element: (
 		name: string,
 	) => TNode;
 
@@ -32,8 +32,25 @@ export interface Adapter<TNode, TIntrinsicElements extends ElementsType = Elemen
 	) => TNode;
 
 	/**
-	 * If provided, inserts the given node before the referenced existing child.
-	 * Otherwise appends the node as the last child of the parent.
+	 * Creates a marker node used to preserve a position within the node tree.
+	 */
+	readonly marker: (
+		comment?: string,
+	) => TNode;
+
+	/**
+	 * Creates a batch to which nodes can be inserted "offline," without causing any updates. The
+	 * batch is later inserted all at once using the `insert` function, causing only a single
+	 * update.
+	 *
+	 * Adapters may omit this function when batching is not supported.
+	 */
+	readonly batch?: () => TNode;
+
+	/**
+	 * Inserts the given `node` as a child of the `parent`. If `before` is provided, the child will
+	 * be inserted just before the referenced node, otherwise the child is inserted as the new last
+	 * child.
 	 */
 	readonly insert: (
 		node: TNode,

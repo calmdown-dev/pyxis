@@ -8,19 +8,19 @@ export { consumerOf, createContext, host, type Context } from "~/data/Context";
 export { derived, type Derivation } from "~/data/Derivation";
 export { bind } from "~/data/Dependency";
 export { effect, type EffectBlock } from "~/data/Effect";
-export { getLifecycle, mounted, tick, unmounted, withLifecycle, type Lifecycle, type MountBlock, type UnmountBlock } from "~/data/Lifecycle";
+export { getLifecycle, mounted, unmounted, withLifecycle, type Lifecycle, type MountBlock, type UnmountBlock } from "~/data/Lifecycle";
 export { listOf, sync, type List, type ReadonlyList } from "~/data/List";
 export type { Equals } from "~/data/ListDelta";
 export { proxyOf, type ProxyAtom } from "~/data/ProxyAtom";
-export type { TickFn } from "~/data/Scheduler";
+export { tick, type TickFn } from "~/data/Scheduler";
 
 export { RefExtension, type RefExtensionType } from "~/extension/RefExtension";
 
 export { peeks, reads } from "~/support/text";
-export type { ArgsMax5, ElementsType, Intersection, Nil, NodeType, PropsType, S_NODE_TYPE } from "~/support/types";
+export type { ArgsMax6, ElementsType, Intersection, Nil, NodeType, PropsType, S_NODE_TYPE } from "~/support/types";
 
 export type { Adapter, Extension, ExtensionProps, ExtensionsType } from "~/Adapter";
 export { pyxis, type PyxisBuilder } from "~/Builder";
 export { component, type Component, type DataTemplate, type JsxChildren, type JsxChildrenProp, type JsxObject, type JsxProps, type JsxResult, type JsxText, type PropsOf, type WithChildren } from "~/Component";
 export { jsx, jsxs } from "~/jsx";
-export { insert, mount, mountJsx, split, track, unmount, untrack, type ElementsOf, type Hierarchy, type HierarchyNode, type MountingGroup, type NativeNode, type Renderer } from "~/Renderer";
+export { mount, mountJsx, fork, track, unmount, untrack, type ElementsOf, type HNode, type MountingGroup, type Renderer } from "~/Renderer";

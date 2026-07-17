@@ -4,7 +4,7 @@ import { getCurrentContainer, setCurrentContainer } from "~/data/Context";
 import { unmounted } from "~/data/Lifecycle";
 import type { Nil, PropsType } from "~/support/types";
 
-import { mount, mountJsx, S_COMPONENT, split, unmount, type HierarchyNode } from "./Renderer";
+import { mount, mountJsx, S_COMPONENT, fork, unmount, type HNode, insert } from "./Renderer";
 
 /**
  * Represents a Pyxis Component function responsible for setting up a view model and returning a
@@ -41,34 +41,46 @@ export function component(
 		devId && globalThis.__PYXIS_HMR__.component.upsert(devId, block);
 	}
 
-	return (jsx, parent, before) => {
+	return (jsx, hParent, nUsedParent, nRealParent, nBefore, isBatch) => {
 		const context = getCurrentContainer();
 		try {
 			if (__DEV__) {
 				if (!import.meta.hot || !devId) {
 					setCurrentContainer(context); // allow child components to branch context
-					mountJsx(block(jsx), parent, before);
+					mountJsx(block(jsx), hParent, nUsedParent, nRealParent, nBefore, isBatch);
 					return;
 				}
 
-				const group = split(parent);
-				const unsubscribe = globalThis.__PYXIS_HMR__.component.subscribe(devId, impl => {
-					unmount(group);
-					mount(group, {
-						...jsx,
-						[S_COMPONENT]: () => mountJsx(impl(jsx), group, before),
-					});
+				const hGroup = fork(hParent);
+				const nMarker = hGroup.adapter.marker(`/${devId}`);
+				insert(nMarker, null, hParent, nUsedParent, nBefore, isBatch);
 
-					// first call runs synchronously with `subscribe`, so the `before` ref is up-to-date
-					// but the hierarchy may change between later invocations, so it must be invalidated
-					before = null;
+				const unsubscribe = globalThis.__PYXIS_HMR__.component.subscribe(devId, impl => {
+					unmount(hGroup);
+					mount(
+						/* jsx = */ {
+							...jsx,
+							[S_COMPONENT]: (() => (
+								mountJsx(impl(jsx), hGroup, nUsedParent, nRealParent, nMarker, isBatch)
+							)) satisfies ComponentHandler,
+						},
+						/* hGroup = */ hGroup,
+						/* nUsedParent = */ nUsedParent,
+						/* nRealParent = */ nRealParent,
+						/* nBefore = */ nMarker,
+						/* isBatch = */ isBatch,
+					);
 				});
 
 				unmounted(unsubscribe);
+
+				// forget stale batch before future re-renders
+				nUsedParent = nRealParent;
+				isBatch = false;
 			}
 			else {
 				setCurrentContainer(context); // allow child components to branch context
-				mountJsx(block(jsx), parent, before);
+				mountJsx(block(jsx), hParent, nUsedParent, nRealParent, nBefore, isBatch);
 			}
 		}
 		finally {
@@ -155,7 +167,10 @@ export type WithChildren<T extends PropsType> = T & { children?: JsxChildren };
 export interface ComponentHandler {
 	<TNode>(
 		jsx: JsxObject,
-		parent: HierarchyNode<TNode>,
-		before: TNode | null,
+		hParent: HNode<TNode>,
+		nUsedParent: TNode,
+		nRealParent: TNode,
+		nBefore: TNode | null,
+		isBatch: boolean,
 	): void;
 }
