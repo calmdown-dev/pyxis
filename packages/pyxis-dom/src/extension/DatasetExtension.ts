@@ -1,4 +1,4 @@
-import { bind, get, isAtom, type ElementsType, type ExtensionProps, type MaybeAtom, type MountingGroup, type NodeType } from "@calmdown/pyxis/core";
+import { bind, isAtom, type ElementsType, type ExtensionProps, type MaybeAtom, type MountingGroup, type NodeType } from "@calmdown/pyxis/core";
 
 export interface DatasetExtensionType {
 	<TExtensionKey extends string, TElements extends ElementsType>(extensionKey: TExtensionKey, elements: TElements): {
@@ -29,7 +29,7 @@ export const DatasetExtension = {
 	set: (node, key, value, group) => {
 		if (isAtom(value)) {
 			bind(group, value, () => {
-				const tmp = get(value);
+				const tmp = value.get();
 				if (tmp === undefined) {
 					delete node.dataset[key];
 				}

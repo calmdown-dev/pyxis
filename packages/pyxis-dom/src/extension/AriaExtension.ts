@@ -1,4 +1,4 @@
-import { bind, get, isAtom, type ElementsType, type ExtensionProps, type MaybeAtom, type MountingGroup, type NodeType } from "@calmdown/pyxis/core";
+import { bind, isAtom, type ElementsType, type ExtensionProps, type MaybeAtom, type MountingGroup, type NodeType } from "@calmdown/pyxis/core";
 
 import type { ARIAProps } from "~/jsx/baked";
 
@@ -26,7 +26,7 @@ export const AriaExtension = {
 	set: (node, key, value, group) => {
 		if (isAtom(value)) {
 			bind(group, value, () => {
-				node[key] = get(value);
+				node[key] = value.get();
 			});
 		}
 		else {

@@ -119,14 +119,14 @@ export function host<T>(context: Context<T>, defaultValue?: T) {
 		$lifecycle: lifecycle,
 		$tracksValue: true,
 		$value: defaultValue,
-		$get: getLocalValue,
-		$set: setValue,
+		get: getLocalValue,
+		set: setValue,
 	};
 
 	if (defaultValue === undefined) {
 		const ancestorAtom = consumerOf(context);
 		if (ancestorAtom) {
-			localAtom.$get = getAncestorValue;
+			localAtom.get = getAncestorValue;
 			localAtom.$ancestor = ancestorAtom;
 			link(lifecycle, ancestorAtom, localAtom.$dep = {
 				$fn: notify<T>,
@@ -147,7 +147,7 @@ export function host<T>(context: Context<T>, defaultValue?: T) {
 }
 
 function getAncestorValue<T>(this: ContextAtom<T>) {
-	return this.$ancestor!.$get();
+	return this.$ancestor!.get();
 }
 
 function getLocalValue<T>(this: ContextAtom<T>) {
@@ -157,11 +157,11 @@ function getLocalValue<T>(this: ContextAtom<T>) {
 function setValue<T>(this: ContextAtom<T>, value: T) {
 	let oldValue;
 	if (this.$ancestor) {
-		oldValue = this.$ancestor.$get();
+		oldValue = this.$ancestor.get();
 		unlink(this.$dep!);
 		this.$dep = null;
 		this.$ancestor = null;
-		this.$get = getLocalValue;
+		this.get = getLocalValue;
 	}
 	else {
 		oldValue = this.$value;

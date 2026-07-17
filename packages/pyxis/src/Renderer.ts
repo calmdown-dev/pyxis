@@ -135,6 +135,10 @@ export function createRenderer<TNode, TIntrinsicElements extends ElementsType>(
 	};
 
 	hGroup.$ng = hGroup;
+	if (__DEV__) {
+		globalThis.__PYXIS_ROOT__ ??= hGroup;
+	}
+
 	return hGroup;
 }
 

@@ -2,9 +2,9 @@ import { invoke } from "~/support/common";
 import type { Nil } from "~/support/types";
 
 import { getLifecycle, type Lifecycle } from "./Lifecycle";
-import type { DependencyList } from "./Dependency";
 import { __DEV__assertNotEffect, reportAccess } from "./Effect";
 import { schedule, type UpdateCallback } from "./Scheduler";
+import type { DependencyList } from "./Dependency";
 
 /**
  * Pyxis Atom type guard marker.
@@ -12,28 +12,50 @@ import { schedule, type UpdateCallback } from "./Scheduler";
 // @ts-expect-error this is a unique symbol at runtime
 export const S_ATOM: unique symbol = __DEV__ ? Symbol.for("pyxis:atom") : Symbol();
 
+
+/** Contract for Atoms where they need to be read. */
+export interface ReadonlyAtom<out T> extends DependencyList {
+	/** Pyxis Atom type guard marker. */
+	readonly [S_ATOM]: true;
+
+	/**
+	 * Gets the value of this Atom. Only use this method when the target is guaranteed to be an
+	 * Atom, otherwise it is recommended to use the `read` or `peek` functions.
+	 *
+	 * This method does *not* report access, thus within effects it is analogous to `peek`.
+	 * @see {@link read}
+	 * @see {@link peek}
+	 */
+	get: () => T;
+}
+
 /**
  * Holds any single value, managing reactions to its changes. Use the `read`, `write` functions to
  * access its value.
  * @see {@link read}
  * @see {@link write}
  */
-export interface Atom<T = unknown> extends DependencyList {
+export interface Atom<T = unknown> extends ReadonlyAtom<T> {
 	/**
-	 * Pyxis Atom type guard marker.
+	 * Sets the value of this Atom. Does nothing if this Atom is readonly. Only use this method when
+	 * the target is guaranteed to be an Atom, otherwise it is recommended to use the `write` or
+	 * `update` functions.
+	 * @returns Boolean indicating whether the value of this Atom changed.
+	 * @see {@link write}
+	 * @see {@link update}
 	 */
-	readonly [S_ATOM]: true;
-
-	/**
-	 * A fake property kept for TypeScript to properly type-check Atom compatibility.
-	 * @deprecated **Type only, does not exist at runtime!**
-	 */
-	readonly $contract?: (value: T) => void;
+	set: (value: T) => boolean;
 
 	/** @internal */
 	readonly $lifecycle: Lifecycle;
+
+	/** @internal */
 	readonly $tracksValue?: boolean;
+
+	/** @internal */
 	$lastValue?: T;
+
+	/** @internal */
 	$force?: boolean;
 
 	/**
@@ -47,19 +69,6 @@ export interface Atom<T = unknown> extends DependencyList {
 	 * @internal
 	 */
 	$devId?: string;
-
-	/**
-	 * Gets the value of this Atom.
-	 * @internal
-	 */
-	$get: () => T;
-
-	/**
-	 * Sets the value of this Atom. Does nothing if this Atom is readonly.
-	 * @returns Boolean indicating whether the value of this Atom changed.
-	 * @internal
-	 */
-	$set: (value: T) => boolean;
 }
 
 interface DirectAtom<T> extends Atom<any> {
@@ -67,13 +76,24 @@ interface DirectAtom<T> extends Atom<any> {
 }
 
 /**
- * Union of the given type or an Atom of that type. Use the `read`, `write` or `isAtom` functions to
- * interact with such values.
+ * Union of the given type or an Atom of that type. Use the `read`, `peek`, `write`, `update` or
+ * `isAtom` functions to interact with such values.
  * @see {@link read}
+ * @see {@link peek}
  * @see {@link write}
+ * @see {@link update}
  * @see {@link isAtom}
  */
 export type MaybeAtom<T> = Atom<T> | T;
+
+/**
+ * Union of the given type or the ReadAtom contract of that type. Use the `read`, `peek` or `isAtom`
+ * functions to interact with such values.
+ * @see {@link read}
+ * @see {@link peek}
+ * @see {@link isAtom}
+ */
+export type MaybeReadonlyAtom<T> = ReadonlyAtom<T> | T;
 
 /**
  * Creates an empty Atom; i.e. value set to `undefined`.
@@ -102,8 +122,8 @@ export function atomOf<T>(initialValue?: MaybeAtom<T>, lifecycle = getLifecycle(
 		$tracksValue: true,
 		$lifecycle: lifecycle,
 		$lastValue: initialValue,
-		$get: getValue,
-		$set: setValue,
+		get: getValue,
+		set: setValue,
 	};
 
 	if (__DEV__) {
@@ -138,6 +158,7 @@ function setValue<T>(this: DirectAtom<T>, value: T) {
  * Atom type guard, checks if the provided input is an Atom.
  */
 export function isAtom<T = unknown>(input: Nil<MaybeAtom<T>>): input is Atom<T>;
+export function isAtom<T = unknown>(input: Nil<MaybeReadonlyAtom<T>>): input is ReadonlyAtom<T>;
 export function isAtom<T = unknown>(input: unknown): input is Atom<T>;
 export function isAtom(input: unknown): input is Atom<any> {
 	return (
@@ -148,13 +169,6 @@ export function isAtom(input: unknown): input is Atom<any> {
 }
 
 /**
- * Directly reads the value of an Atom without any additional checks.
- */
-export function get<T>(input: Atom<T>): T {
-	return input.$get();
-}
-
-/**
  * Checks if the provided input is an Atom and reads its value. Non-atom inputs are returned as-is.
  * Reports read access when inside an effect.
  * @see {@link isAtom}
@@ -162,11 +176,11 @@ export function get<T>(input: Atom<T>): T {
  * @see {@link peek}
  * @see {@link update}
  */
-export function read<A>(input: A): A extends MaybeAtom<infer T> ? T : never;
-export function read<T>(input: MaybeAtom<T>) {
+export function read<A>(input: A): A extends MaybeReadonlyAtom<infer T> ? T : never;
+export function read<T>(input: MaybeReadonlyAtom<T>) {
 	if (isAtom<T>(input)) {
 		reportAccess(input);
-		return input.$get();
+		return input.get();
 	}
 
 	return input;
@@ -180,10 +194,10 @@ export function read<T>(input: MaybeAtom<T>) {
  * @see {@link write}
  * @see {@link update}
  */
-export function peek<A>(input: A): A extends MaybeAtom<infer T> ? T : never;
-export function peek<T>(input: MaybeAtom<T>): T {
+export function peek<A>(input: A): A extends MaybeReadonlyAtom<infer T> ? T : never;
+export function peek<T>(input: MaybeReadonlyAtom<T>): T {
 	if (isAtom<T>(input)) {
-		return input.$get();
+		return input.get();
 	}
 
 	return input;
@@ -207,7 +221,7 @@ export function write<A>(
 
 export function write<T>(input: MaybeAtom<T>, value: T, force = false): T {
 	if (isAtom(input)) {
-		if (input.$set(value) || force) {
+		if (input.set(value) || force) {
 			input.$force ||= force;
 			schedule(input.$lifecycle, input.$notify ??= {
 				$fn: notify,
@@ -215,7 +229,7 @@ export function write<T>(input: MaybeAtom<T>, value: T, force = false): T {
 			});
 		}
 
-		return input.$get();
+		return input.get();
 	}
 
 	return input;
@@ -239,7 +253,7 @@ export function update<A>(
 
 export function update<T>(input: MaybeAtom<T>, transform: (value: T) => T, force = false): T {
 	if (isAtom(input)) {
-		if (input.$set(transform(input.$get())) || force) {
+		if (input.set(transform(input.get())) || force) {
 			input.$force ||= force;
 			schedule(input.$lifecycle, input.$notify ??= {
 				$fn: notify,
@@ -247,7 +261,7 @@ export function update<T>(input: MaybeAtom<T>, transform: (value: T) => T, force
 			});
 		}
 
-		return input.$get();
+		return input.get();
 	}
 
 	return input;
@@ -261,7 +275,7 @@ export function notify<T>(input: Atom<T>) {
 	// optimization: when Atom changes multiple times within a single update and ends up with the
 	// same value it started with, the notification can be skipped
 	if (input.$tracksValue) {
-		const newValue = input.$get();
+		const newValue = input.get();
 		if (Object.is(input.$lastValue, newValue) && !input.$force) {
 			return;
 		}

@@ -16,7 +16,7 @@ export function Text<TNode>(
 
 	if (isAtom(jsx)) {
 		bind(hParent.$ng, jsx, () => {
-			node = adapter.text(jsx.$get()?.toString() ?? "", node);
+			node = adapter.text(jsx.get()?.toString() ?? "", node);
 		});
 	}
 	else {

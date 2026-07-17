@@ -58,10 +58,10 @@ export function Show<TNode>(
 	let dataOrProxy: unknown = data;
 	if (proxyKeys) {
 		if (isAtom(data)) {
-			dataOrProxy = createProxy(hParent.$ng, data.$get(), proxyKeys);
+			dataOrProxy = createProxy(hParent.$ng, data.get(), proxyKeys);
 			link(hParent.$ng, data, {
 				$fn: () => {
-					updateProxy(dataOrProxy as ProxyObject, data.$get(), proxyKeys);
+					updateProxy(dataOrProxy as ProxyObject, data.get(), proxyKeys);
 				},
 			});
 		}

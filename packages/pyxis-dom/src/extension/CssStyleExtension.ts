@@ -1,4 +1,4 @@
-import { bind, get, isAtom, type ElementsType, type ExtensionProps, type MaybeAtom, type MountingGroup, type NodeType } from "@calmdown/pyxis/core";
+import { bind, isAtom, type ElementsType, type ExtensionProps, type MaybeAtom, type MountingGroup, type NodeType } from "@calmdown/pyxis/core";
 
 import type { CSSStyleDeclarationProps } from "~/jsx/baked";
 
@@ -29,7 +29,7 @@ export const CssStyleExtension = {
 	set: (node, ruleName: any, value, group) => {
 		if (isAtom(value)) {
 			bind(group, value, () => {
-				node.style[ruleName] = get(value);
+				node.style[ruleName] = value.get();
 			});
 		}
 		else if (value) {

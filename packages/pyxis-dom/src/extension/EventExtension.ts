@@ -1,4 +1,4 @@
-import { getLifecycle, peek, unmounted, withLifecycle, type ElementsType, type ExtensionProps, type MaybeAtom, type Nil, type NodeType } from "@calmdown/pyxis/core";
+import { getLifecycle, peek, unmounted, withLifecycle, type ElementsType, type ExtensionProps, type Lifecycle, type MaybeAtom, type Nil, type NodeType } from "@calmdown/pyxis/core";
 
 export interface EventExtensionType {
 	<TExtensionKey extends string, TElements extends ElementsType>(extensionKey: TExtensionKey, elements: TElements): {
@@ -75,15 +75,55 @@ export const EventExtension = {
 		}
 
 		// listen
-		const lifecycle = getLifecycle();
+		const lifecycle = getExtendedLifecycle();
 		const listenerWithLifecycle = (e: unknown) => {
 			const handler = peek(listenerAtom);
-			handler && withLifecycle(lifecycle, handler, e);
+			if (handler) {
+				withLifecycle(lifecycle, handler, e);
+			}
 		};
 
 		node.addEventListener(type, listenerWithLifecycle, options);
-		unmounted(() => {
-			node.removeEventListener(type, listenerWithLifecycle, options);
-		}, lifecycle);
+		lifecycle.$events.push({
+			$f: listenerWithLifecycle,
+			$n: node,
+			$e: type,
+			$o: options,
+		});
 	},
 } as EventExtensionType;
+
+
+function getExtendedLifecycle() {
+	const lifecycle = getLifecycle() as ExtendedLifecycle;
+	if (!lifecycle.$events) {
+		const entries: ListenerEntry[] = [];
+		unmounted(() => {
+			const { length } = entries;
+			let index = 0;
+			let entry;
+
+			for (; index < length; index += 1) {
+				entry = entries[index];
+				entry.$n.removeEventListener(entry.$e, entry.$f, entry.$o);
+			}
+
+			entries.length = 0;
+		});
+
+		lifecycle.$events = entries;
+	}
+
+	return lifecycle;
+}
+
+interface ExtendedLifecycle extends Lifecycle {
+	$events: ListenerEntry[];
+}
+
+interface ListenerEntry {
+	$f: (e: unknown) => void;
+	$n: HTMLElement;
+	$e: string;
+	$o?: AddEventListenerOptions;
+}

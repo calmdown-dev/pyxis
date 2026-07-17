@@ -1,4 +1,4 @@
-import { bind, get, isAtom, type ElementsType, type ExtensionProps, type MaybeAtom, type MountingGroup } from "@calmdown/pyxis/core";
+import { bind, isAtom, type ElementsType, type ExtensionProps, type MaybeAtom, type MountingGroup } from "@calmdown/pyxis/core";
 
 export interface ClassListExtensionType {
 	<TExtensionKey extends string, TElements extends ElementsType>(extensionKey: TExtensionKey, elements: TElements): {
@@ -29,7 +29,7 @@ export const ClassListExtension = {
 	set: (node, className, toggle, group) => {
 		if (isAtom(toggle)) {
 			bind(group, toggle, () => {
-				node.classList.toggle(className, get(toggle));
+				node.classList.toggle(className, toggle.get());
 			});
 		}
 		else if (toggle) {

@@ -38,8 +38,8 @@ export function derived<T>(block: () => T, lifecycle = getLifecycle()): Derivati
 		$cycle: 0,
 		$block: block,
 		$react: scheduleNotify,
-		$get: getValue,
-		$set: setValue,
+		get: getValue,
+		set: setValue,
 	};
 
 	const value = resolve(atom) as T;
