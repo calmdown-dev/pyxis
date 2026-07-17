@@ -17,7 +17,7 @@ export interface Context<T> {
 	 * A fake property kept for TypeScript to properly type-check Context compatibility.
 	 * @deprecated **Type only, does not exist at runtime!**
 	 */
-	readonly __type?: T;
+	readonly $contract?: (value: T) => void;
 }
 
 /**
@@ -70,7 +70,7 @@ interface ContextAtom<T> extends Atom<T> {
  * Gets a consumer Atom for the given Context. This atom will be read-only.
  * @see {@link host}
  */
-export function consumerOf<T>(context: Context<T>) {
+export function consumerOf<T>(context: Context<T>): Atom<T> | null {
 	if (__DEV__) {
 		__DEV__assertNotEffect();
 	}

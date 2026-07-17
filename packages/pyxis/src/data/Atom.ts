@@ -28,7 +28,7 @@ export interface Atom<T = unknown> extends DependencyList {
 	 * A fake property kept for TypeScript to properly type-check Atom compatibility.
 	 * @deprecated **Type only, does not exist at runtime!**
 	 */
-	readonly __type?: T;
+	readonly $contract?: (value: T) => void;
 
 	/** @internal */
 	readonly $lifecycle: Lifecycle;
@@ -162,10 +162,7 @@ export function get<T>(input: Atom<T>): T {
  * @see {@link peek}
  * @see {@link update}
  */
-export function read<T>(input: MaybeAtom<T>): T;
-export function read<T>(input: MaybeAtom<T> | undefined): T | undefined;
-export function read<T>(input: MaybeAtom<T> | null): T | null;
-export function read<T>(input: Nil<MaybeAtom<T>>): Nil<T>;
+export function read<A>(input: A): A extends MaybeAtom<infer T> ? T : never;
 export function read<T>(input: MaybeAtom<T>) {
 	if (isAtom<T>(input)) {
 		reportAccess(input);
@@ -183,10 +180,7 @@ export function read<T>(input: MaybeAtom<T>) {
  * @see {@link write}
  * @see {@link update}
  */
-export function peek<T>(input: MaybeAtom<T>): T;
-export function peek<T>(input: MaybeAtom<T> | undefined): T | undefined;
-export function peek<T>(input: MaybeAtom<T> | null): T | null;
-export function peek<T>(input: Nil<MaybeAtom<T>>): Nil<T>;
+export function peek<A>(input: A): A extends MaybeAtom<infer T> ? T : never;
 export function peek<T>(input: MaybeAtom<T>): T {
 	if (isAtom<T>(input)) {
 		return input.$get();
@@ -205,10 +199,12 @@ export function peek<T>(input: MaybeAtom<T>): T {
  * @see {@link write}
  * @see {@link update}
  */
-export function write<T>(input: MaybeAtom<T>, value: T, force?: boolean): T;
-export function write<T>(input: MaybeAtom<T> | undefined, value: T, force?: boolean): T | undefined;
-export function write<T>(input: MaybeAtom<T> | null, value: T, force?: boolean): T | null;
-export function write<T>(input: Nil<MaybeAtom<T>>, value: T, force?: boolean): Nil<T>;
+export function write<A>(
+	input: A,
+	value: A extends Atom<infer T> ? T : never,
+	force?: boolean,
+): A extends MaybeAtom<infer T> ? T : never;
+
 export function write<T>(input: MaybeAtom<T>, value: T, force = false): T {
 	if (isAtom(input)) {
 		if (input.$set(value) || force) {
@@ -235,10 +231,12 @@ export function write<T>(input: MaybeAtom<T>, value: T, force = false): T {
  * @see {@link peek}
  * @see {@link write}
  */
-export function update<T>(input: MaybeAtom<T>, transform: (value: T) => T, force?: boolean): T;
-export function update<T>(input: MaybeAtom<T> | undefined, transform: (value: T) => T, force?: boolean): T | undefined;
-export function update<T>(input: MaybeAtom<T> | null, transform: (value: T) => T, force?: boolean): T | null;
-export function update<T>(input: Nil<MaybeAtom<T>>, transform: (value: T) => T, force?: boolean): Nil<T>;
+export function update<A>(
+	input: A,
+	transform: A extends Atom<infer T> ? (value: T) => T : never,
+	force?: boolean,
+): A extends MaybeAtom<infer T> ? T : never;
+
 export function update<T>(input: MaybeAtom<T>, transform: (value: T) => T, force = false): T {
 	if (isAtom(input)) {
 		if (input.$set(transform(input.$get())) || force) {
