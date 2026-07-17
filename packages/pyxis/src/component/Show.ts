@@ -89,7 +89,7 @@ export function Show<TNode>(
 		}
 
 		mountJsx(
-			/* jsx = */ withLifecycle(hParent.$ng, template, dataOrProxy),
+			/* jsx = */ template(dataOrProxy),
 			/* hParent = */ hParent,
 			/* nUsedParent = */ nBatchParent,
 			/* nRealParent = */ nRealParent,

@@ -1,4 +1,4 @@
-import type { ArgsMax6, Callback, Nil } from "~/support/types";
+import type { Callback, Nil } from "~/support/types";
 
 import type { DependencyList } from "./Dependency";
 import type { Scheduler } from "./Scheduler";
@@ -9,6 +9,13 @@ export interface Lifecycle extends DependencyList {
 
 	/** @internal */
 	readonly $scheduler: Scheduler;
+
+	/**
+	 * tracks the life of this lifecycle, incremented each time it is resurrected - used for
+	 * detecting stale updates scheduled in a previous life
+	 * @internal
+	 */
+	$life: number;
 
 	/** @internal */
 	$onMount?: Nil<Callback[]>;
@@ -81,12 +88,19 @@ export function getLifecycle(): Lifecycle {
 	return $currentLifecycle!;
 }
 
+/** @internal */
+export function setLifecycle(lifecycle: Lifecycle | null): Lifecycle | null {
+	const previous = $currentLifecycle;
+	$currentLifecycle = lifecycle;
+	return previous;
+}
+
 /**
  * Runs a block of code with the provided Lifecycle. Calls to `getLifecycle` within the block will
  * return the specified object.
  * @see {@link getLifecycle}
  */
-export function withLifecycle<TArgs extends ArgsMax6, TReturn>(
+export function withLifecycle<TArgs extends [ arg?: any ], TReturn>(
 	lifecycle: Lifecycle,
 	block: (...args: TArgs) => TReturn,
 	...args: TArgs
@@ -94,19 +108,14 @@ export function withLifecycle<TArgs extends ArgsMax6, TReturn>(
 
 export function withLifecycle(
 	lifecycle: Lifecycle,
-	block: (...args: ArgsMax6) => any,
-	a0: any,
-	a1: any,
-	a2: any,
-	a3: any,
-	a4: any,
-	a5: any,
+	block: (arg: any) => any,
+	arg: any,
 ) {
 	const previousLifecycle = $currentLifecycle;
 	$currentLifecycle = lifecycle;
 
 	try {
-		return block(a0, a1, a2, a3, a4, a5);
+		return block(arg);
 	}
 	finally {
 		$currentLifecycle = previousLifecycle;

@@ -37,17 +37,12 @@ export type NodeType<P> = P extends { readonly [S_NODE_TYPE]?: infer N } ? N : u
 export type Mutable<T> = { -readonly [K in keyof T]: T[K] };
 
 /**
- * A tuple of up to 6 arguments.
- */
-export type ArgsMax6<A0 = any, A1 = any, A2 = any, A3 = any, A4 = any, A5 = any> = [ a0?: A0, a1?: A1, a2?: A2, a3?: A3, a4?: A4, a5?: A5 ];
-
-/**
  * A tuple of up to 2 arguments.
  */
 export type ArgsMax2<A0 = any, A1 = any> = [ a0?: A0, a1?: A1 ];
 
 /**
- * Describes a callback with stored values for its arguments.
+ * Describes a callback with up to two stored arguments.
  */
 export interface Callback<TArgs extends ArgsMax2 = ArgsMax2, TReturn = void> {
 	/** @internal */

@@ -1,5 +1,5 @@
 import { invoke } from "~/support/common";
-import type { ArgsMax2, Callback, Nil } from "~/support/types";
+import type { ArgsMax2, Callback } from "~/support/types";
 
 import { getLifecycle, type Lifecycle } from "./Lifecycle";
 
@@ -8,9 +8,21 @@ import { getLifecycle, type Lifecycle } from "./Lifecycle";
  * @internal
  */
 export interface Scheduler {
+	/**
+	 * Schedules a new tick to execute, unless one is already pending or executing.
+	 */
 	readonly $scheduleTick: () => void;
+
+	/**
+	 * Array of pending update callbacks, cleared after each tick.
+	 */
+	readonly $pending: UpdateCallback[];
+
+	/**
+	 * Increments with each scheduler tick. Used to deduplicate updates and detect dependency
+	 * cycles.
+	 */
 	$epoch: number;
-	$pending?: Nil<UpdateCallback[]>;
 }
 
 /**
@@ -22,7 +34,12 @@ export interface UpdateCallback<TArgs extends ArgsMax2 = ArgsMax2> extends Callb
 	/**
 	 * The Lifecycle responsible for this callback.
 	 */
-	$lc?: Lifecycle;
+	$lifecycle?: Lifecycle;
+
+	/**
+	 * The life number of the Lifecycle when this callback was scheduled.
+	 */
+	$life?: number;
 
 	/**
 	 * Schedule epoch - tracked to prevent scheduling the same callback multiple times within
@@ -47,8 +64,11 @@ export interface TickFn {
 /** @internal */
 export function createScheduler(tick: TickFn) {
 	let isPending = false;
+
+	const callbacks: UpdateCallback[] = [];
 	const scheduler: Scheduler = {
 		$epoch: 1,
+		$pending: callbacks,
 		$scheduleTick: () => {
 			if (isPending) {
 				return;
@@ -61,15 +81,14 @@ export function createScheduler(tick: TickFn) {
 
 	const update = () => {
 		try {
-			const callbacks = scheduler.$pending!;
-
-			// re-read length on each cycle, as it may increase
+			// re-read length on each cycle, as it may increase when new updates get added
+			// as previous updates execute
 			let index = 0;
 			let callback;
 
 			for (; index < callbacks.length; index += 1) {
 				callback = callbacks[index];
-				if (callback.$lc!.mounted) {
+				if (callback.$life === callback.$lifecycle!.$life) {
 					if (__DEV__) {
 						callback.$re = scheduler.$epoch;
 					}
@@ -80,7 +99,7 @@ export function createScheduler(tick: TickFn) {
 		}
 		finally {
 			isPending = false;
-			scheduler.$pending = null;
+			callbacks.length = 0;
 			scheduler.$epoch += 1;
 		}
 	};
@@ -105,9 +124,10 @@ export function schedule(lifecycle: Lifecycle, callback: UpdateCallback) {
 		return;
 	}
 
-	callback.$lc = lifecycle;
+	callback.$lifecycle = lifecycle;
+	callback.$life = lifecycle.$life;
 	callback.$se = scheduler.$epoch;
-	(scheduler.$pending ??= []).push(callback);
+	scheduler.$pending.push(callback);
 	scheduler.$scheduleTick();
 }
 

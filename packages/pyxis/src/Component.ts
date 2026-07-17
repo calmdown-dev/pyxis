@@ -1,6 +1,6 @@
 import type { S_TAG_NAME } from "~/component/Native";
 import type { MaybeAtom } from "~/data/Atom";
-import { getCurrentContainer, setCurrentContainer } from "~/data/Context";
+import { getContextContainer, setContextContainer } from "~/data/Context";
 import { unmounted } from "~/data/Lifecycle";
 import type { Nil, PropsType } from "~/support/types";
 
@@ -42,11 +42,11 @@ export function component(
 	}
 
 	return (jsx, hParent, nUsedParent, nRealParent, nBefore, isBatch) => {
-		const context = getCurrentContainer();
+		const context = getContextContainer();
 		try {
 			if (__DEV__) {
 				if (!import.meta.hot || !devId) {
-					setCurrentContainer(context); // allow child components to branch context
+					setContextContainer(context); // allow child components to branch context
 					mountJsx(block(jsx), hParent, nUsedParent, nRealParent, nBefore, isBatch);
 					return;
 				}
@@ -79,12 +79,13 @@ export function component(
 				isBatch = false;
 			}
 			else {
-				setCurrentContainer(context); // allow child components to branch context
+				setContextContainer(context); // allow child components to branch context
 				mountJsx(block(jsx), hParent, nUsedParent, nRealParent, nBefore, isBatch);
 			}
 		}
 		finally {
-			setCurrentContainer(context);
+			// reset back to this Component's container, prevents leakage of branched off child contexts
+			setContextContainer(context);
 		}
 	};
 }

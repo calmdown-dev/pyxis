@@ -45,18 +45,18 @@ export interface ContextContainer {
 	readonly $parent?: Nil<ContextContainer>;
 }
 
-let currentContainer: ContextContainer | undefined;
-let isNewContainer = false;
+let $currentContainer: ContextContainer | undefined;
+let $isNewContainer = false;
 
 /** @internal */
-export function getCurrentContainer() {
-	return currentContainer;
+export function getContextContainer() {
+	return $currentContainer;
 }
 
 /** @internal */
-export function setCurrentContainer(container: ContextContainer | undefined) {
-	currentContainer = container;
-	isNewContainer = false;
+export function setContextContainer(container: ContextContainer | undefined) {
+	$currentContainer = container;
+	$isNewContainer = false;
 }
 
 
@@ -76,7 +76,7 @@ export function consumerOf<T>(context: Context<T>) {
 	}
 
 	const { $symbol } = context;
-	let ptr: Nil<ContextContainer> = currentContainer;
+	let ptr: Nil<ContextContainer> = $currentContainer;
 	let atom;
 	while (ptr && !(atom = ptr[$symbol] as Atom<T> | undefined)) {
 		ptr = ptr.$parent;
@@ -98,11 +98,11 @@ export function host<T>(context: Context<T>, defaultValue?: T) {
 		__DEV__assertNotEffect();
 	}
 
-	if (!isNewContainer || !currentContainer) {
+	if (!$isNewContainer || !$currentContainer) {
 		// split context, current component becomes a host
-		isNewContainer = true;
-		currentContainer = {
-			$parent: currentContainer,
+		$isNewContainer = true;
+		$currentContainer = {
+			$parent: $currentContainer,
 		};
 	}
 
@@ -137,12 +137,12 @@ export function host<T>(context: Context<T>, defaultValue?: T) {
 
 	if (__DEV__) {
 		localAtom.$devId = arguments[2];
-		if (Object.hasOwn(currentContainer, context.$symbol)) {
+		if (Object.hasOwn($currentContainer, context.$symbol)) {
 			throw new Error("Component declares multiple hosts of the same Context.");
 		}
 	}
 
-	currentContainer[context.$symbol] = localAtom;
+	$currentContainer[context.$symbol] = localAtom;
 	return localAtom;
 }
 

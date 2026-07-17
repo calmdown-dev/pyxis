@@ -1,7 +1,7 @@
 import { Text } from "~/component/Text";
 import { isAtom } from "~/data/Atom";
-import { getCurrentContainer, setCurrentContainer, type ContextContainer } from "~/data/Context";
-import { withLifecycle, type Lifecycle } from "~/data/Lifecycle";
+import { getContextContainer, setContextContainer, type ContextContainer } from "~/data/Context";
+import { setLifecycle, type Lifecycle } from "~/data/Lifecycle";
 import { createScheduler } from "~/data/Scheduler";
 import type { ElementsType, Mutable, Nil } from "~/support/types";
 
@@ -116,6 +116,7 @@ export function createRenderer<TNode, TIntrinsicElements extends ElementsType>(
 		$isGroup: true,
 		$scheduler: createScheduler(adapter.tick),
 		$extensions: extensions,
+		$life: 1,
 		$pg: null,
 		$ng: null!,
 		unmount: () => unmount(hGroup),
@@ -152,7 +153,8 @@ export function fork<TNode>(
 		$isGroup: true,
 		$scheduler: ng.$scheduler,
 		$extensions: ng.$extensions,
-		$context: getCurrentContainer(),
+		$life: 1,
+		$context: getContextContainer(),
 		$pg: ng,
 		$ng: null!,
 	};
@@ -253,14 +255,20 @@ export function mount<TNode>(
 		return;
 	}
 
-	setCurrentContainer(hGroup.$context);
-	withLifecycle(hGroup, mountJsx, jsx, hGroup, nUsedParent, nRealParent, nBefore, isBatch);
-	hGroup.mounted = true;
+	const previousLifecycle = setLifecycle(hGroup);
+	setContextContainer(hGroup.$context);
+	try {
+		mountJsx(jsx, hGroup, nUsedParent, nRealParent, nBefore, isBatch);
+	}
+	finally {
+		setLifecycle(previousLifecycle);
+		hGroup.mounted = true;
 
-	// only dispatch mount notifications when the parent group is already mounted, or if this is the
-	// top-level group - otherwise, mount notification will arrive once the parent mounts
-	if (hGroup.$pg?.mounted !== false) {
-		notifyMounted(hGroup);
+		// only dispatch mount notifications when the parent group is already mounted, or if this is the
+		// top-level group - otherwise, mount notification will arrive once the parent mounts
+		if (hGroup.$pg?.mounted !== false) {
+			notifyMounted(hGroup);
+		}
 	}
 }
 
@@ -278,11 +286,16 @@ function notifyMounted<TNode>(hNode: HNode<TNode>) {
 		current = current.$hn;
 	}
 
-	if (hNode.$isGroup && hNode.mounted && hNode.$onMount) {
-		withLifecycle(hNode, () => {
-			hNode.$onMount!.forEach(invoke);
-			hNode.$onMount = null;
-		});
+	let callbacks;
+	if (hNode.$isGroup && hNode.mounted && (callbacks = hNode.$onMount)) {
+		const previousLifecycle = setLifecycle(hNode);
+		try {
+			callbacks.forEach(invoke);
+		}
+		finally {
+			callbacks.length = 0;
+			setLifecycle(previousLifecycle);
+		}
 	}
 }
 
@@ -323,14 +336,20 @@ export function unmount<TNode>(hNode: HNode<TNode>, top?: boolean): void;
 export function unmount<TNode>(hNode: HNode<TNode>, top: boolean = true) {
 	if (hNode.$isGroup) {
 		if (hNode.mounted) {
-			if (hNode.$onUnmount) {
-				withLifecycle(hNode, () => {
-					hNode.$onUnmount!.forEach(invoke);
-					hNode.$onUnmount = null;
-				});
+			let callbacks;
+			if (callbacks = hNode.$onUnmount) {
+				const previousLifecycle = setLifecycle(hNode);
+				try {
+					callbacks.forEach(invoke);
+				}
+				finally {
+					callbacks.length = 0;
+					setLifecycle(previousLifecycle);
+				}
 			}
 
 			hNode.mounted = false;
+			hNode.$life += 1;
 		}
 
 		// unmounted groups shouldn't have anything to unlink, but a zombie dependency can have

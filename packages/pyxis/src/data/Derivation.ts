@@ -33,8 +33,9 @@ export function derived<T>(block: () => T, lifecycle = getLifecycle()): Derivati
 		$value: null!,
 		$tracksValue: true,
 		$lifecycle: lifecycle,
+		$life: lifecycle.$life,
 		$lastValue: null!,
-		$epoch: 0,
+		$cycle: 0,
 		$block: block,
 		$react: scheduleNotify,
 		$get: getValue,
@@ -48,10 +49,15 @@ export function derived<T>(block: () => T, lifecycle = getLifecycle()): Derivati
 	return atom;
 }
 
-function scheduleNotify(this: EffectDependency, derivation: Derivation<any>, epoch: number) {
-	// lazy cleanup: when we get an update from a stale dependency, the reported epoch will be lower
-	// than our current one (see the reportAccess function). We can unlink and skip the effect.
-	if (derivation.$epoch > epoch) {
+function scheduleNotify(this: EffectDependency, derivation: Derivation<any>, cycle: number) {
+	if (
+		// derivation was scheduled in a previous life and this run is now stale
+		derivation.$life !== derivation.$lifecycle.$life ||
+
+		// when we get an update from a stale dependency, the reported cycle number will be lower
+		// than our current one (see the reportAccess function). We can unlink the dep and bail out.
+		derivation.$cycle > cycle
+	) {
 		unlink(this);
 		return;
 	}
@@ -67,7 +73,8 @@ function scheduleNotify(this: EffectDependency, derivation: Derivation<any>, epo
 }
 
 function getValue<T>(this: Derivation<T>): T {
-	if (this.$dirty) {
+	// life number must match, otherwise we'd re-link deps within a lifecycle that already ended
+	if (this.$dirty && this.$life === this.$lifecycle.$life) {
 		this.$value = resolve(this) as T;
 		this.$dirty = false;
 	}

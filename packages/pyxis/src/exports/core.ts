@@ -17,7 +17,7 @@ export { tick, type TickFn } from "~/data/Scheduler";
 export { RefExtension, type RefExtensionType } from "~/extension/RefExtension";
 
 export { peeks, reads } from "~/support/text";
-export type { ArgsMax6, ElementsType, Intersection, Nil, NodeType, PropsType, S_NODE_TYPE } from "~/support/types";
+export type { ElementsType, Intersection, Nil, NodeType, PropsType, S_NODE_TYPE } from "~/support/types";
 
 export type { Adapter, Extension, ExtensionProps, ExtensionsType } from "~/Adapter";
 export { pyxis, type PyxisBuilder } from "~/Builder";
