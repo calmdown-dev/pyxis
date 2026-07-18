@@ -42,6 +42,7 @@ export {
 	type MountBlock,
 	type PropsOf,
 	type PropsType,
+	type Proxied,
 	type ProxyAtom,
 	type ProxyIteratorProps,
 	type PyxisBuilder,
