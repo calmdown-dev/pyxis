@@ -432,7 +432,6 @@ export function mountJsx<TNode>(
 /**
  * Inserts a native node and adds it to the tracking hierarchy. Necessary to preserve render order.
  * Should only be called by component handlers!
- * @internal
  */
 export function insert<TNode>(
 	nNode: TNode,

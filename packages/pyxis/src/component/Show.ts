@@ -1,4 +1,4 @@
-import { isAtom, read, type Atom, type MaybeAtom } from "~/data/Atom";
+import { isAtom, read, type MaybeAtom, type ReadonlyAtom } from "~/data/Atom";
 import { link } from "~/data/Dependency";
 import { effect } from "~/data/Effect";
 import { withLifecycle } from "~/data/Lifecycle";
@@ -14,16 +14,16 @@ export interface ShowProps {
 
 export interface ShowDataProps<T> {
 	when?: MaybeAtom<boolean>;
-	proxy?: never; // discriminator
+	proxy?: never;
 	data: MaybeAtom<T>;
-	children: [ template: DataTemplate<T> | Atom<Nil<DataTemplate<T>>> ];
+	children: [ template: DataTemplate<T> | ReadonlyAtom<Nil<DataTemplate<T>>> ];
 }
 
 export interface ShowProxyDataProps<T, P extends readonly (keyof T)[]> {
 	when?: MaybeAtom<boolean>;
 	proxy: P;
 	data: MaybeAtom<T>;
-	children: [ template: DataTemplate<Proxied<T, P>> | Atom<Nil<DataTemplate<Proxied<T, P>>>> ];
+	children: [ template: DataTemplate<Proxied<T, P>> | ReadonlyAtom<Nil<DataTemplate<Proxied<T, P>>>> ];
 }
 
 /**
