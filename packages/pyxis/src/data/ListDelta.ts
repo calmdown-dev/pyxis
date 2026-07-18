@@ -19,46 +19,59 @@
 // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-/** @internal */
-export const K_CHANGE = 1;
 
 /** @internal */
-export const K_INSERT = 2;
+export const LC_CHANGE = 1;
 
 /** @internal */
-export const K_REMOVE = 3;
+export const LC_INSERT = 2;
 
 /** @internal */
-export const K_CLEAR = 4;
+export const LC_REMOVE = 3;
 
 /** @internal */
+export const LC_CLEAR = 4;
+
+export enum ChangeKind {
+	Change = LC_CHANGE,
+	Insert = LC_INSERT,
+	Remove = LC_REMOVE,
+	Clear = LC_CLEAR,
+}
+
 export interface ListDelta<T> {
-	readonly $changes: ChangeType<T>[];
-	$lengthDelta: number;
+	readonly changes: ListChange<T>[];
+	lengthChange: number;
 }
 
-type ChangeType<T> = ItemChangedListDelta<T> | ItemInsertedListDelta<T> | ItemRemovedListDelta | ClearedListDelta;
+export type ListChange<T> =
+	| ListItemChanged<T>
+	| ListItemInserted<T>
+	| ListItemRemoved<T>
+	| ListCleared;
 
-interface ItemChangedListDelta<T> {
-	$kind: typeof K_CHANGE;
-	$index: number;
-	$item: T;
+export interface ListItemChanged<T> {
+	kind: ChangeKind.Change;
+	index: number;
+	oldItem: T;
+	newItem: T;
 }
 
-interface ItemInsertedListDelta<T> {
-	$kind: typeof K_INSERT;
-	$index: number;
-	$item: T;
+export interface ListItemInserted<T> {
+	kind: ChangeKind.Insert;
+	index: number;
+	newItem: T;
 }
 
-interface ItemRemovedListDelta {
-	$kind: typeof K_REMOVE;
-	$index: number;
+export interface ListItemRemoved<T> {
+	kind: ChangeKind.Remove;
+	index: number;
+	oldItem: T;
 }
 
-interface ClearedListDelta {
-	$kind: typeof K_CLEAR;
-	$index: number;
+export interface ListCleared {
+	kind: ChangeKind.Clear;
+	index: number;
 }
 
 export interface Equals<T> {
@@ -88,23 +101,31 @@ interface DiffState<T> {
 	$oye: number;
 }
 
+
+/** @internal */
+export const EMPTY_DELTA: ListDelta<any> = {
+	changes: [],
+	lengthChange: 0,
+};
+
 /** @internal */
 export function createDelta<T>(): ListDelta<T> {
 	return {
-		$changes: [],
-		$lengthDelta: 0,
+		changes: [],
+		lengthChange: 0,
 	};
 }
 
 /** @internal */
-export function itemChanged<T>({ $changes }: ListDelta<T>, at: number, item: T) {
+export function itemChanged<T>({ changes: $changes }: ListDelta<T>, at: number, oldItem: T, newItem: T) {
 	const ci = binarySearch($changes, at, latest);
 	if (ci < 0) {
 		// nothing at this index, add new delta
 		$changes.splice(~ci, 0, {
-			$kind: K_CHANGE,
-			$index: at,
-			$item: item,
+			kind: LC_CHANGE,
+			index: at,
+			oldItem,
+			newItem,
 		});
 	}
 	else {
@@ -113,17 +134,18 @@ export function itemChanged<T>({ $changes }: ListDelta<T>, at: number, item: T) 
 		// - insert -> change item
 		// - remove -> append change
 		const current = $changes[ci];
-		switch (current.$kind) {
-			case K_CHANGE:
-			case K_INSERT:
-				current.$item = item;
+		switch (current.kind) {
+			case LC_CHANGE:
+			case LC_INSERT:
+				current.newItem = newItem;
 				break;
 
-			case K_REMOVE:
+			case LC_REMOVE:
 				$changes.splice(ci + 1, 0, {
-					$kind: K_CHANGE,
-					$index: at,
-					$item: item,
+					kind: LC_CHANGE,
+					index: at,
+					oldItem,
+					newItem,
 				});
 
 				break;
@@ -133,16 +155,16 @@ export function itemChanged<T>({ $changes }: ListDelta<T>, at: number, item: T) 
 
 /** @internal */
 export function itemInserted<T>(delta: ListDelta<T>, at: number, item: T) {
-	const { $changes } = delta;
+	const { changes: $changes } = delta;
 
 	let ci = binarySearch($changes, at, earliest);
 	if (ci < 0) {
 		// nothing at this index, add new delta
 		ci = ~ci;
 		$changes.splice(ci, 0, {
-			$kind: K_INSERT,
-			$index: at,
-			$item: item,
+			kind: LC_INSERT,
+			index: at,
+			newItem: item,
 		});
 	}
 	else {
@@ -151,19 +173,19 @@ export function itemInserted<T>(delta: ListDelta<T>, at: number, item: T) {
 		// - insert -> prepend another (new item before, existing get shifted right)
 		// - remove -> replace with change
 		const current = $changes[ci];
-		switch (current.$kind) {
-			case K_CHANGE:
-			case K_INSERT:
+		switch (current.kind) {
+			case LC_CHANGE:
+			case LC_INSERT:
 				$changes.splice(ci, 0, {
-					$kind: K_INSERT,
-					$index: at,
-					$item: item,
+					kind: LC_INSERT,
+					index: at,
+					newItem: item,
 				});
 
 				break;
 
-			case K_REMOVE:
-				(current as any).$kind = K_CHANGE;
+			case LC_REMOVE:
+				(current as any).$kind = LC_CHANGE;
 				(current as any).$item = item;
 				break;
 		}
@@ -172,24 +194,25 @@ export function itemInserted<T>(delta: ListDelta<T>, at: number, item: T) {
 	// shift the indices of later changes
 	const { length } = $changes;
 	while (++ci < length) {
-		$changes[ci].$index += 1;
+		$changes[ci].index += 1;
 	}
 
 	// update the overall change in list length
-	delta.$lengthDelta += 1;
+	delta.lengthChange += 1;
 }
 
 /** @internal */
-export function itemRemoved<T>(delta: ListDelta<T>, at: number) {
-	const { $changes } = delta;
+export function itemRemoved<T>(delta: ListDelta<T>, at: number, item: T) {
+	const { changes: $changes } = delta;
 
 	let ci = binarySearch($changes, at, latest);
 	if (ci < 0) {
 		// nothing at this index, add new delta
 		ci = ~ci;
 		$changes.splice(ci, 0, {
-			$kind: K_REMOVE,
-			$index: at,
+			kind: LC_REMOVE,
+			index: at,
+			oldItem: item,
 		});
 	}
 	else {
@@ -198,22 +221,23 @@ export function itemRemoved<T>(delta: ListDelta<T>, at: number) {
 		// - insert -> remove it
 		// - remove -> append another
 		const current = $changes[ci];
-		switch (current.$kind) {
-			case K_CHANGE:
-				(current as any).$kind = K_REMOVE;
+		switch (current.kind) {
+			case LC_CHANGE:
+				(current as any).$kind = LC_REMOVE;
 				(current as any).$item = undefined;
 				break;
 
-			case K_INSERT:
+			case LC_INSERT:
 				// canceling the insert shifts subsequent entries left so they must be re-indexed
 				// -> adjust `ci` to start from the correct offset
 				$changes.splice(ci--, 1);
 				break;
 
-			case K_REMOVE:
+			case LC_REMOVE:
 				$changes.splice(++ci, 0, {
-					$kind: K_REMOVE,
-					$index: at,
+					kind: LC_REMOVE,
+					index: at,
+					oldItem: item,
 				});
 
 				break;
@@ -223,23 +247,23 @@ export function itemRemoved<T>(delta: ListDelta<T>, at: number) {
 	// shift the indices of later changes
 	const { length } = $changes;
 	while (++ci < length) {
-		$changes[ci].$index -= 1;
+		$changes[ci].index -= 1;
 	}
 
 	// update the overall change in list length
-	delta.$lengthDelta -= 1;
+	delta.lengthChange -= 1;
 }
 
 /** @internal */
 export function listCleared<T>(delta: ListDelta<T>, count: number) {
-	const { $changes } = delta;
+	const { changes: $changes } = delta;
 	$changes.length = 0;
 	$changes.push({
-		$kind: K_CLEAR,
-		$index: -1,
+		kind: LC_CLEAR,
+		index: -1,
 	});
 
-	delta.$lengthDelta -= count;
+	delta.lengthChange -= count;
 }
 
 /** @internal */
@@ -311,7 +335,7 @@ export function listSynced<T>(delta: ListDelta<T>, oldState: readonly T[], newSt
 		}
 
 		for (r = rs; r < re; r += 1) {
-			itemRemoved(delta, rs + offset);
+			itemRemoved(delta, rs + offset, oldState[r]); // TODO: verify this
 		}
 
 		for (i = is; i < ie; i += 1) {
@@ -324,23 +348,24 @@ export function listSynced<T>(delta: ListDelta<T>, oldState: readonly T[], newSt
 	while (state.$c < 2);
 }
 
+
 interface SearchBias {
-	(changes: readonly ChangeType<unknown>[], index: number, mid: number, min: number, max: number): number;
+	(changes: readonly ListChange<unknown>[], index: number, mid: number, min: number, max: number): number;
 }
 
 const latest: SearchBias = (changes, index, mid, _min, max) => {
 	let i = mid;
-	while (++i < max && changes[i].$index === index) ;
+	while (++i < max && changes[i].index === index) ;
 	return i - 1;
 };
 
 const earliest: SearchBias = (changes, index, mid, min, _max) => {
 	let i = mid;
-	while (--i >= min && changes[i].$index === index) ;
+	while (--i >= min && changes[i].index === index) ;
 	return i + 1;
 };
 
-function binarySearch<T>(changes: readonly ChangeType<T>[], index: number, bias: SearchBias) {
+function binarySearch<T>(changes: readonly ListChange<T>[], index: number, bias: SearchBias) {
 	let min = 0;
 	let max = changes.length;
 	let mid;
@@ -348,7 +373,7 @@ function binarySearch<T>(changes: readonly ChangeType<T>[], index: number, bias:
 
 	while (min < max) {
 		mid = (min + max) >>> 1;
-		tmp = changes[mid].$index;
+		tmp = changes[mid].index;
 
 		if (index < tmp) {
 			max = mid;

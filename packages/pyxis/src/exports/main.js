@@ -1,4 +1,5 @@
 export {
+	ChangeKind,
 	Fragment,
 	Iterator,
 	RefExtension,

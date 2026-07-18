@@ -130,7 +130,7 @@ export function resolve<TEffect extends Effect<any>>(effect: TEffect): TEffect e
  * @internal
  */
 export function reportAccess(atom: DependencyList) {
-	if (!$currentEffect) {
+	if (!$currentEffect || $currentEffect.$life !== $currentEffect.$lifecycle.$life) {
 		return;
 	}
 

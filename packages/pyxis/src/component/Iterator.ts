@@ -1,7 +1,7 @@
 import { withLifecycle } from "~/data/Lifecycle";
 import { link } from "~/data/Dependency";
 import type { ReadonlyList } from "~/data/List";
-import { K_CHANGE, K_CLEAR, K_INSERT, K_REMOVE } from "~/data/ListDelta";
+import { LC_CHANGE, LC_CLEAR, LC_INSERT, LC_REMOVE } from "~/data/ListDelta";
 import { createProxy, updateProxy, type Proxied } from "~/data/ProxyAtom";
 import type { DataTemplate, JsxObject, JsxProps, JsxResult } from "~/Component";
 import { fork, insert, mount, track, unmount, untrack, type MountingGroup, type HNode } from "~/Renderer";
@@ -59,7 +59,7 @@ export function Iterator<TNode, T>(
 
 	// list change handler
 	let items: IteratorItemGroup<TNode>[];
-	let skipDelta = Boolean(source.$delta);
+	let skipDelta = Boolean(source.$pendingDelta);
 	const onDelta = () => {
 		if (skipDelta) {
 			// a delta might've been pending during initial render, but we already rendered against
@@ -68,10 +68,10 @@ export function Iterator<TNode, T>(
 			return;
 		}
 
-		const delta = source.$delta!;
-		const { $changes, $lengthDelta } = delta;
-		const cMax = $changes.length;
-		const iMax = items.length + $lengthDelta;
+		const delta = source.$pendingDelta!;
+		const { changes, lengthChange } = delta;
+		const cMax = changes.length;
+		const iMax = items.length + lengthChange;
 		const newItems = new Array<IteratorItemGroup<TNode>>(iMax);
 		const pending: PendingItem<T>[] = [];
 		let recycled: IteratorItemGroup<TNode>[] = [];
@@ -90,19 +90,19 @@ export function Iterator<TNode, T>(
 		let nBatchBefore: TNode | null = null;
 
 		for (; ci < cMax; ci += 1) {
-			change = $changes[ci];
+			change = changes[ci];
 
 			// copy unchanged items
-			while (ni < change.$index) {
+			while (ni < change.index) {
 				newItems[ni++] = items[oi++];
 			}
 
 			// apply change
-			switch (change.$kind) {
-				case K_CHANGE:
+			switch (change.kind) {
+				case LC_CHANGE:
 					item = (newItems[ni++] = items[oi++]);
 					if (isProxy) {
-						updateProxy(item.$data, change.$item, proxyKeys);
+						updateProxy(item.$data, change.newItem, proxyKeys);
 					}
 					else {
 						// no need to untrack and re-track, position doesn't change
@@ -120,7 +120,7 @@ export function Iterator<TNode, T>(
 						);
 
 						mount(
-							/* jsx = */ withLifecycle(item, template, (item.$data = change.$item)),
+							/* jsx = */ withLifecycle(item, template, (item.$data = change.newItem)),
 							/* hGroup = */ item,
 							/* nUsedParent = */ nRealParent,
 							/* nRealParent = */ nRealParent,
@@ -131,12 +131,12 @@ export function Iterator<TNode, T>(
 
 					break;
 
-				case K_INSERT:
-					if (!isProxy || inserted < $lengthDelta) {
+				case LC_INSERT:
+					if (!isProxy || inserted < lengthChange) {
 						// we're either in remount mode, or no more items are available for recycling
 						item = (newItems[ni++] = fork(hGroup, items[oi]) as IteratorItemGroup<TNode>);
 						item.$marker = __DEV__ ? adapter.marker("IteratorItem") : adapter.marker();
-						item.$data = isProxy ? createProxy(item, change.$item, proxyKeys) : change.$item;
+						item.$data = isProxy ? createProxy(item, change.newItem, proxyKeys) : change.newItem;
 						inserted += 1;
 
 						ref = items[oi]?.$marker ?? nListEndMarker;
@@ -172,10 +172,10 @@ export function Iterator<TNode, T>(
 
 						if (isLocalBatch && (
 							// we must commit the current batch if:
-							inserted >= $lengthDelta ||		// next insert will use recycled
-							!(tmp = $changes[ci + 1]) ||	// no next change exists
-							tmp.$kind !== K_INSERT ||		// next change is not an insert
-							tmp.$index !== ni				// next insert is not consecutive
+							inserted >= lengthChange ||		// next insert will use recycled
+							!(tmp = changes[ci + 1]) ||		// no next change exists
+							tmp.kind !== LC_INSERT ||		// next change is not an insert
+							tmp.index !== ni				// next insert is not consecutive
 						)) {
 							adapter.insert(nBatchParent, nRealParent, ref);
 							nBatchParent = nRealParent;
@@ -186,13 +186,13 @@ export function Iterator<TNode, T>(
 						// we know enough items will be removed -> add a pending item
 						pending.push({
 							$index: ni++,
-							$item: change.$item,
+							$item: change.newItem,
 						});
 					}
 
 					break;
 
-				case K_REMOVE:
+				case LC_REMOVE:
 					item = items[oi++];
 					if (isProxy) {
 						recycled.push(item);
@@ -204,7 +204,7 @@ export function Iterator<TNode, T>(
 					untrack(item);
 					break;
 
-				case K_CLEAR:
+				case LC_CLEAR:
 					// clear is always the first change within a delta, has index = -1 and is only
 					// ever followed by inserts - thus we can directly recycle the items array, it
 					// won't get mutated

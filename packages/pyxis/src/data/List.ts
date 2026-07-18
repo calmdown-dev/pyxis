@@ -21,6 +21,13 @@ export interface ReadonlyList<T> extends Iterable<T>, DependencyList {
 	get(index: number): T | undefined;
 
 	/**
+	 * Gets a set of changes made to this List within the current tick. Returns null when no changes
+	 * were made.
+	 * Reactive in effects and derivations.
+	 */
+	delta(): ListDelta<T> | null;
+
+	/**
 	 * Gets the underlying array of items. The array is read-only, attempts to mutate this array
 	 * will cause observers to go out of sync.
 	 * Reactive in effects and derivations.
@@ -40,7 +47,13 @@ export interface ReadonlyList<T> extends Iterable<T>, DependencyList {
 	$items: readonly T[];
 
 	/** @internal */
-	$delta?: Nil<ListDelta<T>>;
+	$pendingDelta: ListDelta<T> | null;
+
+	/** @internal */
+	$latestDelta: ListDelta<T> | null;
+
+	/** @internal */
+	$latestEpoch?: number;
 
 	/** @internal */
 	$notify?: UpdateCallback<[ self: List<T> ]>;
@@ -147,9 +160,12 @@ export function listOf<T>(source?: Nil<Iterable<T>>, lifecycle = getLifecycle())
 	const list: List<T> = {
 		$lifecycle: lifecycle,
 		$items: items,
+		$latestDelta: null,
+		$pendingDelta: null,
 		[Symbol.iterator]: getIterator,
 		size,
 		get,
+		delta,
 		raw,
 		forEach,
 		set,
@@ -181,7 +197,7 @@ export function listOf<T>(source?: Nil<Iterable<T>>, lifecycle = getLifecycle())
 export function sync<T>(list: List<T>, source: readonly T[], eq: Equals<T> = defaultEquals) {
 	const oldState = list.$items;
 	list.$items = source.slice();
-	listSynced(list.$delta ??= createDelta(), oldState, source, eq);
+	listSynced(list.$pendingDelta ??= createDelta(), oldState, source, eq);
 	listMutated(list);
 }
 
@@ -193,6 +209,13 @@ function size(this: List<any>) {
 function get(this: List<any>, index: number) {
 	reportAccess(this);
 	return this.$items[index];
+}
+
+function delta<T>(this: List<T>) {
+	reportAccess(this);
+	return this.$lifecycle.$scheduler.$epoch === this.$latestEpoch
+		? this.$latestDelta
+		: null;
 }
 
 function raw<T>(this: List<T>): readonly T[] {
@@ -210,17 +233,19 @@ function getIterator<T>(this: List<T>) {
 	return this.$items[Symbol.iterator]();
 }
 
-function set<T>(this: List<T>, index: number, item: T) {
+function set<T>(this: List<T>, index: number, newItem: T) {
 	assertIndex(this, index);
-	if (Object.is(this.$items[index], item)) {
+
+	const oldItem = this.$items[index];
+	if (Object.is(newItem, oldItem)) {
 		return;
 	}
 
-	this.$items[index] = item;
+	this.$items[index] = newItem;
 
 	// only emit deltas when there are observers
 	if (this.$dh) {
-		itemChanged(this.$delta ??= createDelta(), index, item);
+		itemChanged(this.$pendingDelta ??= createDelta(), index, oldItem, newItem);
 		listMutated(this);
 	}
 }
@@ -231,7 +256,7 @@ function clear(this: List<any>) {
 
 	// only emit deltas when there are observers
 	if (this.$dh) {
-		listCleared(this.$delta ??= createDelta(), count);
+		listCleared(this.$pendingDelta ??= createDelta(), count);
 		listMutated(this);
 	}
 }
@@ -248,7 +273,7 @@ function insertAt<T>(this: List<T>, index: number, item: T) {
 
 	// only emit deltas when there are observers
 	if (this.$dh) {
-		itemInserted(this.$delta ??= createDelta(), index, item);
+		itemInserted(this.$pendingDelta ??= createDelta(), index, item);
 		listMutated(this);
 	}
 }
@@ -273,15 +298,15 @@ function remove<T>(this: List<any>, item: T) {
 
 function removeAt<T>(this: List<T>, index: number) {
 	assertIndex(this, index);
-	const removed = this.$items.splice(index, 1)[0];
+	const item = this.$items.splice(index, 1)[0];
 
 	// only emit deltas when there are observers
 	if (this.$dh) {
-		itemRemoved(this.$delta ??= createDelta(), index);
+		itemRemoved(this.$pendingDelta ??= createDelta(), index, item);
 		listMutated(this);
 	}
 
-	return removed;
+	return item;
 }
 
 function removeFirst<T>(this: List<T>) {
@@ -305,7 +330,7 @@ function assertIndex(list: List<any>, index: number) {
 }
 
 function defaultEquals<T>(item0: T, item1: T) {
-	return item0 === item1;
+	return Object.is(item0, item1);
 }
 
 function listMutated(list: List<any>) {
@@ -322,11 +347,15 @@ function listMutated(list: List<any>) {
 function notify(list: List<any>) {
 	let current = list.$dh;
 	let next;
+
+	list.$latestDelta = list.$pendingDelta;
+	list.$latestEpoch = list.$lifecycle.$scheduler.$epoch;
+
 	while (current) {
 		next = current.$an;
 		invoke(current);
 		current = next;
 	}
 
-	list.$delta = null;
+	list.$pendingDelta = null;
 }

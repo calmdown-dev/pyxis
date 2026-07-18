@@ -1,4 +1,5 @@
 export {
+	ChangeKind,
 	Fragment,
 	Iterator,
 	RefExtension,
@@ -37,6 +38,12 @@ export {
 	type JsxChildren,
 	type JsxResult,
 	type List,
+	type ListChange,
+	type ListCleared,
+	type ListDelta,
+	type ListItemChanged,
+	type ListItemInserted,
+	type ListItemRemoved,
 	type MaybeAtom,
 	type MaybeReadonlyAtom,
 	type MountBlock,

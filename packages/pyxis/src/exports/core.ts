@@ -10,7 +10,7 @@ export { bind } from "~/data/Dependency";
 export { effect, type EffectBlock } from "~/data/Effect";
 export { getLifecycle, mounted, unmounted, withLifecycle, type Lifecycle, type MountBlock, type UnmountBlock } from "~/data/Lifecycle";
 export { listOf, sync, type List, type ReadonlyList } from "~/data/List";
-export type { Equals } from "~/data/ListDelta";
+export { ChangeKind, type Equals, type ListChange, type ListCleared, type ListDelta, type ListItemChanged, type ListItemInserted, type ListItemRemoved } from "~/data/ListDelta";
 export { proxyOf, type Proxied, type ProxyAtom } from "~/data/ProxyAtom";
 export { tick, type TickFn } from "~/data/Scheduler";
 
