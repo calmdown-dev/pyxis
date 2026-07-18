@@ -10,8 +10,8 @@ import { schedule, type UpdateCallback } from "./Scheduler";
 export interface ReadonlyList<T> extends Iterable<T>, DependencyList {
 	readonly size: () => number;
 	readonly get: (index: number) => T | undefined;
+	readonly raw: () => readonly T[];
 	readonly forEach: (callback: (item: T, index: number) => void, thisArg?: any) => void;
-	readonly toArray: () => T[];
 
 	/** @internal */
 	readonly $lifecycle: Lifecycle;
@@ -81,8 +81,8 @@ export function listOf<T>(source?: Nil<Iterable<T>>, lifecycle = getLifecycle())
 		[Symbol.iterator]: getIterator,
 		size,
 		get,
+		raw,
 		forEach,
-		toArray,
 		set,
 		clear,
 		insertAt,
@@ -126,14 +126,14 @@ function get(this: List<any>, index: number) {
 	return this.$items[index];
 }
 
+function raw<T>(this: List<T>): readonly T[] {
+	reportAccess(this);
+	return this.$items;
+}
+
 function forEach<T>(this: List<T>, callback: (item: T, index: number) => void, thisArg?: any) {
 	reportAccess(this);
 	this.$items.forEach(callback, thisArg);
-}
-
-function toArray<T>(this: List<T>) {
-	reportAccess(this);
-	return this.$items.slice();
 }
 
 function getIterator<T>(this: List<T>) {
