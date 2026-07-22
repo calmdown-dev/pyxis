@@ -2,7 +2,7 @@ import type { Nil } from "~/support/types";
 
 import { getLifecycle, onUnmounted, setLifecycle, type Lifecycle } from "./Lifecycle";
 import { link, unlink, type Dependency, type DependencyList } from "./Dependency";
-import { schedule, type UpdateCallback } from "./Scheduler";
+import { scheduleTick, type UpdateCallback } from "./Scheduler";
 
 export interface EffectBlock {
 	(): (() => void) | void;
@@ -72,7 +72,7 @@ function scheduleEffect(this: EffectDependency, effect: Effect<ReturnType<Effect
 	// we're already within a scheduler tick; the effect will therefore run synchronously despite
 	// being "scheduled" - this also gives priority to already scheduled updates and prevents
 	// potential infinite loops in case dependency cycles exist
-	schedule(effect.$lifecycle, effect.$resolve ??= {
+	scheduleTick(effect.$lifecycle, effect.$resolve ??= {
 		$fn: runEffect,
 		$a0: effect,
 	});

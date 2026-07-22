@@ -5,7 +5,7 @@ import { getLifecycle, type Lifecycle } from "./Lifecycle";
 import type { DependencyList } from "./Dependency";
 import { __DEV__assertNotEffect, reportAccess } from "./Effect";
 import { createDelta, itemChanged, itemInserted, itemRemoved, listCleared, listSynced, type Equals, type ListDelta } from "./ListDelta";
-import { schedule, type UpdateCallback } from "./Scheduler";
+import { scheduleTick, scheduleTock, type UpdateCallback } from "./Scheduler";
 
 export interface ReadonlyList<T> extends Iterable<T>, DependencyList {
 	/**
@@ -47,16 +47,13 @@ export interface ReadonlyList<T> extends Iterable<T>, DependencyList {
 	$items: readonly T[];
 
 	/** @internal */
-	$pendingDelta: ListDelta<T> | null;
-
-	/** @internal */
-	$latestDelta: ListDelta<T> | null;
-
-	/** @internal */
-	$latestEpoch?: number;
+	$delta: ListDelta<T> | null;
 
 	/** @internal */
 	$notify?: UpdateCallback<[ self: List<T> ]>;
+
+	/** @internal */
+	$cleanup?: UpdateCallback<[ self: List<T> ]>;
 
 	/**
 	 * The ID of this List, used in development mode.
@@ -160,8 +157,7 @@ export function listOf<T>(source?: Nil<Iterable<T>>, lifecycle = getLifecycle())
 	const list: List<T> = {
 		$lifecycle: lifecycle,
 		$items: items,
-		$latestDelta: null,
-		$pendingDelta: null,
+		$delta: null,
 		[Symbol.iterator]: getIterator,
 		size,
 		get,
@@ -197,7 +193,7 @@ export function listOf<T>(source?: Nil<Iterable<T>>, lifecycle = getLifecycle())
 export function sync<T>(list: List<T>, source: readonly T[], eq: Equals<T> = defaultEquals) {
 	const oldState = list.$items;
 	list.$items = source.slice();
-	listSynced(list.$pendingDelta ??= createDelta(), oldState, source, eq);
+	listSynced(list.$delta ??= createDelta(), oldState, source, eq);
 	listMutated(list);
 }
 
@@ -213,9 +209,7 @@ function get(this: List<any>, index: number) {
 
 function delta<T>(this: List<T>) {
 	reportAccess(this);
-	return this.$lifecycle.$scheduler.$epoch === this.$latestEpoch
-		? this.$latestDelta
-		: null;
+	return this.$delta;
 }
 
 function raw<T>(this: List<T>): readonly T[] {
@@ -245,7 +239,7 @@ function set<T>(this: List<T>, index: number, newItem: T) {
 
 	// only emit deltas when there are observers
 	if (this.$dh) {
-		itemChanged(this.$pendingDelta ??= createDelta(), index, oldItem, newItem);
+		itemChanged(this.$delta ??= createDelta(), index, oldItem, newItem);
 		listMutated(this);
 	}
 }
@@ -256,7 +250,7 @@ function clear(this: List<any>) {
 
 	// only emit deltas when there are observers
 	if (this.$dh) {
-		listCleared(this.$pendingDelta ??= createDelta(), count);
+		listCleared(this.$delta ??= createDelta(), count);
 		listMutated(this);
 	}
 }
@@ -273,7 +267,7 @@ function insertAt<T>(this: List<T>, index: number, item: T) {
 
 	// only emit deltas when there are observers
 	if (this.$dh) {
-		itemInserted(this.$pendingDelta ??= createDelta(), index, item);
+		itemInserted(this.$delta ??= createDelta(), index, item);
 		listMutated(this);
 	}
 }
@@ -302,7 +296,7 @@ function removeAt<T>(this: List<T>, index: number) {
 
 	// only emit deltas when there are observers
 	if (this.$dh) {
-		itemRemoved(this.$pendingDelta ??= createDelta(), index, item);
+		itemRemoved(this.$delta ??= createDelta(), index, item);
 		listMutated(this);
 	}
 
@@ -338,8 +332,13 @@ function listMutated(list: List<any>) {
 		globalThis.__PYXIS_HMR__.state.preserve(list.$lifecycle, list.$devId, list.$items);
 	}
 
-	schedule(list.$lifecycle, list.$notify ??= {
+	scheduleTick(list.$lifecycle, list.$notify ??= {
 		$fn: notify,
+		$a0: list,
+	});
+
+	scheduleTock(list.$lifecycle, list.$cleanup ??= {
+		$fn: cleanup,
 		$a0: list,
 	});
 }
@@ -348,14 +347,13 @@ function notify(list: List<any>) {
 	let current = list.$dh;
 	let next;
 
-	list.$latestDelta = list.$pendingDelta;
-	list.$latestEpoch = list.$lifecycle.$scheduler.$epoch;
-
 	while (current) {
 		next = current.$an;
 		invoke(current);
 		current = next;
 	}
+}
 
-	list.$pendingDelta = null;
+function cleanup(list: List<any>) {
+	list.$delta = null;
 }

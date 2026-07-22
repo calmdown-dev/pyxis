@@ -4,7 +4,7 @@ import { isAtom, notify, S_ATOM, type Atom, type MaybeAtom } from "./Atom";
 import { link, unlink, type Dependency } from "./Dependency";
 import { __DEV__assertNotEffect } from "./Effect";
 import { getLifecycle, type Lifecycle } from "./Lifecycle";
-import { schedule } from "./Scheduler";
+import { scheduleTick } from "./Scheduler";
 
 export interface ProxyAtom<T> extends Atom<T> {
 	/**
@@ -72,7 +72,7 @@ function use<T>(this: ProxyAtom<T>, value: MaybeAtom<T>, canNotify: boolean = tr
 	}
 
 	if (canNotify && !Object.is(oldValue, this.get())) {
-		schedule(this.$lifecycle, this.$notify ??= {
+		scheduleTick(this.$lifecycle, this.$notify ??= {
 			$fn: notify,
 			$a0: this,
 		});
@@ -91,7 +91,7 @@ function setBoundValue<T>(this: ProxyAtom<T>, value: T) {
 	// behavior of `write`, skipping parts we don't need here.
 	const atom = this.$bound!;
 	if (atom.set(value)) {
-		schedule(atom.$lifecycle, atom.$notify ??= {
+		scheduleTick(atom.$lifecycle, atom.$notify ??= {
 			$fn: notify,
 			$a0: atom,
 		});

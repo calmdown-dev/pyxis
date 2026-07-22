@@ -12,7 +12,7 @@ export { getLifecycle, mounted, unmounted, withLifecycle, type Lifecycle, type M
 export { listOf, sync, type List, type ReadonlyList } from "~/data/List";
 export { ChangeKind, type Equals, type ListChange, type ListCleared, type ListDelta, type ListItemChanged, type ListItemInserted, type ListItemRemoved } from "~/data/ListDelta";
 export { proxyOf, type Proxied, type ProxyAtom } from "~/data/ProxyAtom";
-export { tick, type TickFn } from "~/data/Scheduler";
+export { tick, tock, type TickFn } from "~/data/Scheduler";
 
 export { RefExtension, type RefExtensionType } from "~/extension/RefExtension";
 

@@ -16,7 +16,12 @@ export interface Scheduler {
 	/**
 	 * Array of pending update callbacks, cleared after each tick.
 	 */
-	readonly $pending: UpdateCallback[];
+	readonly $onTick: UpdateCallback[];
+
+	/**
+	 * Array of pending end-of-update callbacks, cleared after each tick.
+	 */
+	readonly $onTock: UpdateCallback[];
 
 	/**
 	 * Increments with each scheduler tick. Used to deduplicate updates and detect dependency
@@ -65,10 +70,12 @@ export interface TickFn {
 export function createScheduler(tick: TickFn) {
 	let isPending = false;
 
-	const callbacks: UpdateCallback[] = [];
+	const ticks: UpdateCallback[] = [];
+	const tocks: UpdateCallback[] = [];
 	const scheduler: Scheduler = {
 		$epoch: 1,
-		$pending: callbacks,
+		$onTick: ticks,
+		$onTock: tocks,
 		$scheduleTick: () => {
 			if (isPending) {
 				return;
@@ -81,25 +88,40 @@ export function createScheduler(tick: TickFn) {
 
 	const update = () => {
 		try {
-			// re-read length on each cycle, as it may increase when new updates get added
-			// as previous updates execute
 			let index = 0;
 			let callback;
 
-			for (; index < callbacks.length; index += 1) {
-				callback = callbacks[index];
+			// array lengths are re-read on each cycle, as they may increase when new updates get
+			// added by the running code
+
+			// run ticks
+			for (; index < ticks.length; index += 1) {
+				callback = ticks[index];
 				if (callback.$life === callback.$lifecycle!.$life) {
 					if (__DEV__) {
 						callback.$re = scheduler.$epoch;
 					}
 
-					invoke(callbacks[index]);
+					invoke(callback);
+				}
+			}
+
+			// run tocks
+			for (index = 0; index < tocks.length; index += 1) {
+				callback = tocks[index];
+				if (callback.$life === callback.$lifecycle!.$life) {
+					if (__DEV__) {
+						callback.$re = scheduler.$epoch;
+					}
+
+					invoke(callback);
 				}
 			}
 		}
 		finally {
 			isPending = false;
-			callbacks.length = 0;
+			ticks.length = 0;
+			tocks.length = 0;
 			scheduler.$epoch += 1;
 		}
 	};
@@ -107,11 +129,7 @@ export function createScheduler(tick: TickFn) {
 	return scheduler;
 }
 
-/**
- * Adds the provided callback to the update queue. Does nothing if already queued.
- * @internal
- */
-export function schedule(lifecycle: Lifecycle, callback: UpdateCallback) {
+function schedule(lifecycle: Lifecycle, queue: UpdateCallback[], callback: UpdateCallback) {
 	const scheduler = lifecycle.$scheduler;
 	if (callback.$se === scheduler.$epoch) {
 		if (__DEV__ && callback.$re === scheduler.$epoch) {
@@ -127,8 +145,13 @@ export function schedule(lifecycle: Lifecycle, callback: UpdateCallback) {
 	callback.$lifecycle = lifecycle;
 	callback.$life = lifecycle.$life;
 	callback.$se = scheduler.$epoch;
-	scheduler.$pending.push(callback);
+	queue.push(callback);
 	scheduler.$scheduleTick();
+}
+
+/** @internal */
+export function scheduleTick(lifecycle: Lifecycle, callback: UpdateCallback) {
+	schedule(lifecycle, lifecycle.$scheduler.$onTick, callback);
 }
 
 /**
@@ -136,5 +159,18 @@ export function schedule(lifecycle: Lifecycle, callback: UpdateCallback) {
  * tick is not currently pending, a new one is scheduled.
  */
 export function tick(block: () => void, lifecycle = getLifecycle()) {
-	schedule(lifecycle, { $fn: block });
+	schedule(lifecycle, lifecycle.$scheduler.$onTick, { $fn: block });
+}
+
+/** @internal */
+export function scheduleTock(lifecycle: Lifecycle, callback: UpdateCallback) {
+	schedule(lifecycle, lifecycle.$scheduler.$onTock, callback);
+}
+
+/**
+ * Runs a block of code after the next tick of the scheduler, once all regular updates finished.
+ * If a tick is not currently pending, a new one is scheduled.
+ */
+export function tock(block: () => void, lifecycle = getLifecycle()) {
+	schedule(lifecycle, lifecycle.$scheduler.$onTock, { $fn: block });
 }

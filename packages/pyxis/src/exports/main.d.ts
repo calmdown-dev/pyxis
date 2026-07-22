@@ -21,6 +21,7 @@ export {
 	reads,
 	sync,
 	tick,
+	tock,
 	unmounted,
 	update,
 	write,

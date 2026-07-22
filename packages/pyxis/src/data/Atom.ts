@@ -3,7 +3,7 @@ import type { Nil } from "~/support/types";
 
 import { getLifecycle, type Lifecycle } from "./Lifecycle";
 import { __DEV__assertNotEffect, reportAccess } from "./Effect";
-import { schedule, type UpdateCallback } from "./Scheduler";
+import { scheduleTick, type UpdateCallback } from "./Scheduler";
 import type { DependencyList } from "./Dependency";
 
 /**
@@ -225,7 +225,7 @@ export function write<T>(input: MaybeAtom<T>, value: T, force = false): T {
 	if (isAtom(input)) {
 		if (input.set(value) || force) {
 			input.$force ||= force;
-			schedule(input.$lifecycle, input.$notify ??= {
+			scheduleTick(input.$lifecycle, input.$notify ??= {
 				$fn: notify,
 				$a0: input,
 			});
@@ -257,7 +257,7 @@ export function update<T>(input: MaybeAtom<T>, transform: (value: T) => T, force
 	if (isAtom(input)) {
 		if (input.set(transform(input.get())) || force) {
 			input.$force ||= force;
-			schedule(input.$lifecycle, input.$notify ??= {
+			scheduleTick(input.$lifecycle, input.$notify ??= {
 				$fn: notify,
 				$a0: input,
 			});

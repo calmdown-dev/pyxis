@@ -185,8 +185,10 @@ export function itemInserted<T>(delta: ListDelta<T>, at: number, item: T) {
 				break;
 
 			case LC_REMOVE:
-				(current as any).$kind = LC_CHANGE;
-				(current as any).$item = item;
+				// insert cancels the removal -> the slot's old item is now replaced, becomes a change
+				// (oldItem carries over from the removal, it's the item that was originally here)
+				(current as unknown as ListItemChanged<T>).kind = LC_CHANGE;
+				(current as unknown as ListItemChanged<T>).newItem = item;
 				break;
 		}
 	}
@@ -223,8 +225,10 @@ export function itemRemoved<T>(delta: ListDelta<T>, at: number, item: T) {
 		const current = $changes[ci];
 		switch (current.kind) {
 			case LC_CHANGE:
-				(current as any).$kind = LC_REMOVE;
-				(current as any).$item = undefined;
+				// removal cancels the change -> becomes a plain removal (oldItem carries over from
+				// the change, it's the item originally at this index)
+				(current as unknown as ListItemRemoved<T>).kind = LC_REMOVE;
+				(current as unknown as ListItemChanged<undefined>).newItem = undefined;
 				break;
 
 			case LC_INSERT:

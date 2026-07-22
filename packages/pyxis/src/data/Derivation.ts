@@ -2,7 +2,7 @@ import { notify, S_ATOM, type Atom } from "./Atom";
 import { getLifecycle } from "./Lifecycle";
 import { unlink } from "./Dependency";
 import { __DEV__assertNotEffect, resolve, type Effect, type EffectDependency } from "./Effect";
-import { schedule } from "./Scheduler";
+import { scheduleTick } from "./Scheduler";
 
 /**
  * Holds a value derived from values of other Atoms, managing reactions to their changes.
@@ -66,7 +66,7 @@ function scheduleNotify(this: EffectDependency, derivation: Derivation<any>, cyc
 	// being "scheduled" - this also gives priority to already scheduled updates and prevents
 	// infinite loops when dependency cycles exist
 	derivation.$dirty = true;
-	schedule(derivation.$lifecycle, derivation.$notify ??= {
+	scheduleTick(derivation.$lifecycle, derivation.$notify ??= {
 		$fn: notify,
 		$a0: derivation,
 	});
