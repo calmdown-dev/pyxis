@@ -57,6 +57,7 @@ export {
 	type ReadonlyAtom,
 	type ReadonlyList,
 	type RefExtensionType,
+	type RefFn,
 	type RemountIteratorProps,
 	type ShowProps,
 	type UnmountBlock,

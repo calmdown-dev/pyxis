@@ -1,17 +1,22 @@
-import { write, type Atom } from "~/data/Atom";
-import type { ElementsType, Nil, NodeType } from "~/support/types";
+import { isAtom, type Atom } from "~/data/Atom";
+import type { ElementsType, NodeType } from "~/support/types";
 import type { ExtensionProps } from "~/Adapter";
 import type { MountingGroup } from "~/Renderer";
+import { getLifecycle, onMounted, onUnmounted } from "~/data/Lifecycle";
 
 export interface RefExtensionType {
 	<TExtensionKey extends string, TElements extends ElementsType>(extensionKey: TExtensionKey, elements: TElements): {
 		[TElementName in keyof TElements]: TElements[TElementName] & ExtensionProps<TExtensionKey, {
-			readonly atom?: Atom<Nil<NodeType<TElements[TElementName]>>>;
-			readonly call?: (node: NodeType<TElements[TElementName]>) => void;
+			readonly atom?: Atom<NodeType<TElements[TElementName]> | null>;
+			readonly call?: RefFn<NodeType<TElements[TElementName]>>;
 		}>;
 	};
 
 	set: (node: any, prop: string, value: any, group?: MountingGroup<any>) => void;
+}
+
+export interface RefFn<TNode> {
+	(node: TNode | null): void;
 }
 
 /**
@@ -31,14 +36,47 @@ export interface RefExtensionType {
  */
 export const RefExtension = {
 	set: (node: any, kind: string, value: any) => {
+		let method;
 		switch (kind) {
 			case "atom":
-				write(value, node);
+				if (!isAtom(value)) {
+					return;
+				}
+
+				method = refAtom;
 				break;
 
 			case "call":
-				value?.(node);
+				if (typeof value !== "function") {
+					return;
+				}
+
+				method = refCall;
 				break;
+
+			default:
+				return;
 		}
+
+		const lifecycle = getLifecycle();
+		onMounted(lifecycle, {
+			$fn: method,
+			$a0: value,
+			$a1: node,
+		});
+
+		onUnmounted(lifecycle, {
+			$fn: method,
+			$a0: value,
+			$a1: null,
+		});
 	},
 } as RefExtensionType;
+
+function refAtom(atom: Atom<any>, node: any) {
+	atom.set(node);
+}
+
+function refCall(setter: RefFn<any>, node: any) {
+	setter(node);
+}
