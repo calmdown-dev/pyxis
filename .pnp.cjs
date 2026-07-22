@@ -196,6 +196,15 @@ const RAW_RUNTIME_STATE =
         "linkType": "SOFT"\
       }]\
     ]],\
+    ["@calmdown/rollup-plugin-shell", [\
+      ["npm:1.0.0", {\
+        "packageLocation": "./.yarn/cache/@calmdown-rollup-plugin-shell-npm-1.0.0-938c388ed7-5b7d06b328.zip/node_modules/@calmdown/rollup-plugin-shell/",\
+        "packageDependencies": [\
+          ["@calmdown/rollup-plugin-shell", "npm:1.0.0"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
     ["@emnapi/core", [\
       ["npm:1.11.1", {\
         "packageLocation": "./.yarn/cache/@emnapi-core-npm-1.11.1-99a234b095-9aba37e0c1.zip/node_modules/@emnapi/core/",\
@@ -716,6 +725,7 @@ const RAW_RUNTIME_STATE =
           ["@calmdown/rollup-plugin-copy", "npm:1.0.1"],\
           ["@calmdown/rollup-plugin-delete", "npm:1.0.1"],\
           ["@calmdown/rollup-plugin-pyxis", "virtual:b992d4f4d8a546a46d11d4f2e94e372c5091a7f79d2b9d76b67d58ee8a861fcba1f411d948301d09a34685c9a7d4fdcadb682a467db70b0e19fec6166f121411#workspace:packages/rollup-plugin-pyxis"],\
+          ["@calmdown/rollup-plugin-shell", "npm:1.0.0"],\
           ["build-logic", "workspace:build-logic"],\
           ["rolldown", "npm:1.1.5"],\
           ["rolldown-plugin-dts", "virtual:b992d4f4d8a546a46d11d4f2e94e372c5091a7f79d2b9d76b67d58ee8a861fcba1f411d948301d09a34685c9a7d4fdcadb682a467db70b0e19fec6166f121411#npm:0.27.4"],\

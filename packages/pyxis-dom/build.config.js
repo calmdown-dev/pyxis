@@ -8,6 +8,15 @@ Target.TypeScriptLibrary.build(target => {
 		external: [ "@calmdown/pyxis/core", "@calmdown/pyxis-dom" ],
 	});
 
+	target.pipelines.Code.plugin(Plugin.Shell
+		.configure({
+			commands: {
+				run: "yarn bake",
+				trigger: "before",
+			},
+		})
+	);
+
 	target.pipelines.Code.plugin(Plugin.Copy
 		.configure({
 			targets: [

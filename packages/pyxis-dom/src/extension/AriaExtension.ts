@@ -1,4 +1,4 @@
-import { bind, isAtom, type ElementsType, type ExtensionProps, type MaybeAtom, type MountingGroup, type NodeType } from "@calmdown/pyxis/core";
+import { bind, isAtom, type ElementsType, type ExtensionProps, type MaybeReadonlyAtom, type MountingGroup, type NodeType } from "@calmdown/pyxis/core";
 
 import type { ARIAProps } from "~/jsx/baked";
 
@@ -11,7 +11,7 @@ export interface AriaExtensionType {
 		);
 	};
 
-	set: (node: Element, key: keyof ARIAProps, value: MaybeAtom<any>, group: MountingGroup<Node>) => void;
+	set: (node: Element, key: keyof ARIAProps, value: MaybeReadonlyAtom<any>, group: MountingGroup<Node>) => void;
 }
 
 /**

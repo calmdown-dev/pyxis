@@ -15,6 +15,11 @@ export const Pyxis = definePlugin(
 	async () => (await import("@calmdown/rollup-plugin-pyxis")).default,
 );
 
+export const Shell = definePlugin(
+	"Shell",
+	async () => (await import("@calmdown/rollup-plugin-shell")).default,
+);
+
 export const Declarations = definePlugin(
 	"Declarations",
 	async () => (await import("rolldown-plugin-dts")).dts,

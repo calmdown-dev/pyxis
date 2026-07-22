@@ -1,4 +1,4 @@
-import { bind, isAtom, type ElementsType, type ExtensionProps, type MaybeAtom, type MountingGroup, type NodeType } from "@calmdown/pyxis/core";
+import { bind, isAtom, type ElementsType, type ExtensionProps, type MaybeReadonlyAtom, type MountingGroup, type NodeType } from "@calmdown/pyxis/core";
 
 import type { CSSStyleDeclarationProps } from "~/jsx/baked";
 
@@ -11,7 +11,7 @@ export interface CssStyleExtensionType {
 		);
 	};
 
-	set: (node: ElementCSSInlineStyle, ruleName: string, value: MaybeAtom<string>, group: MountingGroup<Node>) => void;
+	set: (node: ElementCSSInlineStyle, ruleName: string, value: MaybeReadonlyAtom<string>, group: MountingGroup<Node>) => void;
 }
 
 /**

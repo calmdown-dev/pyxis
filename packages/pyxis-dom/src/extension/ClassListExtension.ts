@@ -1,13 +1,13 @@
-import { bind, isAtom, type ElementsType, type ExtensionProps, type MaybeAtom, type MountingGroup } from "@calmdown/pyxis/core";
+import { bind, isAtom, type ElementsType, type ExtensionProps, type MaybeReadonlyAtom, type MountingGroup } from "@calmdown/pyxis/core";
 
 export interface ClassListExtensionType {
 	<TExtensionKey extends string, TElements extends ElementsType>(extensionKey: TExtensionKey, elements: TElements): {
 		[TElementName in keyof TElements]: (
-			TElements[TElementName] & ExtensionProps<TExtensionKey, { readonly [TClassName in string]?: MaybeAtom<boolean> }>
+			TElements[TElementName] & ExtensionProps<TExtensionKey, { readonly [TClassName in string]?: MaybeReadonlyAtom<boolean> }>
 		);
 	};
 
-	set: (node: Element, className: string, toggle: MaybeAtom<boolean>, group: MountingGroup<Node>) => void;
+	set: (node: Element, className: string, toggle: MaybeReadonlyAtom<boolean>, group: MountingGroup<Node>) => void;
 }
 
 /**

@@ -1,5 +1,5 @@
 /** @preserve */
-import type { JsxChildren, MaybeAtom, Nil, S_NODE_TYPE } from "@calmdown/pyxis/core";
+import type { JsxChildren, MaybeReadonlyAtom, Nil, S_NODE_TYPE } from "@calmdown/pyxis/core";
 
 import type { PROP_MAP } from "./mapping";
 
@@ -28,8 +28,8 @@ type OmitFunctions<T> = Pick<T, { [K in keyof T] -?: T[K] extends Nil<(...args: 
 /** applies custom field overrides O over the given type T */
 type ApplyOverrides<T, O> = Omit<T, keyof O> & Pick<O, { [K in keyof O]: O[K] extends never ? never : K }[keyof O]>;
 
-/** wraps each property type in MaybeAtom to allow the use of atoms on properties of intrinsic elements */
-type WrapProps<T> = { [K in keyof T]: MaybeAtom<T[K]> };
+/** wraps each property type in MaybeReadonlyAtom to allow the use of atoms on properties of intrinsic elements */
+type WrapProps<T> = { [K in keyof T]: MaybeReadonlyAtom<T[K]> };
 
 /** renames props according to the given mapping */
 type MapProps<T, M extends { [K in string]: string }> = {
@@ -156,7 +156,7 @@ interface CSSPropOverrides {
 // #region ARIA
 
 /** @bake */
-export type ARIAProps = Finalize<ARIAMixin>;
+export type ARIAProps = Finalize<WrapProps<ARIAMixin>>;
 
 // #endregion
 

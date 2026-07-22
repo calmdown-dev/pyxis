@@ -88,6 +88,13 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@calmdown/rollup-plugin-shell@npm:1.0.0":
+  version: 1.0.0
+  resolution: "@calmdown/rollup-plugin-shell@npm:1.0.0"
+  checksum: 10/5b7d06b3280c92b87278843d56cdcaeac6b99926214c910eba664efd23cf9fcc35273d5dae30034e9ef2e726a26e07c0f3811481840e12e3a8f8f6a01350daa8
+  languageName: node
+  linkType: hard
+
 "@emnapi/core@npm:1.11.1":
   version: 1.11.1
   resolution: "@emnapi/core@npm:1.11.1"
@@ -499,6 +506,7 @@ __metadata:
     "@calmdown/rollup-plugin-copy": "npm:1.0.1"
     "@calmdown/rollup-plugin-delete": "npm:1.0.1"
     "@calmdown/rollup-plugin-pyxis": "workspace:*"
+    "@calmdown/rollup-plugin-shell": "npm:1.0.0"
     rolldown: "npm:1.1.5"
     rolldown-plugin-dts: "npm:0.27.4"
     typescript: "npm:6.0.3"
