@@ -120,6 +120,8 @@ export type Proxied<T, P extends readonly (keyof T)[]> =
 	& { readonly proxied: T }
 	& { readonly [K in P[number]]: ProxyAtom<T[K] extends MaybeAtom<infer V> ? V : T[K]> };
 
+const EMPTY_SOURCE: Record<PropertyKey, unknown> = {};
+
 /**
  * Copies select keys from a data object into a new object where values are all wrapped in
  * ProxyAtoms and can be updated later.
@@ -127,8 +129,8 @@ export type Proxied<T, P extends readonly (keyof T)[]> =
  * @internal
  **/
 export function createProxy(lifecycle: Lifecycle, data: any, keys: readonly PropertyKey[]) {
-	const source = isObject(data) ? data : {};
-	const proxy: ProxyObject = { proxied: data };
+	const source = isObject(data) ? data : EMPTY_SOURCE;
+	const proxy = {} as ProxyObject;
 	const { length } = keys;
 
 	let index = 0;
@@ -139,6 +141,7 @@ export function createProxy(lifecycle: Lifecycle, data: any, keys: readonly Prop
 		proxy[key] = proxyOf(source[key], lifecycle);
 	}
 
+	proxy.proxied = data;
 	return proxy;
 }
 
@@ -149,19 +152,16 @@ export function createProxy(lifecycle: Lifecycle, data: any, keys: readonly Prop
  * @internal
  **/
 export function updateProxy(proxy: ProxyObject, data: any, keys: readonly PropertyKey[]) {
-	proxy.proxied = data;
-	if (!isObject(data)) {
-		return;
-	}
-
+	const source = isObject(data) ? data : EMPTY_SOURCE;
 	const { length } = keys;
+	proxy.proxied = data;
 
 	let index = 0;
 	let key;
 
 	for (; index < length; index += 1) {
 		key = keys[index];
-		proxy[key]!.use(data[key]);
+		proxy[key]!.use(source[key]);
 	}
 }
 
