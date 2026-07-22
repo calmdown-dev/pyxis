@@ -1,17 +1,11 @@
+# PNPM
+node_modules
+
 # Build artifacts
-packages/*/src/**/*.svelte.d.ts
-packages/*/dist
+dist
 
 # Vite artifacts
 .vite
-
-# Yarn
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/sdks
-!.yarn/versions
 
 # MacOS Finder files
 .DS_Store

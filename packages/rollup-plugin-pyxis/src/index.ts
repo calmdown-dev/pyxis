@@ -1,4 +1,5 @@
-import type { Plugin } from "rolldown";
+import type { Plugin as RolldownPlugin } from "rolldown";
+import type { Plugin as VitePlugin } from "vite";
 
 import { resolveOptions, type PyxisPluginOptions } from "./options";
 import { PyxisLoader } from "./PyxisLoader";
@@ -18,7 +19,7 @@ export default function pyxis(pluginOptions?: PyxisPluginOptions) {
 	const options = resolveOptions(pluginOptions);
 	const loader = new PyxisLoader(options);
 	const registry = new CssExportsRegistry(loader);
-	const plugins: Plugin[] = [];
+	const plugins: VitePlugin[] = [ loader.plugin ];
 
 	const tsxTag = loader.addFilter({
 		include: options.include,
@@ -46,7 +47,6 @@ export default function pyxis(pluginOptions?: PyxisPluginOptions) {
 	}
 
 	if (options.hmr || options.cssModules) {
-		plugins.unshift(loader.plugin);
 		plugins.push(pyxisTranspileTsx({
 			loader,
 			tag: tsxTag,
@@ -63,5 +63,5 @@ export default function pyxis(pluginOptions?: PyxisPluginOptions) {
 		}));
 	}
 
-	return plugins;
+	return plugins as RolldownPlugin[];
 }

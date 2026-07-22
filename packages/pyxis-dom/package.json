@@ -13,12 +13,12 @@
 		}
 	},
 	"peerDependencies": {
-		"@calmdown/pyxis": "1.0.0-rc.3"
+		"@calmdown/pyxis": "workspace:"
 	},
 	"devDependencies": {
-		"@calmdown/pyxis": "workspace:*",
-		"build-logic": "workspace:*",
-		"typescript": "6.0.3"
+		"@calmdown/pyxis": "workspace:",
+		"build-logic": "workspace:",
+		"typescript": "catalog:"
 	},
 	"scripts": {
 		"bake": "bake ./src/jsx/inferred.ts ./src/jsx/baked.ts"

@@ -26,7 +26,7 @@
 		}
 	},
 	"devDependencies": {
-		"build-logic": "workspace:*",
-		"typescript": "6.0.3"
+		"build-logic": "workspace:",
+		"typescript": "catalog:"
 	}
 }

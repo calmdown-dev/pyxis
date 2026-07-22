@@ -11,7 +11,7 @@ Target.TypeScriptLibrary.build(target => {
 	target.pipelines.Code.plugin(Plugin.Shell
 		.configure({
 			commands: {
-				run: "yarn bake",
+				run: "pnpm bake",
 				trigger: "before",
 			},
 		})

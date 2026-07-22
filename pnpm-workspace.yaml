@@ -1,0 +1,32 @@
+linkWorkspacePackages: true
+preferWorkspacePackages: true
+ignoreWorkspaceCycles: true
+packages:
+  - ./build-logic
+  - ./packages/*
+
+catalogMode: strict
+catalog:
+  "@calmdown/rolldown-workspace": 1.0.0-rc.6
+  "@calmdown/rollup-plugin-copy": 1.0.1
+  "@calmdown/rollup-plugin-delete": 1.0.1
+  "@calmdown/rollup-plugin-shell": 1.0.0
+  "@oxc-project/types": 0.140.0
+  "@types/node": 26.1.1
+  lightningcss: 1.33.0
+  rolldown: 1.2.0
+  rolldown-plugin-dts: 0.27.9
+  typescript: 6.0.3
+  vite: 8.1.4
+
+overrides:
+  rolldown: 1.2.0
+
+trustPolicy: no-downgrade
+trustPolicyExclude:
+  - "@calmdown/*"
+
+minimumReleaseAge: 10080 # 2w
+minimumReleaseAgeExclude:
+  - "@calmdown/*"
+  - "lightningcss*"

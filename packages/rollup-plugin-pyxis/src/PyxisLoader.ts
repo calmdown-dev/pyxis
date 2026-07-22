@@ -45,6 +45,32 @@ export class PyxisLoader {
 		this.plugin = {
 			name: PyxisLoader.name,
 			enforce: "pre",
+			options(config) {
+				// Rollup, Rolldown, Vite hook
+				if (self.isVite) {
+					return config;
+				}
+
+				if (config.cwd) {
+					self.rootDir = Path.resolve(config.cwd);
+				}
+
+				const jsx = config.transform?.jsx;
+				if (jsx !== undefined && typeof jsx !== "object") {
+					return config;
+				}
+
+				return {
+					...config,
+					transform: {
+						...config.transform,
+						jsx: {
+							...jsx,
+							importSource: options.pyxisModule,
+						},
+					},
+				};
+			},
 			config(config) {
 				// Vite-only hook
 				self.isVite = true;
@@ -69,18 +95,6 @@ export class PyxisLoader {
 						},
 					},
 				};
-			},
-			options(config) {
-				// Rollup, Rolldown, Vite hook
-				if (self.isVite) {
-					return config;
-				}
-
-				if (config.cwd) {
-					self.rootDir = Path.resolve(config.cwd);
-				}
-
-				return config;
 			},
 			configResolved(viteConfig) {
 				// Vite-only hook

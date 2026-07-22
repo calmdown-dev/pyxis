@@ -1,13 +1,13 @@
 {
 	"name": "@calmdown/pyxis-monorepo",
 	"private": true,
-	"packageManager": "yarn@4.17.1",
+	"packageManager": "pnpm@11.15.1",
 	"workspaces": [
 		"build-logic",
 		"packages/*"
 	],
 	"devDependencies": {
-		"build-logic": "workspace:*",
-		"typescript": "6.0.3"
+		"build-logic": "workspace:",
+		"typescript": "catalog:"
 	}
 }
