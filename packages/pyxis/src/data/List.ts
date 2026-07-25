@@ -28,9 +28,9 @@ export interface ReadonlyList<T> extends Iterable<T>, DependencyList {
 	delta(): ListDelta<T> | null;
 
 	/**
-	 * Gets the underlying array of items. The array is read-only, attempts to mutate this array
-	 * will cause observers to go out of sync.
-	 * Reactive in effects and derivations.
+	 * Gets the underlying array of items. The array is read-only, mutating it will cause observers
+	 * to go out of sync.
+	 * Non-reactive in effects and derivations.
 	 */
 	raw(): readonly T[];
 
@@ -213,7 +213,6 @@ function delta<T>(this: List<T>) {
 }
 
 function raw<T>(this: List<T>): readonly T[] {
-	reportAccess(this);
 	return this.$items;
 }
 
