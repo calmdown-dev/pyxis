@@ -4,13 +4,6 @@
 export type Nil<T> = T | null | undefined;
 
 /**
- * Converts the union `U` into an intersection type.
- */
-export type Intersection<U, TEmpty = {}> = [ U ] extends [ never ]
-	? TEmpty
-	: (U extends any ? (u: U) => void : never) extends (i: infer I) => void ? I : never;
-
-/**
  * A type describing any map of intrinsic elements and their props.
  */
 export type ElementsType = { readonly [_ in string]?: any };

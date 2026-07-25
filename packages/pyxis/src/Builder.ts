@@ -9,8 +9,12 @@ export interface PyxisBuilder<TNode, TIntrinsicElements extends ElementsType> {
 	extend: <TExtensionKey extends string, TExtendedIntrinsicElements extends ElementsType>(
 		extensionKey: TExtensionKey,
 		extension: (extensionKey: TExtensionKey, intrinsicElements: TIntrinsicElements) => TExtendedIntrinsicElements,
-	) => PyxisBuilder<TNode, TExtendedIntrinsicElements>;
+	) => PyxisBuilder<TNode, Merged<TExtendedIntrinsicElements>>;
 }
+
+type MergeIntersection<T> = { [K in keyof T]: T[K] } & {};
+
+type Merged<T> = { [K in keyof T]: MergeIntersection<T[K]> };
 
 export function pyxis<TNode, TIntrinsicElements extends ElementsType>(adapter: Adapter<TNode, TIntrinsicElements>) {
 	const extensions: ExtensionsType<TNode> = {};

@@ -37,6 +37,7 @@ export {
 	type Extension,
 	type FragmentProps,
 	type JsxChildren,
+	type JsxProps,
 	type JsxResult,
 	type List,
 	type ListChange,

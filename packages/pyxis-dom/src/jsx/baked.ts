@@ -1176,6 +1176,7 @@ export interface HTMLWbrElementProps extends HTMLGlobalProps {
 }
 
 export interface HTMLIntrinsicElements {
+	a: HTMLAnchorElementProps;
 	abbr: HTMLElementProps;
 	address: HTMLElementProps;
 	area: HTMLAreaElementProps;
@@ -2467,6 +2468,8 @@ export interface SVGViewElementProps extends SVGGlobalProps {
 }
 
 export interface SVGIntrinsicElements {
+	// conflict with HTML <a>
+	// a: SVGAElementProps;
 	animate: SVGAnimateElementProps;
 	animateMotion: SVGAnimateMotionElementProps;
 	animateTransform: SVGAnimateTransformElementProps;
@@ -2671,7 +2674,5 @@ export interface MathMLIntrinsicElements {
 	// - annotation-xml
 }
 
-export interface IntrinsicElements extends HTMLIntrinsicElements, SVGIntrinsicElements, MathMLIntrinsicElements {
-	a: HTMLAnchorElementProps | SVGAElementProps;
-}
+export interface IntrinsicElements extends HTMLIntrinsicElements, SVGIntrinsicElements, MathMLIntrinsicElements {}
 

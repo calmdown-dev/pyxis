@@ -1,5 +1,5 @@
 import type { TickFn } from "~/data/Scheduler";
-import type { ElementsType, Intersection, PropsType } from "~/support/types";
+import type { ElementsType, PropsType } from "~/support/types";
 
 import type { MountingGroup } from "./Renderer";
 
@@ -95,8 +95,10 @@ export interface Extension<TNode, TExtensionKey extends string = string, TIntrin
 
 export type ExtensionsType<TNode> = { [_ in string]?: Extension<TNode> };
 
-export type ExtensionProps<TExtensionKey extends string, TProps extends PropsType> = Intersection<{
-	[TPropKey in keyof TProps] -?: TPropKey extends string
-		? { readonly [_ in `${TExtensionKey}:${TPropKey}`]?: TProps[TPropKey] }
-		: never
-}[keyof TProps]>;
+export type ExtensionProps<TExtensionKey extends string, TProps extends PropsType> = {
+	readonly [TExtPropKey in `${TExtensionKey}:${keyof TProps & string}`]?: (
+		TExtPropKey extends `${TExtensionKey}:${infer TPropKey}`
+			? TProps[TPropKey]
+			: never
+	);
+};

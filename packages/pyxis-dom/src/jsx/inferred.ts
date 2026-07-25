@@ -574,6 +574,7 @@ export type HTMLWbrElementProps = HTMLPropsNoChildren<HTMLElement>;
 
 /** @preserve */
 export interface HTMLIntrinsicElements {
+	a: HTMLAnchorElementProps;
 	abbr: HTMLElementProps;
 	address: HTMLElementProps;
 	area: HTMLAreaElementProps;
@@ -2047,6 +2048,8 @@ export type SVGViewElementProps = SVGProps<SVGViewElement, {
 
 /** @preserve */
 export interface SVGIntrinsicElements {
+	// conflict with HTML <a>
+	// a: SVGAElementProps;
 	animate: SVGAnimateElementProps;
 	animateMotion: SVGAnimateMotionElementProps;
 	animateTransform: SVGAnimateTransformElementProps;
@@ -2292,6 +2295,4 @@ export interface MathMLIntrinsicElements {
  * describes the props of all usable DOM elements
  * @preserve
  */
-export interface IntrinsicElements extends HTMLIntrinsicElements, SVGIntrinsicElements, MathMLIntrinsicElements {
-	a: HTMLAnchorElementProps | SVGAElementProps;
-}
+export interface IntrinsicElements extends HTMLIntrinsicElements, SVGIntrinsicElements, MathMLIntrinsicElements {}
