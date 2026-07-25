@@ -7,7 +7,7 @@ export { atomOf, isAtom, peek, read, update, write, type Atom, type MaybeAtom, t
 export { consumerOf, createContext, host, type Context } from "~/data/Context";
 export { derived, type Derivation } from "~/data/Derivation";
 export { bind } from "~/data/Dependency";
-export { effect, type EffectBlock } from "~/data/Effect";
+export { effect, noEffect, type EffectBlock } from "~/data/Effect";
 export { getLifecycle, mounted, unmounted, withLifecycle, type Lifecycle, type MountBlock, type UnmountBlock } from "~/data/Lifecycle";
 export { listOf, sync, type List, type ReadonlyList } from "~/data/List";
 export { ChangeKind, type Equals, type ListChange, type ListCleared, type ListDelta, type ListItemChanged, type ListItemInserted, type ListItemRemoved } from "~/data/ListDelta";

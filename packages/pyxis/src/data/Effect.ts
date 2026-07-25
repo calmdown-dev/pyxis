@@ -156,6 +156,22 @@ export function reportAccess(atom: DependencyList) {
 }
 
 /**
+ * Runs a block of code removed from any effects. Accessing atoms within this block will be ignored
+ * by any effect that may otherwise be observing this code.
+ */
+export function noEffect<T>(block: () => T) {
+	const previousEffect = $currentEffect;
+	$currentEffect = null;
+
+	try {
+		return block();
+	}
+	finally {
+		$currentEffect = previousEffect;
+	}
+}
+
+/**
  * Asserts that the current code is not running within an effect block.
  * Only used in development; In production, this function should be removed by the bundler.
  */

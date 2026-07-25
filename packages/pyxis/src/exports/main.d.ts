@@ -14,6 +14,7 @@ export {
 	isAtom,
 	listOf,
 	mounted,
+	noEffect,
 	peek,
 	peeks,
 	pyxis,
