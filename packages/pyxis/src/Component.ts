@@ -46,7 +46,7 @@ export function component(
 		try {
 			if (__DEV__) {
 				if (!import.meta.hot || !devId) {
-					setContextContainer(context); // allow child components to branch context
+					setContextContainer(context);
 					mountJsx(block(jsx), hParent, nUsedParent, nRealParent, nBefore, isBatch);
 					return;
 				}
@@ -57,6 +57,8 @@ export function component(
 
 				const unsubscribe = globalThis.__PYXIS_HMR__.component.subscribe(devId, impl => {
 					unmount(hGroup);
+
+					setContextContainer(context);
 					mount(
 						/* jsx = */ {
 							...jsx,
@@ -79,7 +81,7 @@ export function component(
 				isBatch = false;
 			}
 			else {
-				setContextContainer(context); // allow child components to branch context
+				setContextContainer(context);
 				mountJsx(block(jsx), hParent, nUsedParent, nRealParent, nBefore, isBatch);
 			}
 		}

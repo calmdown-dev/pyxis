@@ -45,7 +45,7 @@ export interface ContextContainer {
 	readonly $parent?: Nil<ContextContainer>;
 }
 
-let $currentContainer: ContextContainer | undefined;
+let $currentContainer: ContextContainer | null = null;
 let $isNewContainer = false;
 
 /** @internal */
@@ -54,7 +54,7 @@ export function getContextContainer() {
 }
 
 /** @internal */
-export function setContextContainer(container: ContextContainer | undefined) {
+export function setContextContainer(container: ContextContainer | null) {
 	$currentContainer = container;
 	$isNewContainer = false;
 }
@@ -91,7 +91,11 @@ export function consumerOf<T>(context: Context<T>): Atom<T> | null {
  * `consumerOf(context)`.
  * @see {@link consumerOf}
  */
-export function host<T>(context: Context<T>, defaultValue?: T, devId?: string): ContextAtom<T>;
+export function host<C>(
+	context: C,
+	defaultValue?: C extends Context<infer T> ? T : never,
+	devId?: string,
+): C extends Context<infer T> ? ContextAtom<T> : never;
 
 export function host<T>(context: Context<T>, defaultValue?: T) {
 	if (__DEV__) {

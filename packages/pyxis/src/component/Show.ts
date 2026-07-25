@@ -1,4 +1,5 @@
 import { isAtom, read, type MaybeAtom, type ReadonlyAtom } from "~/data/Atom";
+import { getContextContainer, setContextContainer } from "~/data/Context";
 import { link } from "~/data/Dependency";
 import { effect } from "~/data/Effect";
 import { withLifecycle } from "~/data/Lifecycle";
@@ -106,6 +107,7 @@ export function Show<TNode>(
 
 	// re-mounts may be necessary -> create a sub-group
 	const hGroup = fork(hParent);
+	const context = getContextContainer();
 
 	// (re-)render effect
 	let nMarker: TNode | null = nBefore;
@@ -122,6 +124,7 @@ export function Show<TNode>(
 			nBatchBefore = null;
 		}
 
+		setContextContainer(context);
 		mount(
 			/* jsx = */ withLifecycle(hGroup, read(template), read(dataOrProxy)),
 			/* hGroup = */ hGroup,

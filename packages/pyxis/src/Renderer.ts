@@ -1,6 +1,5 @@
 import { Text } from "~/component/Text";
 import { isAtom } from "~/data/Atom";
-import { getContextContainer, setContextContainer, type ContextContainer } from "~/data/Context";
 import { setLifecycle, type Lifecycle } from "~/data/Lifecycle";
 import { createScheduler } from "~/data/Scheduler";
 import type { ElementsType, Mutable, Nil } from "~/support/types";
@@ -39,9 +38,6 @@ export interface MountingGroup<TNode> extends Lifecycle, Hierarchy<TNode> {
 
 	/** @internal */
 	readonly $extensions: ExtensionsType<TNode>;
-
-	/** @internal */
-	readonly $context?: ContextContainer;
 }
 
 export interface NativeNode<TNode> extends Hierarchy<TNode> {
@@ -158,7 +154,6 @@ export function fork<TNode>(
 		$scheduler: ng.$scheduler,
 		$extensions: ng.$extensions,
 		$life: 1,
-		$context: getContextContainer(),
 		$pg: ng,
 		$ng: null!,
 	};
@@ -260,7 +255,6 @@ export function mount<TNode>(
 	}
 
 	const previousLifecycle = setLifecycle(hGroup);
-	setContextContainer(hGroup.$context);
 	try {
 		mountJsx(jsx, hGroup, nUsedParent, nRealParent, nBefore, isBatch);
 	}

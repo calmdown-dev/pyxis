@@ -1,5 +1,6 @@
-import { withLifecycle } from "~/data/Lifecycle";
+import { getContextContainer, setContextContainer } from "~/data/Context";
 import { link } from "~/data/Dependency";
+import { withLifecycle } from "~/data/Lifecycle";
 import type { ReadonlyList } from "~/data/List";
 import { LC_CHANGE, LC_CLEAR, LC_INSERT, LC_REMOVE } from "~/data/ListDelta";
 import { createProxy, updateProxy, type Proxied } from "~/data/ProxyAtom";
@@ -52,6 +53,7 @@ export function Iterator<TNode, T>(
 
 	// create master group
 	const hGroup = fork(hParent) as MountingGroup<TNode>;
+	const context = getContextContainer();
 
 	const { adapter } = hGroup;
 	const shouldBatch = Boolean(adapter.batch);
@@ -119,6 +121,7 @@ export function Iterator<TNode, T>(
 							/* isBatch = */ false,
 						);
 
+						setContextContainer(context);
 						mount(
 							/* jsx = */ withLifecycle(item, template, (item.$data = change.newItem)),
 							/* hGroup = */ item,
@@ -161,6 +164,7 @@ export function Iterator<TNode, T>(
 							/* isBatch = */ isLocalBatch,
 						);
 
+						setContextContainer(context);
 						mount(
 							/* jsx = */ withLifecycle(item, template, item.$data),
 							/* hGroup = */ item,
@@ -238,6 +242,8 @@ export function Iterator<TNode, T>(
 			item = (newItems[tmp.$index] = recycled[ri--]);
 			updateProxy(item.$data, tmp.$item, proxyKeys!);
 			track(item, hGroup, ref = newItems[tmp.$index + 1]);
+
+			setContextContainer(context);
 			mount(
 				/* jsx = */ withLifecycle(item, template, item.$data),
 				/* hGroup = */ item,
