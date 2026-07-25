@@ -1,4 +1,4 @@
-import { getLifecycle, peek, unmounted, withLifecycle, type ElementsType, type ExtensionProps, type Lifecycle, type MaybeReadonlyAtom, type Nil, type NodeType } from "@calmdown/pyxis/core";
+import { getLifecycle, peek, unmounted, withLifecycle, type ElementsType, type ExtensionProps, type Lifecycle, type MaybeReadonlyAtom, type Nil, type NodeType, type S_ATOM } from "@calmdown/pyxis/core";
 
 export interface EventExtensionType {
 	<TExtensionKey extends string, TElements extends ElementsType>(extensionKey: TExtensionKey, elements: TElements): {
@@ -14,12 +14,12 @@ export interface EventExtensionType {
 
 export type EventListenerType<TEvent, TNode = EventTarget, TEventName = string> =
 	| MaybeReadonlyAtom<Nil<(e: ExtendedEvent<TEvent, TNode, TEventName>) => void>>
-	| (AddEventListenerOptions & { capture?: false } & {
+	| {
+		readonly capture?: boolean;
+		readonly once?: boolean;
+		readonly passive?: boolean;
 		readonly listener: MaybeReadonlyAtom<Nil<(e: ExtendedEvent<TEvent, TNode, TEventName>) => void>>;
-	})
-	| (AddEventListenerOptions & { capture: true } & {
-		readonly listener: MaybeReadonlyAtom<Nil<(e: ExtendedEvent<TEvent, EventTarget | null, TEventName>) => void>>;
-	});
+	};
 
 export type ExtendedEvent<TEvent, TNode = EventTarget, TEventName = string> =
 	& Omit<TEvent, "type" | "currentTarget">
