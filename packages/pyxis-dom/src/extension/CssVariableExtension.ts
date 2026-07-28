@@ -1,15 +1,15 @@
-import { bind, isAtom, type ElementsType, type ExtensionProps, type MaybeReadonlyAtom, type MountingGroup, type Nil, type NodeType } from "@calmdown/pyxis/core";
+import { bind, isAtom, type ElementsType, type ExtensionProps, type MaybeReadAtom, type MountingGroup, type Nil, type NodeType } from "@calmdown/pyxis/core";
 
 export interface CssVariableExtensionType {
 	<TExtensionKey extends string, TElements extends ElementsType>(extensionKey: TExtensionKey, elements: TElements): {
 		[TElementName in keyof TElements]: (
 			NodeType<TElements[TElementName]> extends ElementCSSInlineStyle
-				? TElements[TElementName] & ExtensionProps<TExtensionKey, { readonly [TVarName in string]?: MaybeReadonlyAtom<Nil<string | number>> }>
+				? TElements[TElementName] & ExtensionProps<TExtensionKey, { readonly [TVarName in string]?: MaybeReadAtom<Nil<string | number>> }>
 				: TElements[TElementName]
 		);
 	};
 
-	set: (node: ElementCSSInlineStyle, varName: string, value: MaybeReadonlyAtom<Nil<string | number>>, group: MountingGroup<Node>) => void;
+	set: (node: ElementCSSInlineStyle, varName: string, value: MaybeReadAtom<Nil<string | number>>, group: MountingGroup<Node>) => void;
 }
 
 /**

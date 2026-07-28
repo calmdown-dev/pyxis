@@ -14,7 +14,7 @@ export const S_ATOM: unique symbol = __DEV__ ? Symbol.for("pyxis:atom") : Symbol
 
 
 /** Contract for Atoms where they need to be read. */
-export interface ReadonlyAtom<out T> extends DependencyList {
+export interface ReadAtom<out T> extends DependencyList {
 	/** Pyxis Atom type guard marker. */
 	readonly [S_ATOM]: true;
 
@@ -35,7 +35,7 @@ export interface ReadonlyAtom<out T> extends DependencyList {
  * @see {@link read}
  * @see {@link write}
  */
-export interface Atom<T = unknown> extends ReadonlyAtom<T> {
+export interface Atom<T = unknown> extends ReadAtom<T> {
 	/**
 	 * Sets the value of this Atom. Does nothing if this Atom is readonly. Only use this method when
 	 * the target is guaranteed to be an Atom, otherwise it is recommended to use the `write` or
@@ -95,7 +95,7 @@ export type MaybeAtom<T> = Atom<T> | T;
  * @see {@link peek}
  * @see {@link isAtom}
  */
-export type MaybeReadonlyAtom<T> = ReadonlyAtom<T> | T;
+export type MaybeReadAtom<T> = ReadAtom<T> | T;
 
 /**
  * Creates an empty Atom; i.e. value set to `undefined`.
@@ -160,7 +160,7 @@ function setValue<T>(this: DirectAtom<T>, value: T) {
  * Atom type guard, checks if the provided input is an Atom.
  */
 export function isAtom<T = unknown>(input: Nil<MaybeAtom<T>>): input is Atom<T>;
-export function isAtom<T = unknown>(input: Nil<MaybeReadonlyAtom<T>>): input is ReadonlyAtom<T>;
+export function isAtom<T = unknown>(input: Nil<MaybeReadAtom<T>>): input is ReadAtom<T>;
 export function isAtom<T = unknown>(input: unknown): input is Atom<T>;
 export function isAtom(input: unknown): input is Atom<any> {
 	return (
@@ -178,8 +178,8 @@ export function isAtom(input: unknown): input is Atom<any> {
  * @see {@link peek}
  * @see {@link update}
  */
-export function read<A>(input: A): A extends MaybeReadonlyAtom<infer T> ? T : never;
-export function read<T>(input: MaybeReadonlyAtom<T>) {
+export function read<A>(input: A): A extends MaybeReadAtom<infer T> ? T : never;
+export function read<T>(input: MaybeReadAtom<T>) {
 	if (isAtom<T>(input)) {
 		reportAccess(input);
 		return input.get();
@@ -196,8 +196,8 @@ export function read<T>(input: MaybeReadonlyAtom<T>) {
  * @see {@link write}
  * @see {@link update}
  */
-export function peek<A>(input: A): A extends MaybeReadonlyAtom<infer T> ? T : never;
-export function peek<T>(input: MaybeReadonlyAtom<T>): T {
+export function peek<A>(input: A): A extends MaybeReadAtom<infer T> ? T : never;
+export function peek<T>(input: MaybeReadAtom<T>): T {
 	if (isAtom<T>(input)) {
 		return input.get();
 	}

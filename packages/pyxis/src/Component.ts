@@ -1,5 +1,5 @@
 import type { S_TAG_NAME } from "~/component/Native";
-import type { MaybeReadonlyAtom } from "~/data/Atom";
+import type { MaybeReadAtom } from "~/data/Atom";
 import { getContextContainer, setContextContainer } from "~/data/Context";
 import { unmounted } from "~/data/Lifecycle";
 import type { Nil, PropsType } from "~/support/types";
@@ -128,7 +128,7 @@ export type JsxChildrenProp<T> = T extends readonly [ any, any, ...any[] ]
 /**
  * Primitive types accepted to render as text.
  */
-export type JsxText = MaybeReadonlyAtom<Nil<string | number | boolean | bigint>>;
+export type JsxText = MaybeReadAtom<Nil<string | number | boolean | bigint>>;
 
 /**
  * Describes the objects returned by JSX factories.

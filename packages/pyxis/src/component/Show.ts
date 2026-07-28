@@ -1,4 +1,4 @@
-import { isAtom, read, type MaybeAtom, type ReadonlyAtom } from "~/data/Atom";
+import { isAtom, read, type MaybeAtom, type ReadAtom } from "~/data/Atom";
 import { getContextContainer, setContextContainer } from "~/data/Context";
 import { link } from "~/data/Dependency";
 import { effect } from "~/data/Effect";
@@ -17,14 +17,14 @@ export interface ShowDataProps<T> {
 	when?: MaybeAtom<boolean>;
 	proxy?: never;
 	data: MaybeAtom<T>;
-	children: [ template: DataTemplate<T> | ReadonlyAtom<Nil<DataTemplate<T>>> ];
+	children: [ template: DataTemplate<T> | ReadAtom<Nil<DataTemplate<T>>> ];
 }
 
 export interface ShowProxyDataProps<T, P extends readonly (keyof T)[]> {
 	when?: MaybeAtom<boolean>;
 	proxy: P;
 	data: MaybeAtom<T>;
-	children: [ template: DataTemplate<Proxied<T, P>> | ReadonlyAtom<Nil<DataTemplate<Proxied<T, P>>>> ];
+	children: [ template: DataTemplate<Proxied<T, P>> | ReadAtom<Nil<DataTemplate<Proxied<T, P>>>> ];
 }
 
 /**

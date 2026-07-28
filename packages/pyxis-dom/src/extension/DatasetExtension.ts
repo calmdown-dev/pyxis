@@ -1,15 +1,15 @@
-import { bind, isAtom, type ElementsType, type ExtensionProps, type MaybeReadonlyAtom, type MountingGroup, type NodeType } from "@calmdown/pyxis/core";
+import { bind, isAtom, type ElementsType, type ExtensionProps, type MaybeReadAtom, type MountingGroup, type NodeType } from "@calmdown/pyxis/core";
 
 export interface DatasetExtensionType {
 	<TExtensionKey extends string, TElements extends ElementsType>(extensionKey: TExtensionKey, elements: TElements): {
 		[TElementName in keyof TElements]: (
 			NodeType<TElements[TElementName]> extends HTMLOrSVGElement
-				? TElements[TElementName] & ExtensionProps<TExtensionKey, { readonly [TKey in string]?: MaybeReadonlyAtom<string | undefined> }>
+				? TElements[TElementName] & ExtensionProps<TExtensionKey, { readonly [TKey in string]?: MaybeReadAtom<string | undefined> }>
 				: TElements[TElementName]
 		);
 	};
 
-	set: (node: HTMLOrSVGElement, key: string, value: MaybeReadonlyAtom<string | undefined>, group: MountingGroup<Node>) => void;
+	set: (node: HTMLOrSVGElement, key: string, value: MaybeReadAtom<string | undefined>, group: MountingGroup<Node>) => void;
 }
 
 /**
