@@ -1,8 +1,8 @@
 import { EOL } from "node:os";
-import * as path from "node:path";
+import * as Path from "node:path";
 
 import { buildCommand, Builder, Dispatcher, Env, NoOpReporter, parseArgs, Workspace } from "@calmdown/rolldown-workspace";
-import pyxis from "@calmdown/rollup-plugin-pyxis";
+import Pyxis from "@calmdown/rollup-plugin-pyxis";
 import { createServer } from "vite";
 
 const ServeCommand = buildCommand()
@@ -25,7 +25,7 @@ try {
 	const cmd = parseArgs(ServeCommand);
 
 	// discover workspace
-	const jail = path.join(import.meta.dirname, "../..");
+	const jail = Path.join(import.meta.dirname, "../..");
 	const { currentPackage } = await Workspace.discover({ jail });
 	if (!currentPackage) {
 		throw new Error("no package found");
@@ -55,7 +55,7 @@ try {
 	const target = targets[0];
 	const server = await createServer({
 		configFile: false,
-		cacheDir: path.join(currentPackage.directory, "./.vite"),
+		cacheDir: Path.join(currentPackage.directory, "./.vite"),
 		root: currentPackage.directory,
 		server: {
 			host: "0.0.0.0",
@@ -82,7 +82,7 @@ try {
 			transformer: "lightningcss",
 		},
 		plugins: [
-			pyxis({
+			Pyxis({
 				cssModules: true,
 				hmr: true,
 			}),

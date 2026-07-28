@@ -36,6 +36,9 @@ catalogs:
     vite:
       specifier: 8.1.4
       version: 8.1.4
+    yaml:
+      specifier: 2.9.0
+      version: 2.9.0
 
 overrides:
   rolldown: 1.2.0
@@ -80,6 +83,9 @@ importers:
       vite:
         specifier: 'catalog:'
         version: 8.1.4(@types/node@26.1.1)(yaml@2.9.0)
+      yaml:
+        specifier: 'catalog:'
+        version: 2.9.0
 
   packages/demo-app:
     dependencies:

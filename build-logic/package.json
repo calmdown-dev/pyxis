@@ -14,7 +14,8 @@
 	"bin": {
 		"bake": "./bin/bake.js",
 		"build": "./bin/build.js",
-		"serve": "./bin/serve.js"
+		"serve": "./bin/serve.js",
+		"versions": "./bin/versions.js"
 	},
 	"devDependencies": {
 		"@calmdown/rolldown-workspace": "catalog:",
@@ -25,6 +26,7 @@
 		"rolldown": "catalog:",
 		"rolldown-plugin-dts": "catalog:",
 		"typescript": "catalog:",
-		"vite": "catalog:"
+		"vite": "catalog:",
+		"yaml": "catalog:"
 	}
 }
