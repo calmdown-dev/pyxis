@@ -200,6 +200,7 @@ export class PyxisLoader {
 
 					self.resolverCache.set(virtualPath, entry);
 					self.resolverCache.set(originalPath, entry);
+					this.addWatchFile(originalPath);
 					return override;
 				},
 			},
