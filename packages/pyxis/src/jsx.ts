@@ -24,9 +24,8 @@ export function jsx(
 ) {
 	const { children } = props;
 
-	// the `jsx` (dynamic) variant is called without wrapping arrays around
-	// children, however it is also used for children provided from a variable
-	// which may itself be an array, so we have to check
+	// the `jsx` (dynamic) variant is called without wrapping arrays around children, however it is
+	// also used when children come from a variable, which may carry an array, so we have to check
 	props.children = children === undefined
 		? EMPTY_ARRAY
 		: Array.isArray(children)
@@ -66,8 +65,8 @@ export function jsxs(
 	props: any,
 	key?: any,
 ) {
-	// the `jsxs` (static) variant is called with a wrapping array around
-	// children, so we don't have to check it.
+	// the `jsxs` (static) variant is always given a wrapping array around children,
+	// so we don't have to check it
 
 	// put back the `key` prop
 	props.key ??= key;

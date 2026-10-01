@@ -25,5 +25,7 @@ export {
 	tock,
 	unmounted,
 	update,
-	write
+	updates,
+	write,
+	writes,
 } from "@calmdown/pyxis/core";

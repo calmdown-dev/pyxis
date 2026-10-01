@@ -174,8 +174,8 @@ export function isAtom(input: unknown): input is Atom<any> {
  * Checks if the provided input is an Atom and reads its value. Non-atom inputs are returned as-is.
  * Reports read access when inside an effect.
  * @see {@link isAtom}
- * @see {@link write}
  * @see {@link peek}
+ * @see {@link write}
  * @see {@link update}
  */
 export function read<A>(input: A): A extends MaybeReadAtom<infer T> ? T : never;
@@ -212,7 +212,7 @@ export function peek<T>(input: MaybeReadAtom<T>): T {
  * the input is returned as-is.
  * @see {@link isAtom}
  * @see {@link read}
- * @see {@link write}
+ * @see {@link peek}
  * @see {@link update}
  */
 export function write<A>(

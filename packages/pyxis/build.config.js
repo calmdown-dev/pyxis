@@ -11,6 +11,14 @@ Target.TypeScriptLibrary.build(target => {
 				__DEV__: "false",
 			},
 		},
+		treeshake: {
+			moduleSideEffects: [
+				{
+					test: /\/src\/dev\/PyxisHotReload.ts$/,
+					sideEffects: true,
+				},
+			],
+		},
 	});
 
 	target.pipelines.Code.plugin(Plugin.Copy

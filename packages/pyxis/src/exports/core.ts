@@ -16,7 +16,7 @@ export { tick, tock, type TickFn } from "~/data/Scheduler";
 
 export { RefExtension, type RefExtensionType, type RefFn } from "~/extension/RefExtension";
 
-export { peeks, reads } from "~/support/text";
+export { peeks, reads, updates, writes } from "~/support/atoms";
 export type { ElementsType, Nil, NodeType, PropsType, S_NODE_TYPE } from "~/support/types";
 
 export type { Adapter, Extension, ExtensionProps, ExtensionsType } from "~/Adapter";

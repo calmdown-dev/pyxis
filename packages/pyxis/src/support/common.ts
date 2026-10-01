@@ -11,3 +11,8 @@ export function invoke(callback: Callback<ArgsMax2>) {
 		callback.$a1,
 	);
 }
+
+/**
+ * Does absolutely nothing.
+ */
+export function noop() {}
