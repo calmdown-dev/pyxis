@@ -3,6 +3,7 @@ import type { Nil } from "~/support/types";
 import { getLifecycle, onUnmounted, setLifecycle, type Lifecycle } from "./Lifecycle";
 import { link, unlink, type Dependency, type DependencyList } from "./Dependency";
 import { scheduleTick, type UpdateCallback } from "./Scheduler";
+import { runtime } from "~/Runtime";
 
 export interface EffectBlock {
 	(): (() => void) | void;
@@ -101,8 +102,6 @@ function teardownEffect(effect: Effect<ReturnType<EffectBlock>>) {
 	effect.$dispose = null;
 }
 
-let $currentEffect: Effect<any> | null = null;
-
 /**
  * Resolves an Effect: runs user logic tracking accessed Atoms and updating dependency links.
  * Returned value is forwarded.
@@ -112,16 +111,16 @@ export function resolve<TEffect extends Effect<any>>(effect: TEffect): TEffect e
 	effect.$deps ??= new WeakMap();
 	effect.$cycle += 1;
 
-	const previousEffect = $currentEffect;
+	const previousEffect = runtime.e;
 	const previousLifecycle = setLifecycle(effect.$lifecycle);
-	$currentEffect = effect;
+	runtime.e = effect;
 
 	try {
 		return effect.$block();
 	}
 	finally {
 		setLifecycle(previousLifecycle);
-		$currentEffect = previousEffect;
+		runtime.e = previousEffect;
 	}
 }
 
@@ -130,28 +129,29 @@ export function resolve<TEffect extends Effect<any>>(effect: TEffect): TEffect e
  * @internal
  */
 export function reportAccess(atom: DependencyList) {
-	if (!$currentEffect || $currentEffect.$life !== $currentEffect.$lifecycle.$life) {
+	const currentEffect = runtime.e;
+	if (!currentEffect || currentEffect.$life !== currentEffect.$lifecycle.$life) {
 		return;
 	}
 
-	let dep = $currentEffect.$deps!.get(atom);
+	let dep = currentEffect.$deps!.get(atom);
 	if (dep) {
 		// refresh dependency to the current epoch
-		dep.$a1 = $currentEffect.$cycle;
+		dep.$a1 = currentEffect.$cycle;
 		if (!dep.$lifecycle) {
 			// dep has become temporarily stale and got unlinked while still lingering in the
 			// $deps WeakMap - that's okay, but must be re-linked now to work again
-			link($currentEffect.$lifecycle, atom, dep);
+			link(currentEffect.$lifecycle, atom, dep);
 		}
 	}
 	else {
-		link($currentEffect.$lifecycle, atom, dep = {
-			$fn: $currentEffect.$react,
-			$a0: $currentEffect,
-			$a1: $currentEffect.$cycle,
+		link(currentEffect.$lifecycle, atom, dep = {
+			$fn: currentEffect.$react,
+			$a0: currentEffect,
+			$a1: currentEffect.$cycle,
 		});
 
-		$currentEffect.$deps!.set(atom, dep);
+		currentEffect.$deps!.set(atom, dep);
 	}
 }
 
@@ -160,14 +160,14 @@ export function reportAccess(atom: DependencyList) {
  * by any effect that may otherwise be observing this code.
  */
 export function noEffect<T>(block: () => T) {
-	const previousEffect = $currentEffect;
-	$currentEffect = null;
+	const previousEffect = runtime.e;
+	runtime.e = null;
 
 	try {
 		return block();
 	}
 	finally {
-		$currentEffect = previousEffect;
+		runtime.e = previousEffect;
 	}
 }
 
@@ -176,10 +176,11 @@ export function noEffect<T>(block: () => T) {
  * Only used in development; In production, this function should be removed by the bundler.
  */
 export function __DEV__assertNotEffect() {
+	const currentEffect = runtime.e;
 	if (
-		$currentEffect &&
-		$currentEffect.$lifecycle === getLifecycle() &&
-		$currentEffect.$life === $currentEffect.$lifecycle.$life
+		currentEffect &&
+		currentEffect.$lifecycle === getLifecycle() &&
+		currentEffect.$life === currentEffect.$lifecycle.$life
 	) {
 		throw new Error("Attempt to create an Atom inside an effect block.");
 	}

@@ -1,10 +1,11 @@
-import type { S_TAG_NAME } from "~/component/Native";
 import type { MaybeReadAtom } from "~/data/Atom";
 import { getContextContainer, setContextContainer } from "~/data/Context";
 import { unmounted } from "~/data/Lifecycle";
 import type { Nil, PropsType } from "~/support/types";
 
-import { mount, mountJsx, S_COMPONENT, fork, unmount, type HNode, insert } from "./Renderer";
+import { mount, mountJsx, fork, unmount, type HNode, insert } from "./Renderer";
+import { runtime } from "./Runtime";
+import { S_COMPONENT, S_DEV_INFO, S_TAG_NAME } from "./symbols";
 
 /**
  * Represents a Pyxis Component function responsible for setting up a view model and returning a
@@ -38,7 +39,7 @@ export function component(
 	let devId: string | undefined; // gets removed by bundler in production
 	if (__DEV__) {
 		devId = arguments[1];
-		devId && globalThis.__PYXIS_HMR__.component.upsert(devId, block);
+		devId && runtime.hmr!.component.upsert(devId, block);
 	}
 
 	return (jsx, hParent, nUsedParent, nRealParent, nBefore, isBatch) => {
@@ -55,7 +56,7 @@ export function component(
 				const nMarker = hGroup.adapter.marker(`/${devId}`);
 				insert(nMarker, null, hParent, nUsedParent, nBefore, isBatch);
 
-				const unsubscribe = globalThis.__PYXIS_HMR__.component.subscribe(devId, impl => {
+				const unsubscribe = runtime.hmr!.component.subscribe(devId, impl => {
 					unmount(hGroup);
 
 					setContextContainer(context);
@@ -143,12 +144,19 @@ export type JsxText = MaybeReadAtom<Nil<string | number | boolean | bigint>>;
 export interface JsxObject {
 	[propName: string]: unknown;
 	readonly children: readonly unknown[];
+	readonly [S_DEV_INFO]?: JsxDevSourceInfo;
 
 	/** @internal */
 	readonly [S_COMPONENT]: ComponentHandler;
 
 	/** @internal */
 	readonly [S_TAG_NAME]?: string;
+}
+
+export interface JsxDevSourceInfo {
+	readonly fileName: string;
+	readonly lineNumber: number;
+	readonly columnNumber: number;
 }
 
 /**

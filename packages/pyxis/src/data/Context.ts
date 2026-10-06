@@ -1,6 +1,8 @@
 import type { Nil } from "~/support/types";
+import { runtime } from "~/Runtime";
+import { S_ATOM } from "~/symbols";
 
-import { notify, S_ATOM, type Atom } from "./Atom";
+import { notify, type Atom } from "./Atom";
 import { link, unlink, type Dependency } from "./Dependency";
 import { __DEV__assertNotEffect } from "./Effect";
 import { getLifecycle } from "./Lifecycle";
@@ -31,8 +33,8 @@ export function createContext<T>(): Context<T> {
 	let $symbol = Symbol();
 	if (__DEV__) {
 		const devId = arguments[0];
-		$symbol = globalThis.__PYXIS_HMR__.state.restore(createContext, devId) ?? $symbol;
-		globalThis.__PYXIS_HMR__.state.preserve(createContext, devId, $symbol);
+		$symbol = runtime.hmr!.state.restore(createContext, devId) ?? $symbol;
+		runtime.hmr!.state.preserve(createContext, devId, $symbol);
 	}
 
 	return { $symbol };
@@ -42,21 +44,18 @@ export function createContext<T>(): Context<T> {
 /** @internal */
 export interface ContextContainer {
 	[key: symbol]: unknown;
-	readonly $parent?: Nil<ContextContainer>;
+	readonly $parent: ContextContainer | null;
 }
-
-let $currentContainer: ContextContainer | null = null;
-let $isNewContainer = false;
 
 /** @internal */
 export function getContextContainer() {
-	return $currentContainer;
+	return runtime.c;
 }
 
 /** @internal */
 export function setContextContainer(container: ContextContainer | null) {
-	$currentContainer = container;
-	$isNewContainer = false;
+	runtime.c = container;
+	runtime.n = false;
 }
 
 
@@ -76,7 +75,7 @@ export function consumerOf<T>(context: Context<T>): Atom<T> | null {
 	}
 
 	const { $symbol } = context;
-	let ptr: Nil<ContextContainer> = $currentContainer;
+	let ptr: Nil<ContextContainer> = runtime.c;
 	let atom;
 	while (ptr && !(atom = ptr[$symbol] as Atom<T> | undefined)) {
 		ptr = ptr.$parent;
@@ -102,18 +101,18 @@ export function host<T>(context: Context<T>, defaultValue?: T) {
 		__DEV__assertNotEffect();
 	}
 
-	if (!$isNewContainer || !$currentContainer) {
+	if (!runtime.n || !runtime.c) {
 		// split context, current component becomes a host
-		$isNewContainer = true;
-		$currentContainer = {
-			$parent: $currentContainer,
+		runtime.n = true;
+		runtime.c = {
+			$parent: runtime.c,
 		};
 	}
 
 	const lifecycle = getLifecycle();
 	if (__DEV__) {
 		const devId = arguments[2];
-		globalThis.__PYXIS_HMR__.state.restore(lifecycle, devId, value => {
+		runtime.hmr!.state.restore(lifecycle, devId, value => {
 			defaultValue = value;
 		});
 	}
@@ -141,12 +140,12 @@ export function host<T>(context: Context<T>, defaultValue?: T) {
 
 	if (__DEV__) {
 		localAtom.$devId = arguments[2];
-		if (Object.hasOwn($currentContainer, context.$symbol)) {
+		if (Object.hasOwn(runtime.c, context.$symbol)) {
 			throw new Error("Component declares multiple hosts of the same Context.");
 		}
 	}
 
-	$currentContainer[context.$symbol] = localAtom;
+	runtime.c[context.$symbol] = localAtom;
 	return localAtom;
 }
 
@@ -173,7 +172,7 @@ function setValue<T>(this: ContextAtom<T>, value: T) {
 
 	this.$value = value;
 	if (__DEV__) {
-		globalThis.__PYXIS_HMR__.state.preserve(this.$lifecycle, this.$devId, value);
+		runtime.hmr!.state.preserve(this.$lifecycle, this.$devId, value);
 	}
 
 	return !Object.is(oldValue, value);

@@ -1,5 +1,6 @@
 import { invoke } from "~/support/common";
 import type { Nil } from "~/support/types";
+import { runtime } from "~/Runtime";
 
 import { getLifecycle, type Lifecycle } from "./Lifecycle";
 import type { DependencyList } from "./Dependency";
@@ -146,7 +147,7 @@ export function listOf<T>(source?: Nil<Iterable<T>>, lifecycle = getLifecycle())
 		__DEV__assertNotEffect();
 
 		const devId = arguments[2];
-		globalThis.__PYXIS_HMR__.state.restore(lifecycle, devId, value => {
+		runtime.hmr!.state.restore(lifecycle, devId, value => {
 			if (Array.isArray(value)) {
 				source = value;
 			}
@@ -328,7 +329,7 @@ function defaultEquals<T>(item0: T, item1: T) {
 
 function listMutated(list: List<any>) {
 	if (__DEV__) {
-		globalThis.__PYXIS_HMR__.state.preserve(list.$lifecycle, list.$devId, list.$items);
+		runtime.hmr!.state.preserve(list.$lifecycle, list.$devId, list.$items);
 	}
 
 	scheduleTick(list.$lifecycle, list.$notify ??= {

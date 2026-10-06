@@ -1,4 +1,6 @@
-import { notify, S_ATOM, type Atom } from "./Atom";
+import { S_ATOM } from "~/symbols";
+
+import { notify, type Atom } from "./Atom";
 import { getLifecycle } from "./Lifecycle";
 import { unlink } from "./Dependency";
 import { __DEV__assertNotEffect, resolve, type Effect, type EffectDependency } from "./Effect";

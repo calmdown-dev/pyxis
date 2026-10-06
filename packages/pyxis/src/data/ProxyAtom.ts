@@ -1,6 +1,7 @@
 import type { Nil } from "~/support/types";
+import { S_ATOM } from "~/symbols";
 
-import { isAtom, notify, S_ATOM, type Atom, type MaybeAtom } from "./Atom";
+import { isAtom, notify, type Atom, type MaybeAtom } from "./Atom";
 import { link, unlink, type Dependency } from "./Dependency";
 import { __DEV__assertNotEffect } from "./Effect";
 import { getLifecycle, type Lifecycle } from "./Lifecycle";

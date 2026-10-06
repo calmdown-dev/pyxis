@@ -14,7 +14,7 @@ Target.TypeScriptLibrary.build(target => {
 		treeshake: {
 			moduleSideEffects: [
 				{
-					test: /\/src\/dev\/PyxisHotReload.ts$/,
+					test: /\/src\/Runtime.ts$/,
 					sideEffects: true,
 				},
 			],

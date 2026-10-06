@@ -39,6 +39,10 @@ export function pyxis<TNode, TIntrinsicElements extends ElementsType>(adapter: A
 	const builder = {
 		build: () => createRenderer(adapter, extensions),
 		extend: (extensionKey: string, extension: any) => {
+			if (__DEV__ && !/^[a-z_$][a-z0-9_$-]*$/i.test(extensionKey)) {
+				throw new Error(`invalid extension key: "${extensionKey}"`);
+			}
+
 			extensions[extensionKey] = extension;
 			return builder;
 		},

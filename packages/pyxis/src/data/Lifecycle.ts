@@ -1,4 +1,5 @@
 import type { Callback, Nil } from "~/support/types";
+import { runtime } from "~/Runtime";
 
 import type { DependencyList } from "./Dependency";
 import type { Scheduler } from "./Scheduler";
@@ -74,24 +75,21 @@ export function onUnmounted(lifecycle: Lifecycle, callback: Callback) {
 	(lifecycle.$onUnmount ??= []).push(callback);
 }
 
-
-let $currentLifecycle: Lifecycle | null = null;
-
 /**
  * Gets the Lifecycle of the calling component.
  */
 export function getLifecycle(): Lifecycle {
-	if (__DEV__ && !$currentLifecycle) {
+	if (__DEV__ && !runtime.l) {
 		throw new Error("Cannot get current lifecycle. Are you creating an Atom outside of a Component?");
 	}
 
-	return $currentLifecycle!;
+	return runtime.l!;
 }
 
 /** @internal */
 export function setLifecycle(lifecycle: Lifecycle | null): Lifecycle | null {
-	const previous = $currentLifecycle;
-	$currentLifecycle = lifecycle;
+	const previous = runtime.l;
+	runtime.l = lifecycle;
 	return previous;
 }
 
@@ -111,13 +109,13 @@ export function withLifecycle(
 	block: (arg: any) => any,
 	arg: any,
 ) {
-	const previousLifecycle = $currentLifecycle;
-	$currentLifecycle = lifecycle;
+	const previousLifecycle = runtime.l;
+	runtime.l = lifecycle;
 
 	try {
 		return block(arg);
 	}
 	finally {
-		$currentLifecycle = previousLifecycle;
+		runtime.l = previousLifecycle;
 	}
 }

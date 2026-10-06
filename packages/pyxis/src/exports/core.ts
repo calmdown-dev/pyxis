@@ -3,7 +3,7 @@ export { Iterator, type ProxyIteratorProps, type RemountIteratorProps } from "~/
 export { Native } from "~/component/Native";
 export { Show, type ShowProps } from "~/component/Show";
 
-export { atomOf, isAtom, peek, read, update, write, type Atom, type MaybeAtom, type MaybeReadAtom, type ReadAtom, type S_ATOM } from "~/data/Atom";
+export { atomOf, isAtom, peek, read, update, write, type Atom, type MaybeAtom, type MaybeReadAtom, type ReadAtom } from "~/data/Atom";
 export { consumerOf, createContext, host, type Context } from "~/data/Context";
 export { derived, type Derivation } from "~/data/Derivation";
 export { bind } from "~/data/Dependency";
@@ -21,6 +21,7 @@ export type { ElementsType, ElemName, Nil, NodeType, PropsType, S_ELEM_NAME, S_N
 
 export { ext, extension, type Adapter, type Extension, type ExtensionPropMapping, type ExtensionsType } from "~/Adapter";
 export { pyxis, type PyxisBuilder } from "~/Builder";
-export { component, type Component, type DataTemplate, type JsxChildren, type JsxChildrenProp, type JsxObject, type JsxProps, type JsxResult, type JsxText, type PropsOf, type WithChildren } from "~/Component";
+export { component, type Component, type DataTemplate, type JsxChildren, type JsxChildrenProp, type JsxDevSourceInfo, type JsxObject, type JsxProps, type JsxResult, type JsxText, type PropsOf, type WithChildren } from "~/Component";
 export { jsx, jsxs } from "~/jsx";
 export { insert, mount, mountJsx, fork, track, unmount, untrack, type ElementsOf, type HNode, type MountingGroup, type Renderer } from "~/Renderer";
+export type { S_ATOM } from "~/symbols";

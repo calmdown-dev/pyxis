@@ -1,17 +1,12 @@
 import { invoke } from "~/support/common";
 import type { Nil } from "~/support/types";
+import { runtime } from "~/Runtime";
+import { S_ATOM } from "~/symbols";
 
 import { getLifecycle, type Lifecycle } from "./Lifecycle";
 import { __DEV__assertNotEffect, reportAccess } from "./Effect";
 import { scheduleTick, type UpdateCallback } from "./Scheduler";
 import type { DependencyList } from "./Dependency";
-
-/**
- * Pyxis Atom type guard marker.
- */
-// @ts-expect-error this is a unique symbol at runtime
-export const S_ATOM: unique symbol = __DEV__ ? Symbol.for("pyxis:atom") : Symbol();
-
 
 /** Contract for Atoms where they need to be read. */
 export interface ReadAtom<out T> extends DependencyList {
@@ -131,7 +126,7 @@ export function atomOf<T>(initialValue?: MaybeAtom<T>, lifecycle = getLifecycle(
 	if (__DEV__) {
 		const devId = arguments[2];
 		atom.$devId = devId;
-		globalThis.__PYXIS_HMR__.state.restore(lifecycle, devId, value => {
+		runtime.hmr!.state.restore(lifecycle, devId, value => {
 			atom.$value = value;
 		});
 	}
@@ -150,7 +145,7 @@ function setValue<T>(this: DirectAtom<T>, value: T) {
 
 	this.$value = value;
 	if (__DEV__) {
-		globalThis.__PYXIS_HMR__.state.preserve(this.$lifecycle, this.$devId, value);
+		runtime.hmr!.state.preserve(this.$lifecycle, this.$devId, value);
 	}
 
 	return true;

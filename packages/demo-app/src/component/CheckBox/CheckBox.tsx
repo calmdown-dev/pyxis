@@ -1,9 +1,10 @@
-import { component, write, type WithChildren } from "@calmdown/pyxis";
+import { component, write, type MaybeAtom, type WithChildren } from "@calmdown/pyxis";
 
 import type { ExtendedProps } from "~/types";
 
 export type CheckBoxProps = ExtendedProps<"input", WithChildren<{
 	"on:input"?: never;
+	checked?: MaybeAtom<boolean>;
 	type?: never;
 	value?: never;
 }>>;

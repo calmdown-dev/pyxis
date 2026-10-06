@@ -1,7 +1,8 @@
-import { Native, S_TAG_NAME } from "~/component/Native";
+import { Native } from "~/component/Native";
 import type { PropsType } from "~/support/types";
 import type { Component, JsxResult } from "~/Component";
-import { S_COMPONENT } from "~/Renderer";
+
+import { S_COMPONENT, S_TAG_NAME } from "./symbols";
 
 const EMPTY_ARRAY = Object.freeze([] as const);
 

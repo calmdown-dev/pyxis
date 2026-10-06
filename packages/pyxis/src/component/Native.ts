@@ -1,13 +1,10 @@
 import { isAtom } from "~/data/Atom";
+import { bind } from "~/data/Dependency";
 import type { JsxObject } from "~/Component";
 import { insert, type HNode } from "~/Renderer";
-import { bind } from "~/data/Dependency";
+import { S_TAG_NAME } from "~/symbols";
 
 const RE_EXT = /^([^:]+?):(.+)$/;
-
-/** @internal */
-// @ts-expect-error this is a unique symbol at runtime
-export const S_TAG_NAME: unique symbol = __DEV__ ? Symbol.for("pyxis:tagName") : Symbol();
 
 export function Native<TNode>(
 	jsx: JsxObject,

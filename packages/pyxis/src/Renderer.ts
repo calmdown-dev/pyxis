@@ -1,17 +1,14 @@
 import { Text } from "~/component/Text";
 import { isAtom } from "~/data/Atom";
+import { unlinkAll } from "~/data/Dependency";
 import { setLifecycle, type Lifecycle } from "~/data/Lifecycle";
 import { createScheduler } from "~/data/Scheduler";
+import { invoke } from "~/support/common";
 import type { ElementsType, Mutable, Nil } from "~/support/types";
 
 import type { Adapter, ExtensionsType } from "./Adapter";
 import type { ComponentHandler, JsxResult } from "./Component";
-import { invoke } from "./support/common";
-import { unlinkAll } from "./data/Dependency";
-
-/** @internal */
-// @ts-expect-error this is a unique symbol at runtime
-export const S_COMPONENT: unique symbol = __DEV__ ? Symbol.for("pyxis:component") : Symbol();
+import { S_COMPONENT } from "./symbols";
 
 export interface Renderer<TNode, TIntrinsicElements extends ElementsType = ElementsType> extends Lifecycle {
 	/**
@@ -131,10 +128,6 @@ export function createRenderer<TNode, TIntrinsicElements extends ElementsType>(
 	};
 
 	hGroup.$ng = hGroup;
-	if (__DEV__) {
-		globalThis.__PYXIS_ROOT__ ??= hGroup;
-	}
-
 	return hGroup;
 }
 
