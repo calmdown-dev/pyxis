@@ -1,39 +1,25 @@
-import { isAtom, peek, read, update, write, type Atom, type MaybeAtom } from "~/data/Atom";
+import { isAtom, read, update, write, type Atom, type MaybeAtom } from "~/data/Atom";
 import type { JsxText } from "~/Component";
 
-import type { Nil } from "./types";
 import { noop } from "./common";
+import { derived } from '~/data/Derivation';
 
-function tag(
-	access: (value: JsxText) => Nil<string | number | bigint | boolean>,
-	strings: TemplateStringsArray,
-	values: readonly JsxText[],
-): string {
+/**
+ * A template string tag that creates a Derivation Atom from the tagged template. The derivation
+ * automatically observes any Atoms among substitutions and updates the resulting string whenever
+ * one or more of these Atoms change.
+ */
+export function text(strings: TemplateStringsArray, ...values: JsxText[]) {
 	const { length } = values;
+	return derived(() => {
+		let index = 0;
+		let text = strings[0];
+		while (index < length) {
+			text += read(values[index]) + strings[++index];
+		}
 
-	let index = 0;
-	let text = strings[0];
-	while (index < length) {
-		text += access(values[index]) + strings[++index];
-	}
-
-	return text;
-}
-
-/**
- * A template literal tag that automatically wraps each substitution in a {@link read} call.
- * @see {@link read}
- */
-export function reads(strings: TemplateStringsArray, ...values: JsxText[]) {
-	return tag(read, strings, values);
-}
-
-/**
- * A template literal tag that automatically wraps each substitution in a {@link peek} call.
- * @see {@link peek}
- */
-export function peeks(strings: TemplateStringsArray, ...values: JsxText[]) {
-	return tag(peek, strings, values);
+		return text;
+	});
 }
 
 /**
