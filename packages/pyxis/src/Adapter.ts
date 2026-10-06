@@ -1,5 +1,5 @@
 import type { TickFn } from "~/data/Scheduler";
-import type { ElementsType } from "~/support/types";
+import type { ElementsType, S_ELEM_NAME, S_NODE_TYPE } from "~/support/types";
 
 import type { MountingGroup } from "./Renderer";
 
@@ -119,4 +119,21 @@ export function extension<TNode, TPropMapping extends ExtensionPropMapping<TNode
 	propSetter: Extension<TNode>["set"],
 ): Extension<TNode, TPropMapping> {
 	return { set: propSetter };
+}
+
+/**
+ * Builds a set of extension props using an Extension reference rather than relying on a globally
+ * registered prefixed extension props. The resulting object is intended to be ...spread directly
+ * onto JSX elements.
+ *
+ * Typically used in libraries where relying on a specific prefix convention would limit the users.
+ */
+export function ext<TMapping extends ExtensionPropMapping<any>, TNodeType, TElemName>(
+	extension: { readonly $mapping?: TMapping },
+	props: (TMapping & { node: TNodeType; name: TElemName; })["extension"],
+): {
+	readonly [S_NODE_TYPE]?: TNodeType;
+	readonly [S_ELEM_NAME]?: TElemName;
+} {
+	return null!; // TODO
 }

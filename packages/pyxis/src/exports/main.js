@@ -10,6 +10,7 @@ export {
 	createContext,
 	derived,
 	effect,
+	ext,
 	host,
 	isAtom,
 	listOf,

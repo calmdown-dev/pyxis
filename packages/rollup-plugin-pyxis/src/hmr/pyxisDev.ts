@@ -42,7 +42,7 @@ export function pyxisDev({ loader, options }: PyxisDevInit): Plugin {
 				}
 
 				return resolvedCoreDev ??= await loader.resolve({
-					source,
+					source: coreDev,
 					importer,
 					options: extraOptions,
 				});

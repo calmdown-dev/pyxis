@@ -1,5 +1,8 @@
 /** @preserve */
-import type { JsxChildren, MaybeReadAtom, Nil, S_NODE_TYPE } from "@calmdown/pyxis/core";
+import type { JsxChildren, MaybeReadAtom, S_ELEM_NAME, S_NODE_TYPE } from "@calmdown/pyxis/core";
+
+// pyxis imports, not @preserve'd
+import type { Nil } from "@calmdown/pyxis/core";
 
 import type { PROP_MAP } from "./mapping";
 
@@ -52,6 +55,10 @@ type Finalize<T> = { readonly [K in keyof T]?: T[K] };
 
 interface NodeTypeProp<T> {
 	readonly [S_NODE_TYPE]?: T;
+}
+
+interface ElemNameProp<N extends string> {
+	readonly [S_ELEM_NAME]?: N;
 }
 
 interface ChildrenProp {
@@ -162,8 +169,8 @@ export type ARIAProps = Finalize<WrapProps<ARIAMixin>>;
 
 // #region HTML
 
-type HTMLProps<T, O = {}> = Finalize<NodeTypeProp<T> & ChildrenProp & Omit<HTMLRawProps<T, O>, keyof HTMLGlobalProps>>;
-type HTMLPropsNoChildren<T, O = {}> = Finalize<NodeTypeProp<T> & NoChildrenProp & Omit<HTMLRawProps<T, O>, keyof HTMLGlobalProps>>;
+type HTMLProps<T, N extends string, O = {}> = Finalize<NodeTypeProp<T> & ElemNameProp<N> & ChildrenProp & Omit<HTMLRawProps<T, O>, keyof HTMLCommonProps>>;
+type HTMLPropsNoChildren<T, N extends string, O = {}> = Finalize<NodeTypeProp<T> & ElemNameProp<N> & NoChildrenProp & Omit<HTMLRawProps<T, O>, keyof HTMLCommonProps>>;
 type HTMLRawProps<T, O> = MapProps<WrapProps<ApplyOverrides<Omit<OmitFunctions<OmitReadonly<OmitIndex<T>>>, keyof ARIAProps>, HTMLPropOverrides & O>>, typeof PROP_MAP>;
 
 interface HTMLPropOverrides {
@@ -180,467 +187,467 @@ interface HTMLPropOverrides {
 }
 
 /** @bake */
-export type HTMLGlobalProps = Finalize<HTMLRawProps<HTMLElement, {}>>;
+export type HTMLCommonProps = Finalize<HTMLRawProps<HTMLElement, {}>>;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLAnchorElementProps = HTMLProps<HTMLAnchorElement, {
+export type HTMLAnchorElementProps = HTMLProps<HTMLAnchorElement, "a", {
 	relList: string;
 }>;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLAreaElementProps = HTMLPropsNoChildren<HTMLAreaElement, {
+export type HTMLAreaElementProps = HTMLPropsNoChildren<HTMLAreaElement, "area", {
 	relList: string;
 }>;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLAudioElementProps = HTMLProps<HTMLAudioElement>;
+export type HTMLAudioElementProps = HTMLProps<HTMLAudioElement, "audio">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLBaseElementProps = HTMLPropsNoChildren<HTMLBaseElement>;
+export type HTMLBaseElementProps = HTMLPropsNoChildren<HTMLBaseElement, "base">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLElementProps = HTMLProps<HTMLElement>;
+export type HTMLElementProps<N extends "abbr" | "address" | "article" | "aside" | "b" | "bdi" | "bdo" | "cite" | "code" | "dd" | "dfn" | "dt" | "em" | "figcaption" | "figure" | "footer" | "header" | "hgroup" | "i" | "kbd" | "main" | "mark" | "nav" | "noscript" | "rp" | "rt" | "ruby" | "s" | "samp" | "search" | "section" | "small" | "strong" | "sub" | "summary" | "sup" | "u" | "var"> = HTMLProps<HTMLElement, N>;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLQuoteElementProps = HTMLProps<HTMLQuoteElement>;
+export type HTMLQuoteElementProps<N extends "blockquote" | "q"> = HTMLProps<HTMLQuoteElement, N>;
 
 // /**
 //  * @bake
-//  * @extends HTMLGlobalProps
+//  * @extends HTMLCommonProps
 //  */
 // export type HTMLBodyElementProps = HTMLProps<HTMLBodyElement>;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLBRElementProps = HTMLPropsNoChildren<HTMLBRElement>;
+export type HTMLBRElementProps = HTMLPropsNoChildren<HTMLBRElement, "br">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLButtonElementProps = HTMLProps<HTMLButtonElement>;
+export type HTMLButtonElementProps = HTMLProps<HTMLButtonElement, "button">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLCanvasElementProps = HTMLProps<HTMLCanvasElement>;
+export type HTMLCanvasElementProps = HTMLProps<HTMLCanvasElement, "canvas">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLTableCaptionElementProps = HTMLProps<HTMLTableCaptionElement>;
+export type HTMLTableCaptionElementProps = HTMLProps<HTMLTableCaptionElement, "caption">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLTableColElementProps = HTMLPropsNoChildren<HTMLTableColElement>;
+export type HTMLTableColElementProps<N extends "col" | "colgroup"> = HTMLPropsNoChildren<HTMLTableColElement, N>;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLDataElementProps = HTMLProps<HTMLDataElement>;
+export type HTMLDataElementProps = HTMLProps<HTMLDataElement, "data">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLDataListElementProps = HTMLProps<HTMLDataListElement>;
+export type HTMLDataListElementProps = HTMLProps<HTMLDataListElement, "datalist">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLModElementProps = HTMLProps<HTMLModElement>;
+export type HTMLModElementProps<N extends "del" | "ins"> = HTMLProps<HTMLModElement, N>;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLDetailsElementProps = HTMLProps<HTMLDetailsElement>;
+export type HTMLDetailsElementProps = HTMLProps<HTMLDetailsElement, "details">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLDialogElementProps = HTMLProps<HTMLDialogElement>;
+export type HTMLDialogElementProps = HTMLProps<HTMLDialogElement, "dialog">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLDivElementProps = HTMLProps<HTMLDivElement>;
+export type HTMLDivElementProps = HTMLProps<HTMLDivElement, "div">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLDListElementProps = HTMLProps<HTMLDListElement>;
+export type HTMLDListElementProps = HTMLProps<HTMLDListElement, "dl">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLEmbedElementProps = HTMLPropsNoChildren<HTMLEmbedElement>;
+export type HTMLEmbedElementProps = HTMLPropsNoChildren<HTMLEmbedElement, "embed">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLFieldSetElementProps = HTMLProps<HTMLFieldSetElement>;
+export type HTMLFieldSetElementProps = HTMLProps<HTMLFieldSetElement, "fieldset">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLFormElementProps = HTMLProps<HTMLFormElement, {
+export type HTMLFormElementProps = HTMLProps<HTMLFormElement, "form", {
 	relList: string;
 }>;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLHeadingElementProps = HTMLProps<HTMLHeadingElement>;
+export type HTMLHeadingElementProps<N extends "h1" | "h2" | "h3" | "h4" | "h5" | "h6"> = HTMLProps<HTMLHeadingElement, N>;
 
 // /**
 //  * @bake
-//  * @extends HTMLGlobalProps
+//  * @extends HTMLCommonProps
 //  */
-// export type HTMLHeadElementProps = HTMLProps<HTMLHeadElement>;
+// export type HTMLHeadElementProps = HTMLProps<HTMLHeadElement, "head">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLHRElementProps = HTMLPropsNoChildren<HTMLHRElement>;
+export type HTMLHRElementProps = HTMLPropsNoChildren<HTMLHRElement, "hr">;
 
 // /**
 //  * @bake
-//  * @extends HTMLGlobalProps
+//  * @extends HTMLCommonProps
 //  */
-// export type HTMLHtmlElementProps = HTMLProps<HTMLHtmlElement>;
+// export type HTMLHtmlElementProps = HTMLProps<HTMLHtmlElement, "html">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLIFrameElementProps = HTMLProps<HTMLIFrameElement>;
+export type HTMLIFrameElementProps = HTMLProps<HTMLIFrameElement, "iframe">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLImageElementProps = HTMLPropsNoChildren<HTMLImageElement>;
+export type HTMLImageElementProps = HTMLPropsNoChildren<HTMLImageElement, "img">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLInputElementProps = HTMLPropsNoChildren<HTMLInputElement>;
+export type HTMLInputElementProps = HTMLPropsNoChildren<HTMLInputElement, "input">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLLabelElementProps = HTMLProps<HTMLLabelElement>;
+export type HTMLLabelElementProps = HTMLProps<HTMLLabelElement, "label">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLLegendElementProps = HTMLProps<HTMLLegendElement>;
+export type HTMLLegendElementProps = HTMLProps<HTMLLegendElement, "legend">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLLIElementProps = HTMLProps<HTMLLIElement>;
+export type HTMLLIElementProps = HTMLProps<HTMLLIElement, "li">;
 
 // /**
 //  * @bake
-//  * @extends HTMLGlobalProps
+//  * @extends HTMLCommonProps
 //  */
-// export type HTMLLinkElementProps = HTMLPropsNoChildren<HTMLLinkElement>;
+// export type HTMLLinkElementProps = HTMLPropsNoChildren<HTMLLinkElement, "link">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLMapElementProps = HTMLProps<HTMLMapElement>;
+export type HTMLMapElementProps = HTMLProps<HTMLMapElement, "map">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLMenuElementProps = HTMLProps<HTMLMenuElement>;
+export type HTMLMenuElementProps = HTMLProps<HTMLMenuElement, "menu">;
 
 // /**
 //  * @bake
-//  * @extends HTMLGlobalProps
+//  * @extends HTMLCommonProps
 //  */
-// export type HTMLMetaElementProps = HTMLPropsNoChildren<HTMLMetaElement>;
+// export type HTMLMetaElementProps = HTMLPropsNoChildren<HTMLMetaElement, "meta">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLMeterElementProps = HTMLProps<HTMLMeterElement>;
+export type HTMLMeterElementProps = HTMLProps<HTMLMeterElement, "meter">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLObjectElementProps = HTMLProps<HTMLObjectElement>;
+export type HTMLObjectElementProps = HTMLProps<HTMLObjectElement, "object">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLOListElementProps = HTMLProps<HTMLOListElement>;
+export type HTMLOListElementProps = HTMLProps<HTMLOListElement, "ol">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLOptGroupElementProps = HTMLProps<HTMLOptGroupElement>;
+export type HTMLOptGroupElementProps = HTMLProps<HTMLOptGroupElement, "optgroup">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLOptionElementProps = HTMLProps<HTMLOptionElement>;
+export type HTMLOptionElementProps = HTMLProps<HTMLOptionElement, "option">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLOutputElementProps = HTMLProps<HTMLOutputElement>;
+export type HTMLOutputElementProps = HTMLProps<HTMLOutputElement, "output">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLParagraphElementProps = HTMLProps<HTMLParagraphElement>;
+export type HTMLParagraphElementProps = HTMLProps<HTMLParagraphElement, "p">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLPictureElementProps = HTMLProps<HTMLPictureElement>;
+export type HTMLPictureElementProps = HTMLProps<HTMLPictureElement, "picture">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLPreElementProps = HTMLProps<HTMLPreElement>;
+export type HTMLPreElementProps = HTMLProps<HTMLPreElement, "pre">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLProgressElementProps = HTMLProps<HTMLProgressElement>;
+export type HTMLProgressElementProps = HTMLProps<HTMLProgressElement, "progress">;
 
 // /**
 //  * @bake
-//  * @extends HTMLGlobalProps
+//  * @extends HTMLCommonProps
 //  */
-// export type HTMLScriptElementProps = HTMLProps<HTMLScriptElement>;
+// export type HTMLScriptElementProps = HTMLProps<HTMLScriptElement, "script">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLSelectElementProps = HTMLProps<HTMLSelectElement>;
+export type HTMLSelectElementProps = HTMLProps<HTMLSelectElement, "select">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLSlotElementProps = HTMLProps<HTMLSlotElement>;
+export type HTMLSlotElementProps = HTMLProps<HTMLSlotElement, "slot">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLSourceElementProps = HTMLPropsNoChildren<HTMLSourceElement>;
+export type HTMLSourceElementProps = HTMLPropsNoChildren<HTMLSourceElement, "source">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLSpanElementProps = HTMLProps<HTMLSpanElement>;
+export type HTMLSpanElementProps = HTMLProps<HTMLSpanElement, "span">;
 
 // /**
 //  * @bake
-//  * @extends HTMLGlobalProps
+//  * @extends HTMLCommonProps
 //  */
-// export type HTMLStyleElementProps = HTMLProps<HTMLStyleElement>;
+// export type HTMLStyleElementProps = HTMLProps<HTMLStyleElement, "style">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLTableElementProps = HTMLProps<HTMLTableElement>;
+export type HTMLTableElementProps = HTMLProps<HTMLTableElement, "table">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLTableSectionElementProps = HTMLProps<HTMLTableSectionElement>;
+export type HTMLTableSectionElementProps<N extends "tbody" | "tfoot" | "thead"> = HTMLProps<HTMLTableSectionElement, N>;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLTableCellElementProps = HTMLProps<HTMLTableCellElement>;
+export type HTMLTableCellElementProps<N extends "td" | "th"> = HTMLProps<HTMLTableCellElement, N>;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLTemplateElementProps = HTMLProps<HTMLTemplateElement>;
+export type HTMLTemplateElementProps = HTMLProps<HTMLTemplateElement, "template">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLTextAreaElementProps = HTMLProps<HTMLTextAreaElement>;
+export type HTMLTextAreaElementProps = HTMLProps<HTMLTextAreaElement, "textarea">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLTimeElementProps = HTMLProps<HTMLTimeElement>;
+export type HTMLTimeElementProps = HTMLProps<HTMLTimeElement, "time">;
 
 // /**
 //  * @bake
-//  * @extends HTMLGlobalProps
+//  * @extends HTMLCommonProps
 //  */
-// export type HTMLTitleElementProps = HTMLProps<HTMLTitleElement>;
+// export type HTMLTitleElementProps = HTMLProps<HTMLTitleElement, "title">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLTableRowElementProps = HTMLProps<HTMLTableRowElement>;
+export type HTMLTableRowElementProps = HTMLProps<HTMLTableRowElement, "tr">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLTrackElementProps = HTMLPropsNoChildren<HTMLTrackElement>;
+export type HTMLTrackElementProps = HTMLPropsNoChildren<HTMLTrackElement, "track">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLUListElementProps = HTMLProps<HTMLUListElement>;
+export type HTMLUListElementProps = HTMLProps<HTMLUListElement, "ul">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLVideoElementProps = HTMLProps<HTMLVideoElement>;
+export type HTMLVideoElementProps = HTMLProps<HTMLVideoElement, "video">;
 
 /**
  * @bake
- * @extends HTMLGlobalProps
+ * @extends HTMLCommonProps
  */
-export type HTMLWbrElementProps = HTMLPropsNoChildren<HTMLElement>;
+export type HTMLWbrElementProps = HTMLPropsNoChildren<HTMLElement, "wbr">;
 
 /** @preserve */
 export interface HTMLIntrinsicElements {
 	a: HTMLAnchorElementProps;
-	abbr: HTMLElementProps;
-	address: HTMLElementProps;
+	abbr: HTMLElementProps<"abbr">;
+	address: HTMLElementProps<"address">;
 	area: HTMLAreaElementProps;
-	article: HTMLElementProps;
-	aside: HTMLElementProps;
+	article: HTMLElementProps<"article">;
+	aside: HTMLElementProps<"aside">;
 	audio: HTMLAudioElementProps;
-	b: HTMLElementProps;
+	b: HTMLElementProps<"b">;
 	base: HTMLBaseElementProps;
-	bdi: HTMLElementProps;
-	bdo: HTMLElementProps;
-	blockquote: HTMLQuoteElementProps;
+	bdi: HTMLElementProps<"bdi">;
+	bdo: HTMLElementProps<"bdo">;
+	blockquote: HTMLQuoteElementProps<"blockquote">;
 	// body: HTMLBodyElementProps;
 	br: HTMLBRElementProps;
 	button: HTMLButtonElementProps;
 	canvas: HTMLCanvasElementProps;
 	caption: HTMLTableCaptionElementProps;
-	cite: HTMLElementProps;
-	code: HTMLElementProps;
-	col: HTMLTableColElementProps;
-	colgroup: HTMLTableColElementProps;
+	cite: HTMLElementProps<"cite">;
+	code: HTMLElementProps<"code">;
+	col: HTMLTableColElementProps<"col">;
+	colgroup: HTMLTableColElementProps<"colgroup">;
 	data: HTMLDataElementProps;
 	datalist: HTMLDataListElementProps;
-	dd: HTMLElementProps;
-	del: HTMLModElementProps;
+	dd: HTMLElementProps<"dd">;
+	del: HTMLModElementProps<"del">;
 	details: HTMLDetailsElementProps;
-	dfn: HTMLElementProps;
+	dfn: HTMLElementProps<"dfn">;
 	dialog: HTMLDialogElementProps;
 	div: HTMLDivElementProps;
 	dl: HTMLDListElementProps;
-	dt: HTMLElementProps;
-	em: HTMLElementProps;
+	dt: HTMLElementProps<"dt">;
+	em: HTMLElementProps<"em">;
 	embed: HTMLEmbedElementProps;
 	fieldset: HTMLFieldSetElementProps;
-	figcaption: HTMLElementProps;
-	figure: HTMLElementProps;
-	footer: HTMLElementProps;
+	figcaption: HTMLElementProps<"figcaption">;
+	figure: HTMLElementProps<"figure">;
+	footer: HTMLElementProps<"footer">;
 	form: HTMLFormElementProps;
-	h1: HTMLHeadingElementProps;
-	h2: HTMLHeadingElementProps;
-	h3: HTMLHeadingElementProps;
-	h4: HTMLHeadingElementProps;
-	h5: HTMLHeadingElementProps;
-	h6: HTMLHeadingElementProps;
+	h1: HTMLHeadingElementProps<"h1">;
+	h2: HTMLHeadingElementProps<"h2">;
+	h3: HTMLHeadingElementProps<"h3">;
+	h4: HTMLHeadingElementProps<"h4">;
+	h5: HTMLHeadingElementProps<"h5">;
+	h6: HTMLHeadingElementProps<"h6">;
 	// head: HTMLHeadElementProps;
-	header: HTMLElementProps;
-	hgroup: HTMLElementProps;
+	header: HTMLElementProps<"header">;
+	hgroup: HTMLElementProps<"hgroup">;
 	hr: HTMLHRElementProps;
 	// html: HTMLHtmlElementProps;
-	i: HTMLElementProps;
+	i: HTMLElementProps<"i">;
 	iframe: HTMLIFrameElementProps;
 	img: HTMLImageElementProps;
 	input: HTMLInputElementProps;
-	ins: HTMLModElementProps;
-	kbd: HTMLElementProps;
+	ins: HTMLModElementProps<"ins">;
+	kbd: HTMLElementProps<"kbd">;
 	label: HTMLLabelElementProps;
 	legend: HTMLLegendElementProps;
 	li: HTMLLIElementProps;
 	// link: HTMLLinkElementProps;
-	main: HTMLElementProps;
+	main: HTMLElementProps<"main">;
 	map: HTMLMapElementProps;
-	mark: HTMLElementProps;
+	mark: HTMLElementProps<"mark">;
 	menu: HTMLMenuElementProps;
 	// meta: HTMLMetaElementProps;
 	meter: HTMLMeterElementProps;
-	nav: HTMLElementProps;
-	noscript: HTMLElementProps;
+	nav: HTMLElementProps<"nav">;
+	noscript: HTMLElementProps<"noscript">;
 	object: HTMLObjectElementProps;
 	ol: HTMLOListElementProps;
 	optgroup: HTMLOptGroupElementProps;
@@ -650,40 +657,40 @@ export interface HTMLIntrinsicElements {
 	picture: HTMLPictureElementProps;
 	pre: HTMLPreElementProps;
 	progress: HTMLProgressElementProps;
-	q: HTMLQuoteElementProps;
-	rp: HTMLElementProps;
-	rt: HTMLElementProps;
-	ruby: HTMLElementProps;
-	s: HTMLElementProps;
-	samp: HTMLElementProps;
+	q: HTMLQuoteElementProps<"q">;
+	rp: HTMLElementProps<"rp">;
+	rt: HTMLElementProps<"rt">;
+	ruby: HTMLElementProps<"ruby">;
+	s: HTMLElementProps<"s">;
+	samp: HTMLElementProps<"samp">;
 	// script: HTMLScriptElementProps;
-	search: HTMLElementProps;
-	section: HTMLElementProps;
+	search: HTMLElementProps<"search">;
+	section: HTMLElementProps<"section">;
 	select: HTMLSelectElementProps;
 	slot: HTMLSlotElementProps;
-	small: HTMLElementProps;
+	small: HTMLElementProps<"small">;
 	source: HTMLSourceElementProps;
 	span: HTMLSpanElementProps;
-	strong: HTMLElementProps;
+	strong: HTMLElementProps<"strong">;
 	// style: HTMLStyleElementProps;
-	sub: HTMLElementProps;
-	summary: HTMLElementProps;
-	sup: HTMLElementProps;
+	sub: HTMLElementProps<"sub">;
+	summary: HTMLElementProps<"summary">;
+	sup: HTMLElementProps<"sup">;
 	table: HTMLTableElementProps;
-	tbody: HTMLTableSectionElementProps;
-	td: HTMLTableCellElementProps;
+	tbody: HTMLTableSectionElementProps<"tbody">;
+	td: HTMLTableCellElementProps<"td">;
 	template: HTMLTemplateElementProps;
 	textarea: HTMLTextAreaElementProps;
-	tfoot: HTMLTableSectionElementProps;
-	th: HTMLTableCellElementProps;
-	thead: HTMLTableSectionElementProps;
+	tfoot: HTMLTableSectionElementProps<"tfoot">;
+	th: HTMLTableCellElementProps<"th">;
+	thead: HTMLTableSectionElementProps<"thead">;
 	time: HTMLTimeElementProps;
 	// title: HTMLTitleElementProps;
 	tr: HTMLTableRowElementProps;
 	track: HTMLTrackElementProps;
-	u: HTMLElementProps;
+	u: HTMLElementProps<"u">;
 	ul: HTMLUListElementProps;
-	var: HTMLElementProps;
+	var: HTMLElementProps<"var">;
 	video: HTMLVideoElementProps;
 	wbr: HTMLWbrElementProps;
 }
@@ -696,7 +703,7 @@ export interface HTMLIntrinsicElements {
 // https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute
 
 /** @bake */
-export type SVGGlobalProps = Finalize<WrapProps<{
+export type SVGCommonProps = Finalize<WrapProps<{
 	autofocus: boolean;
 	class: string;
 	color: string;
@@ -710,8 +717,8 @@ export type SVGGlobalProps = Finalize<WrapProps<{
 	"transform-origin": string;
 }>>;
 
-type SVGProps<T, P = {}> = Finalize<NodeTypeProp<T> & ChildrenProp & WrapProps<P>>;
-type SVGPropsNoChildren<T, P = {}> = Finalize<NodeTypeProp<T> & NoChildrenProp & WrapProps<P>>;
+type SVGProps<T, N extends string, P = {}> = Finalize<NodeTypeProp<T> & ElemNameProp<N> & ChildrenProp & WrapProps<P>>;
+type SVGPropsNoChildren<T, N extends string, P = {}> = Finalize<NodeTypeProp<T> & ElemNameProp<N> & NoChildrenProp & WrapProps<P>>;
 
 /** @preserve */
 export type SVGAccumulate = "none" | "sum";
@@ -802,9 +809,9 @@ export type SVGColorChannel = "R" | "G" | "B" | "A";
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGAElementProps = SVGProps<SVGAElement, {
+export type SVGAElementProps = SVGProps<SVGAElement, "a", {
 	"clip-path": string;
 	cursor: string;
 	href: string;
@@ -821,9 +828,9 @@ export type SVGAElementProps = SVGProps<SVGAElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGAnimateElementProps = SVGProps<SVGAnimateElement, {
+export type SVGAnimateElementProps = SVGProps<SVGAnimateElement, "animate", {
 	accumulate: SVGAccumulate;
 	additive: SVGAdditive;
 	attributeName: string;
@@ -851,9 +858,9 @@ export type SVGAnimateElementProps = SVGProps<SVGAnimateElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGAnimateMotionElementProps = SVGProps<SVGAnimateMotionElement, {
+export type SVGAnimateMotionElementProps = SVGProps<SVGAnimateMotionElement, "animateMotion", {
 	accumulate: SVGAccumulate;
 	additive: SVGAdditive;
 	begin: string;
@@ -882,9 +889,9 @@ export type SVGAnimateMotionElementProps = SVGProps<SVGAnimateMotionElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGAnimateTransformElementProps = SVGProps<SVGAnimateTransformElement, {
+export type SVGAnimateTransformElementProps = SVGProps<SVGAnimateTransformElement, "animateTransform", {
 	accumulate: SVGAccumulate;
 	additive: SVGAdditive;
 	attributeName: string;
@@ -913,9 +920,9 @@ export type SVGAnimateTransformElementProps = SVGProps<SVGAnimateTransformElemen
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGCircleElementProps = SVGPropsNoChildren<SVGCircleElement, {
+export type SVGCircleElementProps = SVGPropsNoChildren<SVGCircleElement, "circle", {
 	"clip-path": string;
 	"clip-rule": SVGClipRule;
 	cursor: string;
@@ -946,9 +953,9 @@ export type SVGCircleElementProps = SVGPropsNoChildren<SVGCircleElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGClipPathElementProps = SVGProps<SVGClipPathElement, {
+export type SVGClipPathElementProps = SVGProps<SVGClipPathElement, "clipPath", {
 	"clip-path": string;
 	clipPathUnits: SVGUnits;
 	mask: string;
@@ -959,9 +966,9 @@ export type SVGClipPathElementProps = SVGProps<SVGClipPathElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGDefsElementProps = SVGProps<SVGDefsElement, {
+export type SVGDefsElementProps = SVGProps<SVGDefsElement, "defs", {
 	cursor: string;
 	"pointer-events": SVGPointerEvents;
 	requiredExtensions: string;
@@ -970,16 +977,15 @@ export type SVGDefsElementProps = SVGProps<SVGDefsElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGDescElementProps = SVGProps<SVGDescElement, {
-}>;
+export type SVGDescElementProps = SVGProps<SVGDescElement, "desc">;
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGEllipseElementProps = SVGPropsNoChildren<SVGEllipseElement, {
+export type SVGEllipseElementProps = SVGPropsNoChildren<SVGEllipseElement, "ellipse", {
 	"clip-path": string;
 	"clip-rule": SVGClipRule;
 	cursor: string;
@@ -1011,9 +1017,9 @@ export type SVGEllipseElementProps = SVGPropsNoChildren<SVGEllipseElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGFEBlendElementProps = SVGProps<SVGFEBlendElement, {
+export type SVGFEBlendElementProps = SVGProps<SVGFEBlendElement, "feBlend", {
 	"color-interpolation-filters": SVGColorInterpolationFilters;
 	height: number | string;
 	in: string;
@@ -1027,9 +1033,9 @@ export type SVGFEBlendElementProps = SVGProps<SVGFEBlendElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGFEColorMatrixElementProps = SVGProps<SVGFEColorMatrixElement, {
+export type SVGFEColorMatrixElementProps = SVGProps<SVGFEColorMatrixElement, "feColorMatrix", {
 	"color-interpolation-filters": SVGColorInterpolationFilters;
 	height: number | string;
 	in: string;
@@ -1043,9 +1049,9 @@ export type SVGFEColorMatrixElementProps = SVGProps<SVGFEColorMatrixElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGFEComponentTransferElementProps = SVGProps<SVGFEComponentTransferElement, {
+export type SVGFEComponentTransferElementProps = SVGProps<SVGFEComponentTransferElement, "feComponentTransfer", {
 	"color-interpolation-filters": SVGColorInterpolationFilters;
 	height: number | string;
 	in: string;
@@ -1057,9 +1063,9 @@ export type SVGFEComponentTransferElementProps = SVGProps<SVGFEComponentTransfer
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGFECompositeElementProps = SVGProps<SVGFECompositeElement, {
+export type SVGFECompositeElementProps = SVGProps<SVGFECompositeElement, "feComposite", {
 	"color-interpolation-filters": SVGColorInterpolationFilters;
 	height: number | string;
 	in: string;
@@ -1077,9 +1083,9 @@ export type SVGFECompositeElementProps = SVGProps<SVGFECompositeElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGFEConvolveMatrixElementProps = SVGProps<SVGFEConvolveMatrixElement, {
+export type SVGFEConvolveMatrixElementProps = SVGProps<SVGFEConvolveMatrixElement, "feConvolveMatrix", {
 	bias: number | string;
 	"color-interpolation-filters": SVGColorInterpolationFilters;
 	divisor: number | string;
@@ -1100,9 +1106,9 @@ export type SVGFEConvolveMatrixElementProps = SVGProps<SVGFEConvolveMatrixElemen
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGFEDiffuseLightingElementProps = SVGProps<SVGFEDiffuseLightingElement, {
+export type SVGFEDiffuseLightingElementProps = SVGProps<SVGFEDiffuseLightingElement, "feDiffuseLighting", {
 	"color-interpolation-filters": SVGColorInterpolationFilters;
 	diffuseConstant: number | string;
 	height: number | string;
@@ -1118,9 +1124,9 @@ export type SVGFEDiffuseLightingElementProps = SVGProps<SVGFEDiffuseLightingElem
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGFEDisplacementMapElementProps = SVGProps<SVGFEDisplacementMapElement, {
+export type SVGFEDisplacementMapElementProps = SVGProps<SVGFEDisplacementMapElement, "feDisplacementMap", {
 	"color-interpolation-filters": SVGColorInterpolationFilters;
 	height: number | string;
 	in: string;
@@ -1136,18 +1142,18 @@ export type SVGFEDisplacementMapElementProps = SVGProps<SVGFEDisplacementMapElem
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGFEDistantLightElementProps = SVGProps<SVGFEDistantLightElement, {
+export type SVGFEDistantLightElementProps = SVGProps<SVGFEDistantLightElement, "feDistantLight", {
 	azimuth: number | string;
 	elevation: number | string;
 }>;
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGFEDropShadowElementProps = SVGProps<SVGFEDropShadowElement, {
+export type SVGFEDropShadowElementProps = SVGProps<SVGFEDropShadowElement, "feDropShadow", {
 	"color-interpolation-filters": SVGColorInterpolationFilters;
 	dx: number | string;
 	dy: number | string;
@@ -1164,9 +1170,9 @@ export type SVGFEDropShadowElementProps = SVGProps<SVGFEDropShadowElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGFEFloodElementProps = SVGProps<SVGFEFloodElement, {
+export type SVGFEFloodElementProps = SVGProps<SVGFEFloodElement, "feFlood", {
 	"color-interpolation-filters": SVGColorInterpolationFilters;
 	"flood-color": string;
 	"flood-opacity": number | string;
@@ -1179,9 +1185,9 @@ export type SVGFEFloodElementProps = SVGProps<SVGFEFloodElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGFEFuncAElementProps = SVGProps<SVGFEFuncAElement, {
+export type SVGFEFuncAElementProps = SVGProps<SVGFEFuncAElement, "feFuncA", {
 	amplitude: number | string;
 	exponent: number | string;
 	intercept: number | string;
@@ -1194,9 +1200,9 @@ export type SVGFEFuncAElementProps = SVGProps<SVGFEFuncAElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGFEFuncBElementProps = SVGProps<SVGFEFuncBElement, {
+export type SVGFEFuncBElementProps = SVGProps<SVGFEFuncBElement, "feFuncB", {
 	amplitude: number | string;
 	exponent: number | string;
 	intercept: number | string;
@@ -1209,9 +1215,9 @@ export type SVGFEFuncBElementProps = SVGProps<SVGFEFuncBElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGFEFuncGElementProps = SVGProps<SVGFEFuncGElement, {
+export type SVGFEFuncGElementProps = SVGProps<SVGFEFuncGElement, "feFuncG", {
 	amplitude: number | string;
 	exponent: number | string;
 	intercept: number | string;
@@ -1224,9 +1230,9 @@ export type SVGFEFuncGElementProps = SVGProps<SVGFEFuncGElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGFEFuncRElementProps = SVGProps<SVGFEFuncRElement, {
+export type SVGFEFuncRElementProps = SVGProps<SVGFEFuncRElement, "feFuncR", {
 	amplitude: number | string;
 	exponent: number | string;
 	intercept: number | string;
@@ -1239,9 +1245,9 @@ export type SVGFEFuncRElementProps = SVGProps<SVGFEFuncRElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGFEGaussianBlurElementProps = SVGProps<SVGFEGaussianBlurElement, {
+export type SVGFEGaussianBlurElementProps = SVGProps<SVGFEGaussianBlurElement, "feGaussianBlur", {
 	"color-interpolation-filters": SVGColorInterpolationFilters;
 	edgeMode: SVGEdgeMode;
 	height: number | string;
@@ -1255,9 +1261,9 @@ export type SVGFEGaussianBlurElementProps = SVGProps<SVGFEGaussianBlurElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGFEImageElementProps = SVGProps<SVGFEImageElement, {
+export type SVGFEImageElementProps = SVGProps<SVGFEImageElement, "feImage", {
 	"color-interpolation-filters": SVGColorInterpolationFilters;
 	height: number | string;
 	href: string;
@@ -1270,9 +1276,9 @@ export type SVGFEImageElementProps = SVGProps<SVGFEImageElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGFEMergeElementProps = SVGProps<SVGFEMergeElement, {
+export type SVGFEMergeElementProps = SVGProps<SVGFEMergeElement, "feMerge", {
 	"color-interpolation-filters": SVGColorInterpolationFilters;
 	height: number | string;
 	result: string;
@@ -1283,9 +1289,9 @@ export type SVGFEMergeElementProps = SVGProps<SVGFEMergeElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGFEMergeNodeElementProps = SVGProps<SVGFEMergeNodeElement, {
+export type SVGFEMergeNodeElementProps = SVGProps<SVGFEMergeNodeElement, "feMergeNode", {
 	in: string;
 	x: number | string;
 	y: number | string;
@@ -1293,9 +1299,9 @@ export type SVGFEMergeNodeElementProps = SVGProps<SVGFEMergeNodeElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGFEMorphologyElementProps = SVGProps<SVGFEMorphologyElement, {
+export type SVGFEMorphologyElementProps = SVGProps<SVGFEMorphologyElement, "feMorphology", {
 	height: number | string;
 	in: string;
 	operator: "erode" | "dilate";
@@ -1308,9 +1314,9 @@ export type SVGFEMorphologyElementProps = SVGProps<SVGFEMorphologyElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGFEOffsetElementProps = SVGProps<SVGFEOffsetElement, {
+export type SVGFEOffsetElementProps = SVGProps<SVGFEOffsetElement, "feOffset", {
 	"color-interpolation-filters": SVGColorInterpolationFilters;
 	dx: number | string;
 	dy: number | string;
@@ -1324,9 +1330,9 @@ export type SVGFEOffsetElementProps = SVGProps<SVGFEOffsetElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGFEPointLightElementProps = SVGProps<SVGFEPointLightElement, {
+export type SVGFEPointLightElementProps = SVGProps<SVGFEPointLightElement, "fePointLight", {
 	x: number | string;
 	y: number | string;
 	z: number | string;
@@ -1334,9 +1340,9 @@ export type SVGFEPointLightElementProps = SVGProps<SVGFEPointLightElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGFESpecularLightingElementProps = SVGProps<SVGFESpecularLightingElement, {
+export type SVGFESpecularLightingElementProps = SVGProps<SVGFESpecularLightingElement, "feSpecularLighting", {
 	"color-interpolation-filters": SVGColorInterpolationFilters;
 	height: number | string;
 	in: string;
@@ -1353,9 +1359,9 @@ export type SVGFESpecularLightingElementProps = SVGProps<SVGFESpecularLightingEl
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGFESpotLightElementProps = SVGProps<SVGFESpotLightElement, {
+export type SVGFESpotLightElementProps = SVGProps<SVGFESpotLightElement, "feSpotLight", {
 	"color-interpolation-filters": SVGColorInterpolationFilters;
 	limitingConeAngle: number | string;
 	pointsAtX: number | string;
@@ -1369,9 +1375,9 @@ export type SVGFESpotLightElementProps = SVGProps<SVGFESpotLightElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGFETileElementProps = SVGProps<SVGFETileElement, {
+export type SVGFETileElementProps = SVGProps<SVGFETileElement, "feTile", {
 	"color-interpolation-filters": SVGColorInterpolationFilters;
 	height: number | string;
 	in: string;
@@ -1383,9 +1389,9 @@ export type SVGFETileElementProps = SVGProps<SVGFETileElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGFETurbulenceElementProps = SVGProps<SVGFETurbulenceElement, {
+export type SVGFETurbulenceElementProps = SVGProps<SVGFETurbulenceElement, "feTurbulence", {
 	baseFrequency: number | string;
 	"color-interpolation-filters": SVGColorInterpolationFilters;
 	height: number | string;
@@ -1401,9 +1407,9 @@ export type SVGFETurbulenceElementProps = SVGProps<SVGFETurbulenceElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGFilterElementProps = SVGProps<SVGFilterElement, {
+export type SVGFilterElementProps = SVGProps<SVGFilterElement, "filter", {
 	filterUnits: SVGUnits;
 	height: number | string;
 	primitiveUnits: SVGUnits;
@@ -1414,9 +1420,9 @@ export type SVGFilterElementProps = SVGProps<SVGFilterElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGForeignObjectElementProps = SVGProps<SVGForeignObjectElement, {
+export type SVGForeignObjectElementProps = SVGProps<SVGForeignObjectElement, "foreignObject", {
 	opacity: number | string;
 	overflow: SVGOverflow;
 	"pointer-events": SVGPointerEvents;
@@ -1430,9 +1436,9 @@ export type SVGForeignObjectElementProps = SVGProps<SVGForeignObjectElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGGElementProps = SVGProps<SVGGElement, {
+export type SVGGElementProps = SVGProps<SVGGElement, "g", {
 	"clip-path": string;
 	cursor: string;
 	mask: string;
@@ -1444,9 +1450,9 @@ export type SVGGElementProps = SVGProps<SVGGElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGImageElementProps = SVGPropsNoChildren<SVGImageElement, {
+export type SVGImageElementProps = SVGPropsNoChildren<SVGImageElement, "image", {
 	"clip-path": string;
 	"clip-rule": SVGClipRule;
 	crossorigin: SVGCrossOrigin;
@@ -1471,9 +1477,9 @@ export type SVGImageElementProps = SVGPropsNoChildren<SVGImageElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGLineElementProps = SVGPropsNoChildren<SVGLineElement, {
+export type SVGLineElementProps = SVGPropsNoChildren<SVGLineElement, "line", {
 	"clip-path": string;
 	"clip-rule": SVGClipRule;
 	cursor: string;
@@ -1505,9 +1511,9 @@ export type SVGLineElementProps = SVGPropsNoChildren<SVGLineElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGLinearGradientElementProps = SVGProps<SVGLinearGradientElement, {
+export type SVGLinearGradientElementProps = SVGProps<SVGLinearGradientElement, "linearGradient", {
 	gradientTransform: string;
 	gradientUnits: SVGUnits;
 	href: string;
@@ -1520,9 +1526,9 @@ export type SVGLinearGradientElementProps = SVGProps<SVGLinearGradientElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGMarkerElementProps = SVGProps<SVGMarkerElement, {
+export type SVGMarkerElementProps = SVGProps<SVGMarkerElement, "marker", {
 	"clip-path": string;
 	cursor: string;
 	markerHeight: number | string;
@@ -1540,9 +1546,9 @@ export type SVGMarkerElementProps = SVGProps<SVGMarkerElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGMaskElementProps = SVGProps<SVGMaskElement, {
+export type SVGMaskElementProps = SVGProps<SVGMaskElement, "mask", {
 	"clip-path": string;
 	cursor: string;
 	height: number | string;
@@ -1560,24 +1566,23 @@ export type SVGMaskElementProps = SVGProps<SVGMaskElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGMetadataElementProps = SVGProps<SVGMetadataElement, {
-}>;
+export type SVGMetadataElementProps = SVGProps<SVGMetadataElement, "metadata">;
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGMPathElementProps = SVGProps<SVGMPathElement, {
+export type SVGMPathElementProps = SVGProps<SVGMPathElement, "mpath", {
 	href: string;
 }>;
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGPathElementProps = SVGPropsNoChildren<SVGPathElement, {
+export type SVGPathElementProps = SVGPropsNoChildren<SVGPathElement, "path", {
 	"clip-path": string;
 	"clip-rule": SVGClipRule;
 	cursor: string;
@@ -1610,9 +1615,9 @@ export type SVGPathElementProps = SVGPropsNoChildren<SVGPathElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGPatternElementProps = SVGProps<SVGPatternElement, {
+export type SVGPatternElementProps = SVGProps<SVGPatternElement, "pattern", {
 	"clip-path": string;
 	cursor: string;
 	height: number | string;
@@ -1634,9 +1639,9 @@ export type SVGPatternElementProps = SVGProps<SVGPatternElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGPolygonElementProps = SVGPropsNoChildren<SVGPolygonElement, {
+export type SVGPolygonElementProps = SVGPropsNoChildren<SVGPolygonElement, "polygon", {
 	"clip-path": string;
 	"clip-rule": SVGClipRule;
 	cursor: string;
@@ -1668,9 +1673,9 @@ export type SVGPolygonElementProps = SVGPropsNoChildren<SVGPolygonElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGPolylineElementProps = SVGPropsNoChildren<SVGPolylineElement, {
+export type SVGPolylineElementProps = SVGPropsNoChildren<SVGPolylineElement, "polyline", {
 	"clip-path": string;
 	"clip-rule": SVGClipRule;
 	cursor: string;
@@ -1703,9 +1708,9 @@ export type SVGPolylineElementProps = SVGPropsNoChildren<SVGPolylineElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGRadialGradientElementProps = SVGProps<SVGRadialGradientElement, {
+export type SVGRadialGradientElementProps = SVGProps<SVGRadialGradientElement, "radialGradient", {
 	cx: number | string;
 	cy: number | string;
 	fr: number | string;
@@ -1720,9 +1725,9 @@ export type SVGRadialGradientElementProps = SVGProps<SVGRadialGradientElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGRectElementProps = SVGPropsNoChildren<SVGRectElement, {
+export type SVGRectElementProps = SVGPropsNoChildren<SVGRectElement, "rect", {
 	"clip-path": string;
 	"clip-rule": SVGClipRule;
 	cursor: string;
@@ -1760,7 +1765,7 @@ export type SVGRectElementProps = SVGPropsNoChildren<SVGRectElement, {
 //  * @bake
 //  * @extends SVGGlobalProps
 //  */
-// export type SVGScriptElementProps = SVGProps<SVGScriptElement, {
+// export type SVGScriptElementProps = SVGProps<SVGScriptElement, "script", {
 // 	crossorigin: SVGCrossOrigin;
 // 	href: string;
 // 	type: string;
@@ -1768,9 +1773,9 @@ export type SVGRectElementProps = SVGPropsNoChildren<SVGRectElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGSetElementProps = SVGProps<SVGSetElement, {
+export type SVGSetElementProps = SVGProps<SVGSetElement, "set", {
 	attributeName: string;
 	begin: string;
 	dur: number | string;
@@ -1790,9 +1795,9 @@ export type SVGSetElementProps = SVGProps<SVGSetElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGStopElementProps = SVGPropsNoChildren<SVGStopElement, {
+export type SVGStopElementProps = SVGPropsNoChildren<SVGStopElement, "stop", {
 	"stop-color": string;
 	"stop-opacity": number | string;
 }>;
@@ -1801,16 +1806,16 @@ export type SVGStopElementProps = SVGPropsNoChildren<SVGStopElement, {
 //  * @bake
 //  * @extends SVGGlobalProps
 //  */
-// export type SVGStyleElementProps = SVGProps<SVGStyleElement, {
+// export type SVGStyleElementProps = SVGProps<SVGStyleElement, "style", {
 // 	media: string;
 // 	type: string;
 // }>;
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGSVGElementProps = SVGProps<SVGSVGElement, {
+export type SVGSVGElementProps = SVGProps<SVGSVGElement, "svg", {
 	"clip-path": string;
 	cursor: string;
 	fill: string;
@@ -1831,9 +1836,9 @@ export type SVGSVGElementProps = SVGProps<SVGSVGElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGSwitchElementProps = SVGProps<SVGSwitchElement, {
+export type SVGSwitchElementProps = SVGProps<SVGSwitchElement, "switch", {
 	cursor: string;
 	opacity: number | string;
 	"pointer-events": SVGPointerEvents;
@@ -1843,9 +1848,9 @@ export type SVGSwitchElementProps = SVGProps<SVGSwitchElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGSymbolElementProps = SVGProps<SVGSymbolElement, {
+export type SVGSymbolElementProps = SVGProps<SVGSymbolElement, "symbol", {
 	"clip-path": string;
 	cursor: string;
 	mask: string;
@@ -1858,9 +1863,9 @@ export type SVGSymbolElementProps = SVGProps<SVGSymbolElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGTextElementProps = SVGProps<SVGTextElement, {
+export type SVGTextElementProps = SVGProps<SVGTextElement, "text", {
 	"alignment-baseline": SVGAlignmentBaseline;
 	"clip-path": string;
 	"clip-rule": SVGClipRule;
@@ -1912,9 +1917,9 @@ export type SVGTextElementProps = SVGProps<SVGTextElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGTextPathElementProps = SVGProps<SVGTextPathElement, {
+export type SVGTextPathElementProps = SVGProps<SVGTextPathElement, "textPath", {
 	"alignment-baseline": SVGAlignmentBaseline;
 	"baseline-shift": string;
 	direction: SVGTextDirection;
@@ -1962,16 +1967,15 @@ export type SVGTextPathElementProps = SVGProps<SVGTextPathElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGTitleElementProps = SVGProps<SVGTitleElement, {
-}>;
+export type SVGTitleElementProps = SVGProps<SVGTitleElement, "title">;
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGTSpanElementProps = SVGProps<SVGTSpanElement, {
+export type SVGTSpanElementProps = SVGProps<SVGTSpanElement, "tspan", {
 	"alignment-baseline": SVGAlignmentBaseline;
 	"baseline-shift": string;
 	direction: SVGTextDirection;
@@ -2018,9 +2022,9 @@ export type SVGTSpanElementProps = SVGProps<SVGTSpanElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGUseElementProps = SVGPropsNoChildren<SVGUseElement, {
+export type SVGUseElementProps = SVGPropsNoChildren<SVGUseElement, "use", {
 	"clip-path": string;
 	"clip-rule": SVGClipRule;
 	cursor: string;
@@ -2039,9 +2043,9 @@ export type SVGUseElementProps = SVGPropsNoChildren<SVGUseElement, {
 
 /**
  * @bake
- * @extends SVGGlobalProps
+ * @extends SVGCommonProps
  */
-export type SVGViewElementProps = SVGProps<SVGViewElement, {
+export type SVGViewElementProps = SVGProps<SVGViewElement, "view", {
 	preserveAspectRatio: string;
 	viewBox: string;
 }>;
@@ -2124,7 +2128,7 @@ export interface SVGIntrinsicElements {
 // https://developer.mozilla.org/en-US/docs/Web/MathML/Reference/Global_attributes
 
 /** @bake */
-export type MathMLGlobalProps = Finalize<WrapProps<{
+export type MathMLCommonProps = Finalize<WrapProps<{
 	dir: "ltr" | "rtl";
 	displaystyle: boolean;
 	mathbackground: string;
@@ -2133,44 +2137,44 @@ export type MathMLGlobalProps = Finalize<WrapProps<{
 	scriptlevel: string;
 }>>;
 
-type MathMLProps<T, P = {}> = Finalize<NodeTypeProp<T> & ChildrenProp & WrapProps<P>>;
-type MathMLPropsNoChildren<T, P = {}> = Finalize<NodeTypeProp<T> & NoChildrenProp & WrapProps<P>>;
+type MathMLProps<T, N extends string, P = {}> = Finalize<NodeTypeProp<T> & ElemNameProp<N> & ChildrenProp & WrapProps<P>>;
+type MathMLPropsNoChildren<T, N extends string, P = {}> = Finalize<NodeTypeProp<T> & ElemNameProp<N> & NoChildrenProp & WrapProps<P>>;
 
 /**
  * @bake
- * @extends MathMLGlobalProps
+ * @extends MathMLCommonProps
  */
-export type MathMLElementProps = MathMLProps<MathMLElement>;
+export type MathMLElementProps<N extends "merror" | "mmultiscripts" | "mn" | "mphantom" | "mprescripts" | "mroot" | "ms" | "msqrt" | "mstyle" | "msub" | "msup" | "msubsup" | "mtable" | "mtr"> = MathMLProps<MathMLElement, N>;
 
 /**
  * @bake
- * @extends MathMLGlobalProps
+ * @extends MathMLCommonProps
  */
-export type MathMLMathElementProps = MathMLProps<MathMLElement, {
+export type MathMLMathElementProps = MathMLProps<MathMLElement, "mathml", {
 	display: "block" | "inline";
 }>;
 
 /**
  * @bake
- * @extends MathMLGlobalProps
+ * @extends MathMLCommonProps
  */
-export type MatMLFracElementProps = MathMLPropsNoChildren<MathMLElement, {
+export type MatMLFracElementProps = MathMLPropsNoChildren<MathMLElement, "mfrac", {
 	linethickness: string;
 }>;
 
 /**
  * @bake
- * @extends MathMLGlobalProps
+ * @extends MathMLCommonProps
  */
-export type MatMLIElementProps = MathMLProps<MathMLElement, {
+export type MatMLIElementProps = MathMLProps<MathMLElement, "mi", {
 	mathvariant: "normal";
 }>;
 
 /**
  * @bake
- * @extends MathMLGlobalProps
+ * @extends MathMLCommonProps
  */
-export type MatMLOElementProps = MathMLProps<MathMLElement, {
+export type MatMLOElementProps = MathMLProps<MathMLElement, "mo", {
 	fence: boolean;
 	form: "prefix" | "infix" | "postfix";
 	largeop: boolean;
@@ -2186,17 +2190,17 @@ export type MatMLOElementProps = MathMLProps<MathMLElement, {
 
 /**
  * @bake
- * @extends MathMLGlobalProps
+ * @extends MathMLCommonProps
  */
-export type MatMLOverElementProps = MathMLProps<MathMLElement, {
+export type MatMLOverElementProps = MathMLProps<MathMLElement, "mover", {
 	accent: boolean;
 }>;
 
 /**
  * @bake
- * @extends MathMLGlobalProps
+ * @extends MathMLCommonProps
  */
-export type MatMLPaddedElementProps = MathMLProps<MathMLElement, {
+export type MatMLPaddedElementProps = MathMLProps<MathMLElement, "mpadded", {
 	depth: string;
 	height: string;
 	lspace: string;
@@ -2206,15 +2210,15 @@ export type MatMLPaddedElementProps = MathMLProps<MathMLElement, {
 
 /**
  * @bake
- * @extends MathMLGlobalProps
+ * @extends MathMLCommonProps
  */
-export type MatMLRowElementProps = MathMLPropsNoChildren<MathMLElement>;
+export type MatMLRowElementProps = MathMLPropsNoChildren<MathMLElement, "mrow">;
 
 /**
  * @bake
- * @extends MathMLGlobalProps
+ * @extends MathMLCommonProps
  */
-export type MatMLSpaceElementProps = MathMLProps<MathMLElement, {
+export type MatMLSpaceElementProps = MathMLProps<MathMLElement, "mspace", {
 	depth: string;
 	height: string;
 	width: string;
@@ -2222,61 +2226,61 @@ export type MatMLSpaceElementProps = MathMLProps<MathMLElement, {
 
 /**
  * @bake
- * @extends MathMLGlobalProps
+ * @extends MathMLCommonProps
  */
-export type MatMLTDElementProps = MathMLProps<MathMLElement, {
+export type MatMLTDElementProps = MathMLProps<MathMLElement, "mtd", {
 	columnspan: number | string;
 	rowspan: number | string;
 }>;
 
 /**
  * @bake
- * @extends MathMLGlobalProps
+ * @extends MathMLCommonProps
  */
-export type MatMLTextElementProps = MathMLPropsNoChildren<MathMLElement>;
+export type MatMLTextElementProps = MathMLPropsNoChildren<MathMLElement, "mtext">;
 
 /**
  * @bake
- * @extends MathMLGlobalProps
+ * @extends MathMLCommonProps
  */
-export type MatMLUnderElementProps = MathMLProps<MathMLElement, {
+export type MatMLUnderElementProps = MathMLProps<MathMLElement, "munder", {
 	accentunder: boolean;
 }>;
 
 /**
  * @bake
- * @extends MathMLGlobalProps
+ * @extends MathMLCommonProps
  */
-export type MatMLUnderOverElementProps = MathMLProps<MathMLElement, {
+export type MatMLUnderOverElementProps = MathMLProps<MathMLElement, "munderover", {
 	accent: boolean;
 	accentunder: boolean;
 }>;
 
 /** @preserve */
 export interface MathMLIntrinsicElements {
-	merror: MathMLElementProps;
+	merror: MathMLElementProps<"merror">;
 	mfrac: MatMLFracElementProps;
 	mi: MatMLIElementProps;
-	mmultiscripts: MathMLElementProps;
-	mn: MathMLElementProps;
+	mmultiscripts: MathMLElementProps<"mmultiscripts">;
+	mn: MathMLElementProps<"mn">;
 	mo: MatMLOElementProps;
 	mover: MatMLOverElementProps;
 	mpadded: MatMLPaddedElementProps;
-	mphantom: MathMLElementProps;
-	mprescripts: MathMLElementProps;
-	mroot: MathMLElementProps;
+	mphantom: MathMLElementProps<"mphantom">;
+	mprescripts: MathMLElementProps<"mprescripts">;
+	mroot: MathMLElementProps<"mroot">;
 	mrow: MatMLRowElementProps;
-	ms: MathMLElementProps;
+	ms: MathMLElementProps<"ms">;
 	mspace: MatMLSpaceElementProps;
-	msqrt: MathMLElementProps;
-	mstyle: MathMLElementProps;
-	msub: MathMLElementProps;
-	msup: MathMLElementProps;
-	msubsup: MathMLElementProps;
-	mtable: MathMLElementProps;
+	msqrt: MathMLElementProps<"msqrt">;
+	mstyle: MathMLElementProps<"mstyle">;
+	msub: MathMLElementProps<"msub">;
+	msup: MathMLElementProps<"msup">;
+	msubsup: MathMLElementProps<"msubsup">;
+	mtable: MathMLElementProps<"mtable">;
 	mtd: MatMLTDElementProps;
 	mtext: MatMLTextElementProps;
-	mtr: MathMLElementProps;
+	mtr: MathMLElementProps<"mtr">;
 	munder: MatMLUnderElementProps;
 	munderover: MatMLUnderOverElementProps;
 

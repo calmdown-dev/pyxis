@@ -39,7 +39,7 @@ if (!input) {
 
 const output = (await FS.open(OUTPUT, "w+")).createWriteStream({ encoding: "utf8" });
 output.write(`\
-// baked types, do not modify as changes will be lost
+// baked types - do not modify, changes will be lost
 // source file: ${Path.relative(Path.dirname(OUTPUT), INPUT)}
 
 `);
@@ -92,13 +92,18 @@ function visitBakedNode(node, extensions) {
 		? "export interface"
 		: "interface";
 
+	// include generic type args
+	const generics = node.typeParameters && node.typeParameters.length > 0
+		? `<${node.typeParameters.map(it => it.getText(input)).join(", ")}>`
+		: "";
+
 	// add extends clause, if specified
 	let extension = "";
 	if (extensions.length > 0) {
 		extension = `extends ${extensions.join(", ")} `;
 	}
 
-	output.write(`${declaration} ${node.name.text} ${extension}`);
+	output.write(`${declaration} ${node.name.text}${generics} ${extension}`);
 	output.write(typeStr);
 	output.write("\n\n");
 }

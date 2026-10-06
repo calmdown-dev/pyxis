@@ -17,9 +17,9 @@ export { tick, tock, type TickFn } from "~/data/Scheduler";
 export { RefExtension, type RefFn } from "~/extension/RefExtension";
 
 export { peeks, reads, updates, writes } from "~/support/atoms";
-export type { ElementsType, Nil, NodeType, PropsType, S_NODE_TYPE } from "~/support/types";
+export type { ElementsType, ElemName, Nil, NodeType, PropsType, S_ELEM_NAME, S_NODE_TYPE } from "~/support/types";
 
-export { extension, type Adapter, type Extension, type ExtensionPropMapping, type ExtensionsType } from "~/Adapter";
+export { ext, extension, type Adapter, type Extension, type ExtensionPropMapping, type ExtensionsType } from "~/Adapter";
 export { pyxis, type PyxisBuilder } from "~/Builder";
 export { component, type Component, type DataTemplate, type JsxChildren, type JsxChildrenProp, type JsxObject, type JsxProps, type JsxResult, type JsxText, type PropsOf, type WithChildren } from "~/Component";
 export { jsx, jsxs } from "~/jsx";

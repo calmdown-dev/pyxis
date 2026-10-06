@@ -20,9 +20,20 @@ export type PropsType = { readonly [_ in string]?: any };
 export declare const S_NODE_TYPE: unique symbol;
 
 /**
- * Infers the specific Node type from its props typings.
+ * Infers the specific Node type from its props typings, if available.
  */
 export type NodeType<P> = P extends { readonly [S_NODE_TYPE]?: infer N } ? N : unknown;
+
+/**
+ * A symbol to include in props typings containing the element name.
+ * @deprecated **Type only, does not exist at runtime!**
+ */
+export declare const S_ELEM_NAME: unique symbol;
+
+/**
+ * Infers the specific element name from its props typings, if available.
+ */
+export type ElemName<P> = P extends { readonly [S_ELEM_NAME]?: infer N extends string } ? N : string;
 
 /**
  * Infers a mutable object from a given immutable one.
