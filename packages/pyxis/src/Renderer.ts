@@ -13,7 +13,7 @@ import { unlinkAll } from "./data/Dependency";
 // @ts-expect-error this is a unique symbol at runtime
 export const S_COMPONENT: unique symbol = __DEV__ ? Symbol.for("pyxis:component") : Symbol();
 
-export interface Renderer<TNode, TIntrinsicElements extends ElementsType = ElementsType> {
+export interface Renderer<TNode, TIntrinsicElements extends ElementsType = ElementsType> extends Lifecycle {
 	/**
 	 * Carries information about the available intrinsic elements when using this Renderer.
 	 * @deprecated **Type only, does not exist at runtime!**

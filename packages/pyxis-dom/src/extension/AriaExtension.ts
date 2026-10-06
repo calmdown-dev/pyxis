@@ -1,36 +1,30 @@
-import { bind, isAtom, type ElementsType, type ExtensionProps, type MaybeReadAtom, type MountingGroup, type NodeType } from "@calmdown/pyxis/core";
+import { bind, extension, isAtom, type ExtensionPropMapping } from "@calmdown/pyxis/core";
 
 import type { ARIAProps } from "~/jsx/baked";
 
-export interface AriaExtensionType {
-	<TExtensionKey extends string, TElements extends ElementsType>(extensionKey: TExtensionKey, elements: TElements): {
-		[TElementName in keyof TElements]: (
-			NodeType<TElements[TElementName]> extends Element
-				? TElements[TElementName] & ExtensionProps<TExtensionKey, ARIAProps>
-				: TElements[TElementName]
-		);
-	};
-
-	set: (node: Element, key: keyof ARIAProps, value: MaybeReadAtom<any>, group: MountingGroup<Node>) => void;
+interface AriaPropMapping extends ExtensionPropMapping<Node> {
+	extension: ARIAProps;
 }
 
 /**
- * Extension adding ARIA attributes to any Element. Recommended prefix: `"aria"`
+ * Extension adding ARIA attributes to any Element. Recommended prefix: `"aria"`.
  *
  * Example usage:
+ *
  * ```tsx
  * <div aria:role="button" />
  * ```
  */
-export const AriaExtension = {
-	set: (node, key, value, group) => {
-		if (isAtom(value)) {
-			bind(group, value, () => {
-				node[key] = value.get();
-			});
-		}
-		else {
-			node[key] = value;
-		}
-	},
-} as AriaExtensionType;
+export const AriaExtension = extension<Node, AriaPropMapping>((node, prop, value, group) => {
+	// extensions are only applicable to JSX elements which get rendered via DomAdapter::element
+	// despite the typings, node is actually guaranteed to be an Element here
+
+	if (isAtom(value)) {
+		bind(group, value, () => {
+			(node as Element)[prop as keyof ARIAProps] = value.get();
+		});
+	}
+	else {
+		(node as Element)[prop as keyof ARIAProps] = value;
+	}
+});

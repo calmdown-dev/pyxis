@@ -1,26 +1,44 @@
-import type { ElementsType } from "~/support/types";
+import type { ElementsType, NodeType, PropsType } from "~/support/types";
 
-import type { Adapter, Extension, ExtensionsType } from "./Adapter";
+import type { Adapter, Extension, ExtensionPropMapping, ExtensionsType } from "./Adapter";
 import { createRenderer, type Renderer } from "./Renderer";
 
 export interface PyxisBuilder<TNode, TIntrinsicElements extends ElementsType> {
 	build: () => Renderer<TNode, TIntrinsicElements>;
 
-	extend: <TExtensionKey extends string, TExtendedIntrinsicElements extends ElementsType>(
+	extend: <TExtensionKey extends string, TExtension extends Extension<TNode>>(
 		extensionKey: TExtensionKey,
-		extension: (extensionKey: TExtensionKey, intrinsicElements: TIntrinsicElements) => TExtendedIntrinsicElements,
-	) => PyxisBuilder<TNode, Merged<TExtendedIntrinsicElements>>;
+		extension: TExtension,
+	) => PyxisBuilder<TNode, (
+		TExtension extends { readonly $mapping?: infer TMapping extends ExtensionPropMapping<TNode> }
+			? {
+				[TElementName in keyof TIntrinsicElements]: (
+					(TMapping & { node: NodeType<TIntrinsicElements[TElementName]>; name: TElementName; })["extension"] extends (infer TExtension extends PropsType)
+						? [ keyof TExtension ] extends [ never ]
+							? TIntrinsicElements[TElementName]
+							: MergeIntersection<TIntrinsicElements[TElementName] & ExtensionProps<TExtensionKey, TExtension>>
+						: TIntrinsicElements[TElementName]
+				);
+			}
+			: TIntrinsicElements
+	)>;
 }
 
 type MergeIntersection<T> = { [K in keyof T]: T[K] } & {};
 
-type Merged<T> = { [K in keyof T]: MergeIntersection<T[K]> };
+type ExtensionProps<TExtensionKey extends string, TExtensionProps extends PropsType> = {
+	readonly [TExtPropKey in `${TExtensionKey}:${keyof TExtensionProps & string}`]?: (
+		TExtPropKey extends `${TExtensionKey}:${infer TPropKey extends (keyof TExtensionProps & string)}`
+			? TExtensionProps[TPropKey]
+			: never
+	);
+};
 
 export function pyxis<TNode, TIntrinsicElements extends ElementsType>(adapter: Adapter<TNode, TIntrinsicElements>) {
 	const extensions: ExtensionsType<TNode> = {};
 	const builder = {
 		build: () => createRenderer(adapter, extensions),
-		extend: (extensionKey: string, extension: Extension<TNode>) => {
+		extend: (extensionKey: string, extension: any) => {
 			extensions[extensionKey] = extension;
 			return builder;
 		},

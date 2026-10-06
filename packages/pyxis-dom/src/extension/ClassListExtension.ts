@@ -1,39 +1,39 @@
-import { bind, isAtom, type ElementsType, type ExtensionProps, type MaybeReadAtom, type MountingGroup } from "@calmdown/pyxis/core";
+import { bind, extension, isAtom, type ExtensionPropMapping, type MaybeReadAtom } from "@calmdown/pyxis/core";
 
-export interface ClassListExtensionType {
-	<TExtensionKey extends string, TElements extends ElementsType>(extensionKey: TExtensionKey, elements: TElements): {
-		[TElementName in keyof TElements]: (
-			TElements[TElementName] & ExtensionProps<TExtensionKey, { readonly [TClassName in string]?: MaybeReadAtom<boolean> }>
-		);
+interface ClassListPropMapping extends ExtensionPropMapping<Node> {
+	extension: {
+		[TClassName in string]?: MaybeReadAtom<boolean>;
 	};
-
-	set: (node: Element, className: string, toggle: MaybeReadAtom<boolean>, group: MountingGroup<Node>) => void;
 }
 
 /**
- * Extension adding ClassList access to any Element. Recommended prefix: `"cl"`
+ * Extension adding ClassList access to any Element. Recommended prefix: `"cl"`.
  *
- * CSS classes can be added via value-less boolean attributes, e.g.:
+ * CSS classes can be added via boolean props, e.g.:
+ *
  * ```tsx
  * <div cl:my-class />
  * ```
- * and may be dynamically toggled when an `Atom<boolean>` is given as value:
+ *
+ * or dynamically toggled when an `Atom<boolean>` is given as value:
+ *
  * ```tsx
  * <div cl:my-class={toggle} />
  * ```
  *
- * This extension can be used in tandem with the `@calmdown/rollup-plugin-pyxis`
- * plugin to automatically rewrite class names when using CSS modules.
+ * This extension can be used in tandem with the `@calmdown/rollup-plugin-pyxis` plugin to
+ * automatically rewrite class names when using CSS modules.
  */
-export const ClassListExtension = {
-	set: (node, className, toggle, group) => {
-		if (isAtom(toggle)) {
-			bind(group, toggle, () => {
-				node.classList.toggle(className, toggle.get());
-			});
-		}
-		else if (toggle) {
-			node.classList.add(className);
-		}
-	},
-} as ClassListExtensionType;
+export const ClassListExtension = extension<Node, ClassListPropMapping>((node, prop, value, group) => {
+	// extensions are only applicable to JSX elements which get rendered via DomAdapter::element
+	// despite the typings, node is actually guaranteed to be an Element here
+
+	if (isAtom(value)) {
+		bind(group, value, () => {
+			(node as Element).classList.toggle(prop, value.get());
+		});
+	}
+	else if (value) {
+		(node as Element).classList.add(prop);
+	}
+});

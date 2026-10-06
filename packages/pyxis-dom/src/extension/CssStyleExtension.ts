@@ -1,39 +1,33 @@
-import { bind, isAtom, type ElementsType, type ExtensionProps, type MaybeReadAtom, type MountingGroup, type NodeType } from "@calmdown/pyxis/core";
+import { bind, extension, isAtom, type ExtensionPropMapping } from "@calmdown/pyxis/core";
 
 import type { CSSStyleDeclarationProps } from "~/jsx/baked";
 
-export interface CssStyleExtensionType {
-	<TExtensionKey extends string, TElements extends ElementsType>(extensionKey: TExtensionKey, elements: TElements): {
-		[TElementName in keyof TElements]: (
-			NodeType<TElements[TElementName]> extends ElementCSSInlineStyle
-				? TElements[TElementName] & ExtensionProps<TExtensionKey, CSSStyleDeclarationProps>
-				: TElements[TElementName]
-		);
-	};
-
-	set: (node: ElementCSSInlineStyle, ruleName: string, value: MaybeReadAtom<string>, group: MountingGroup<Node>) => void;
+interface CssStylePropMapping extends ExtensionPropMapping<Node> {
+	extension: CSSStyleDeclarationProps;
 }
 
+type StylableElement = Element & ElementCSSInlineStyle;
+
 /**
- * Extension adding direct CSS rule access to any Element. Recommended prefix:
- * `"css"`
+ * Extension adding direct CSS rule access to any Element. Recommended prefix: `"css"`.
  *
- * Any CSS rules accessible from JavaScript can be set using this extension.
- * When given an Atom for the value, it will be dynamically updated.
- * Example usage:
+ * Any CSS rules accessible from JavaScript can be set using this extension. When given an Atom, the
+ * rule will be updated dynamically. Example usage:
+ *
  * ```tsx
  * <div css:background="red" />
  * ```
  */
-export const CssStyleExtension = {
-	set: (node, ruleName: any, value, group) => {
-		if (isAtom(value)) {
-			bind(group, value, () => {
-				node.style[ruleName] = value.get();
-			});
-		}
-		else if (value) {
-			node.style[ruleName] = value;
-		}
-	},
-} as CssStyleExtensionType;
+export const CssStyleExtension = extension<Node, CssStylePropMapping>((node, prop, value, group) => {
+	// extensions are only applicable to JSX elements which get rendered via DomAdapter::element
+	// despite the typings, node is actually guaranteed to be an Element here
+
+	if (isAtom(value)) {
+		bind(group, value, () => {
+			(node as StylableElement).style[prop as keyof CSSStyleDeclarationProps] = value.get();
+		});
+	}
+	else if (value) {
+		(node as StylableElement).style[prop as keyof CSSStyleDeclarationProps] = value;
+	}
+});

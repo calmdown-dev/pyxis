@@ -1,5 +1,5 @@
 import type { TickFn } from "~/data/Scheduler";
-import type { ElementsType, PropsType } from "~/support/types";
+import type { ElementsType } from "~/support/types";
 
 import type { MountingGroup } from "./Renderer";
 
@@ -17,7 +17,7 @@ export interface Adapter<TNode, TIntrinsicElements extends ElementsType = Elemen
 	readonly tick: TickFn;
 
 	/**
-	 * Creates a native (intrinsic) element node by its name.
+	 * Creates a native (intrinsic) element node by the element name.
 	 */
 	readonly element: (
 		name: string,
@@ -49,8 +49,8 @@ export interface Adapter<TNode, TIntrinsicElements extends ElementsType = Elemen
 
 	/**
 	 * Inserts the given `node` as a child of the `parent`. If `before` is provided, the child will
-	 * be inserted just before the referenced node, otherwise the child is inserted as the new last
-	 * child.
+	 * be inserted just before the referenced node (which itself must be a child of the parent),
+	 * otherwise the child is inserted at the end, becoming the new last child of the parent.
 	 */
 	readonly insert: (
 		node: TNode,
@@ -69,21 +69,24 @@ export interface Adapter<TNode, TIntrinsicElements extends ElementsType = Elemen
 	 * Sets a named property of the given node.
 	 */
 	readonly set: (
-		node: TNode,
+		elem: TNode,
 		prop: string,
 		value: any,
 	) => void;
 }
 
-export interface Extension<TNode, TExtensionKey extends string = string, TIntrinsicElements extends ElementsType = ElementsType, TExtendedIntrinsicElements extends ElementsType = ElementsType> {
+export type ExtensionsType<TNode> = { [_ in string]?: Extension<TNode> };
+
+export interface Extension<TNode, TPropMapping extends ExtensionPropMapping<TNode> = ExtensionPropMapping<TNode>> {
 	/**
-	 * Infers prop types to decorate existing types with extensions.
-	 * Type only, this call signature does not exist at runtime!
+	 * Carries information about the props this extension adds to native elements.
+	 * @deprecated **Type only, does not exist at runtime!**
 	 */
-	(extensionKey: TExtensionKey, intrinsicElements: TIntrinsicElements): TExtendedIntrinsicElements;
+	readonly $mapping?: TPropMapping;
 
 	/**
-	 * Sets a named extension property of the given node.
+	 * Sets a named extension property of the given element. The prop name arrives unprefixed, i.e.
+	 * without any extension key prefix.
 	 */
 	readonly set: (
 		node: TNode,
@@ -93,12 +96,27 @@ export interface Extension<TNode, TExtensionKey extends string = string, TIntrin
 	) => void;
 }
 
-export type ExtensionsType<TNode> = { [_ in string]?: Extension<TNode> };
+export interface ExtensionPropMapping<TNode> {
+	/** Will contain a concrete type of the element for which props are being mapped. */
+	node: TNode;
 
-export type ExtensionProps<TExtensionKey extends string, TProps extends PropsType> = {
-	readonly [TExtPropKey in `${TExtensionKey}:${keyof TProps & string}`]?: (
-		TExtPropKey extends `${TExtensionKey}:${infer TPropKey}`
-			? TProps[TPropKey]
-			: never
-	);
-};
+	/** Will contain a name of the element for which props are being mapped. */
+	name: string;
+
+	/**
+	 * Override this field with an inferred object containing typed extension props. Prop names
+	 * should be plain, do not include their extension prefix. It will be added automatically.
+	 *
+	 * To infer concrete types, you may use:
+	 *
+	 * - `this["node"]` ... concrete type of the element node
+	 * - `this["name"]` ... the name of the element, as used in JSX
+	 */
+	extension: {};
+}
+
+export function extension<TNode, TPropMapping extends ExtensionPropMapping<TNode>>(
+	propSetter: Extension<TNode>["set"],
+): Extension<TNode, TPropMapping> {
+	return { set: propSetter };
+}

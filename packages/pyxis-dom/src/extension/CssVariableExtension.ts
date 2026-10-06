@@ -1,44 +1,38 @@
-import { bind, isAtom, type ElementsType, type ExtensionProps, type MaybeReadAtom, type MountingGroup, type Nil, type NodeType } from "@calmdown/pyxis/core";
+import { bind, extension, isAtom, type ExtensionPropMapping, type MaybeReadAtom, type Nil } from "@calmdown/pyxis/core";
 
-export interface CssVariableExtensionType {
-	<TExtensionKey extends string, TElements extends ElementsType>(extensionKey: TExtensionKey, elements: TElements): {
-		[TElementName in keyof TElements]: (
-			NodeType<TElements[TElementName]> extends ElementCSSInlineStyle
-				? TElements[TElementName] & ExtensionProps<TExtensionKey, { readonly [TVarName in string]?: MaybeReadAtom<Nil<string | number>> }>
-				: TElements[TElementName]
-		);
+interface CssVariablePropMapping extends ExtensionPropMapping<Node> {
+	extension: {
+		[TVarName in string]?: MaybeReadAtom<Nil<string | number>>;
 	};
-
-	set: (node: ElementCSSInlineStyle, varName: string, value: MaybeReadAtom<Nil<string | number>>, group: MountingGroup<Node>) => void;
 }
 
+type StylableElement = Element & ElementCSSInlineStyle;
+
 /**
- * Extension adding CSS variable access to any Element. Recommended prefix:
- * `"var"`
+ * Extension adding CSS variable access to any Element. Recommended prefix: `"var"`.
  *
- * Any CSS variable can be set using this extension. The mandatory "--" prefix
- * is pre-applied by this extension and thus shouldn't be included in the
- * attribute name. When given an Atom for the value, it will be dynamically
- * updated. Strings are set as-is, while numbers are converted with 3 decimal
- * digit precision. Other types are not allowed.
+ * Any CSS variable can be set using this extension. The "--" prefix is automatically added by this
+ * extension, thus extension props should not include it. When given an Atom, the variable will be
+ * updated dynamically. Strings are set as-is, while numbers are converted with 3 decimal digit
+ * precision. Other types are not allowed. Example usage:
  *
- * Example usage:
  * ```tsx
  * <div var:max-size="5rem" /> // sets --max-size: 5rem;
  * ```
  */
-export const CssVariableExtension = {
-	set: (node, varName, value, group) => {
-		if (isAtom(value)) {
-			bind(group, value, () => {
-				setProp(node.style, varName, value.get());
-			});
-		}
-		else if (value) {
-			setProp(node.style, varName, value);
-		}
-	},
-} as CssVariableExtensionType;
+export const CssVariableExtension = extension<Node, CssVariablePropMapping>((node, prop, value, group) => {
+	// extensions are only applicable to JSX elements which get rendered via DomAdapter::element
+	// despite the typings, node is actually guaranteed to be an Element here
+
+	if (isAtom(value)) {
+		bind(group, value, () => {
+			setProp((node as StylableElement).style, prop, value.get());
+		});
+	}
+	else if (value) {
+		setProp((node as StylableElement).style, prop, value);
+	}
+});
 
 function setProp(style: CSSStyleDeclaration, varName: string, value: Nil<string | number>) {
 	if (value === null || value === undefined || value === "") {
