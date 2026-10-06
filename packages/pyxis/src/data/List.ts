@@ -147,7 +147,7 @@ export function listOf<T>(source?: Nil<Iterable<T>>, lifecycle = getLifecycle())
 		__DEV__assertNotEffect();
 
 		const devId = arguments[2];
-		runtime.hmr!.state.restore(lifecycle, devId, value => {
+		runtime.hmrState!.restore(lifecycle, devId, value => {
 			if (Array.isArray(value)) {
 				source = value;
 			}
@@ -329,7 +329,7 @@ function defaultEquals<T>(item0: T, item1: T) {
 
 function listMutated(list: List<any>) {
 	if (__DEV__) {
-		runtime.hmr!.state.preserve(list.$lifecycle, list.$devId, list.$items);
+		runtime.hmrState!.preserve(list.$lifecycle, list.$devId, list.$items);
 	}
 
 	scheduleTick(list.$lifecycle, list.$notify ??= {

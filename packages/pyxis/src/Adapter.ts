@@ -2,6 +2,7 @@ import type { TickFn } from "~/data/Scheduler";
 import type { ElementsType, S_ELEM_NAME, S_NODE_TYPE } from "~/support/types";
 
 import type { MountingGroup } from "./Renderer";
+import { runtime } from "./Runtime";
 
 export interface Adapter<TNode, TIntrinsicElements extends ElementsType = ElementsType> {
 	/**
@@ -79,6 +80,13 @@ export type ExtensionsType<TNode> = { [_ in string]?: Extension<TNode> };
 
 export interface Extension<TNode, TPropMapping extends ExtensionPropMapping<TNode> = ExtensionPropMapping<TNode>> {
 	/**
+	 * Unique prop prefix of this Extension used for props set by reference (via the {@link ext}
+	 * utility).
+	 * @internal
+	 */
+	readonly $prefix: string;
+
+	/**
 	 * Carries information about the props this extension adds to native elements.
 	 * @deprecated **Type only, does not exist at runtime!**
 	 */
@@ -115,10 +123,14 @@ export interface ExtensionPropMapping<TNode> {
 	extension: {};
 }
 
+/** Creates an extension with a shared-runtime ID independent of its registered JSX prefix. */
 export function extension<TNode, TPropMapping extends ExtensionPropMapping<TNode>>(
 	propSetter: Extension<TNode>["set"],
 ): Extension<TNode, TPropMapping> {
-	return { set: propSetter };
+	return {
+		$prefix: `:${(++runtime.i).toString(16)}:`,
+		set: propSetter,
+	};
 }
 
 /**
@@ -127,13 +139,36 @@ export function extension<TNode, TPropMapping extends ExtensionPropMapping<TNode
  * onto JSX elements.
  *
  * Typically used in libraries where relying on a specific prefix convention would limit the users.
+ * Does not require an active component lifecycle. Repeated spreads use the last value for each
+ * extension/prop pair, while props from different extensions remain independent.
  */
 export function ext<TMapping extends ExtensionPropMapping<any>, TNodeType, TElemName>(
-	extension: { readonly $mapping?: TMapping },
+	extension: Extension<any, TMapping>,
 	props: (TMapping & { node: TNodeType; name: TElemName; })["extension"],
 ): {
 	readonly [S_NODE_TYPE]?: TNodeType;
 	readonly [S_ELEM_NAME]?: TElemName;
 } {
-	return null!; // TODO
+	const prefix = extension.$prefix;
+	if (__DEV__ && typeof prefix !== "string") {
+		throw new Error("the extension was not created through the `extension()` factory and cannot be used");
+	}
+
+	const routing = runtime.x;
+	const result: Record<string, any> = {};
+	const values = props as Record<string, any>;
+	let prop;
+	let route;
+
+	for (prop in values) {
+		route = prefix + prop;
+		routing[route] ??= {
+			$ext: extension,
+			$prop: prop,
+		};
+
+		result[route] = values[prop];
+	}
+
+	return result;
 }

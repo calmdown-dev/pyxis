@@ -2,6 +2,7 @@ import { isAtom } from "~/data/Atom";
 import { bind } from "~/data/Dependency";
 import type { JsxObject } from "~/Component";
 import { insert, type HNode } from "~/Renderer";
+import { runtime } from "~/Runtime";
 import { S_TAG_NAME } from "~/symbols";
 
 const RE_EXT = /^([^:]+?):(.+)$/;
@@ -17,16 +18,31 @@ export function Native<TNode>(
 	const hGroup = hParent.$ng;
 	const { adapter, $extensions } = hGroup;
 	const nNode = adapter.element(jsx[S_TAG_NAME]!);
+	const routing = runtime.x;
 
 	let name;
 	let match;
 	let value;
+	let target;
 
 	// for..in doesn't iterate symbol keys, so we don't need to manually exclude
 	// internal symbols (S_COMPONENT, S_TAG_NAME, S_DEV_INFO), just children
 	for (name in jsx) {
-		match = RE_EXT.exec(name);
 		value = jsx[name];
+
+		// reserved ':' prefix for extension props set by reference via the `ext` utility
+		if (name.charCodeAt(0) === 58) {
+			if ((target = routing[name])) {
+				target.$ext.set(nNode, target.$prop, value, hGroup);
+			}
+			else if (__DEV__) {
+				throw new Error(`invalid reserved prop "${name}"`);
+			}
+
+			continue;
+		}
+
+		match = RE_EXT.exec(name);
 		if (match) {
 			$extensions[match[1]]?.set(nNode, match[2], value, hGroup);
 		}

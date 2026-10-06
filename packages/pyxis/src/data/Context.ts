@@ -30,14 +30,15 @@ export interface Context<T> {
 export function createContext<T>(devId?: string): Context<T>;
 
 export function createContext<T>(): Context<T> {
-	let $symbol = Symbol();
 	if (__DEV__) {
 		const devId = arguments[0];
-		$symbol = runtime.hmr!.state.restore(createContext, devId) ?? $symbol;
-		runtime.hmr!.state.preserve(createContext, devId, $symbol);
+		const $symbol = runtime.hmrState!.restore(createContext, devId) ?? Symbol();
+		runtime.hmrState!.preserve(createContext, devId, $symbol);
+		return { $symbol };
 	}
-
-	return { $symbol };
+	else {
+		return { $symbol: Symbol() };
+	}
 }
 
 
@@ -112,7 +113,7 @@ export function host<T>(context: Context<T>, defaultValue?: T) {
 	const lifecycle = getLifecycle();
 	if (__DEV__) {
 		const devId = arguments[2];
-		runtime.hmr!.state.restore(lifecycle, devId, value => {
+		runtime.hmrState!.restore(lifecycle, devId, value => {
 			defaultValue = value;
 		});
 	}
@@ -172,7 +173,7 @@ function setValue<T>(this: ContextAtom<T>, value: T) {
 
 	this.$value = value;
 	if (__DEV__) {
-		runtime.hmr!.state.preserve(this.$lifecycle, this.$devId, value);
+		runtime.hmrState!.preserve(this.$lifecycle, this.$devId, value);
 	}
 
 	return !Object.is(oldValue, value);

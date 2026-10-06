@@ -39,7 +39,7 @@ export function component(
 	let devId: string | undefined; // gets removed by bundler in production
 	if (__DEV__) {
 		devId = arguments[1];
-		devId && runtime.hmr!.component.upsert(devId, block);
+		devId && runtime.hmrComponent!.upsert(devId, block);
 	}
 
 	return (jsx, hParent, nUsedParent, nRealParent, nBefore, isBatch) => {
@@ -56,7 +56,7 @@ export function component(
 				const nMarker = hGroup.adapter.marker(`/${devId}`);
 				insert(nMarker, null, hParent, nUsedParent, nBefore, isBatch);
 
-				const unsubscribe = runtime.hmr!.component.subscribe(devId, impl => {
+				const unsubscribe = runtime.hmrComponent!.subscribe(devId, impl => {
 					unmount(hGroup);
 
 					setContextContainer(context);

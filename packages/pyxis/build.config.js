@@ -14,6 +14,10 @@ Target.TypeScriptLibrary.build(target => {
 		treeshake: {
 			moduleSideEffects: [
 				{
+					test: /\/src\/exports\/core-dev.ts$/,
+					sideEffects: true,
+				},
+				{
 					test: /\/src\/Runtime.ts$/,
 					sideEffects: true,
 				},
