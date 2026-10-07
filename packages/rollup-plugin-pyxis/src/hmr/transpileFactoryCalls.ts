@@ -16,7 +16,7 @@ type FactoryKind =
 const factoryKindMap: { [N in string]?: FactoryKind } = {
 	atomOf: "atom",
 	component: "component",
-	createContext: "context",
+	contextOf: "context",
 	listOf: "list",
 	host: "host",
 };

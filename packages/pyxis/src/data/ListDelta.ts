@@ -32,6 +32,9 @@ export const LC_REMOVE = 3;
 /** @internal */
 export const LC_CLEAR = 4;
 
+// The enum is only the public API, easily erased by dead code elimination unless explicitly used by
+// user code. While the constants above help our minifier to inline/mangle cleanly.
+
 export enum ChangeKind {
 	Change = LC_CHANGE,
 	Insert = LC_INSERT,

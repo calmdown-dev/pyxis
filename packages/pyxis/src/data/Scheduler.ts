@@ -190,8 +190,8 @@ export function scheduleTock(lifecycle: Lifecycle, callback: UpdateCallback) {
 }
 
 /**
- * Runs a block of code after the next tick of the scheduler, once all regular updates finished.
- * Unless a tick is already pending, a new one is scheduled.
+ * Runs a block of code immediately after the next tick of the scheduler, once all regular updates
+ * have finished. Unless a tick is already pending, a new one is scheduled.
  *
  * While it is possible to write Atoms within the block, their update notifications are
  * no longer delivered in the same scheduler tick - they're postponed to the next one.

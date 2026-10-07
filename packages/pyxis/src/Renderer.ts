@@ -9,20 +9,23 @@ import type { Adapter, ExtensionsType } from "./Adapter";
 import type { ComponentHandler, JsxResult } from "./Component";
 import { S_COMPONENT } from "./symbols";
 
-export interface Renderer<TNode, TIntrinsicElements extends ElementsType = ElementsType> extends Lifecycle {
+export interface Renderer<TNode, TElements extends ElementsType = ElementsType> extends Lifecycle {
 	/**
 	 * Carries information about the available intrinsic elements when using this Renderer.
 	 * @deprecated **Type only, does not exist at runtime!**
 	 */
-	readonly $elements?: TIntrinsicElements;
+	readonly $elements?: TElements;
 
 	mount: (root: TNode, jsx: JsxResult) => void;
 	unmount: () => void;
 }
 
-export type ElementsOf<TRenderer> = TRenderer extends { readonly $elements?: infer TElements }
-	? TElements
-	: {};
+/** Extracts the typings of intrinsic elements supported by the given Renderer. */
+export type ElementsOf<TRenderer, TFallback extends ElementsType = {}> = (
+	TRenderer extends { readonly $elements?: infer TElements extends ElementsType }
+		? TElements
+		: TFallback
+);
 
 
 export interface MountingGroup<TNode> extends Lifecycle, Hierarchy<TNode> {

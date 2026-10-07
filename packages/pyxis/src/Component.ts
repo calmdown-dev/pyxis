@@ -42,13 +42,13 @@ export function component(
 		devId && runtime.hmrComponent!.upsert(devId, block);
 	}
 
-	return (jsx, hParent, nUsedParent, nRealParent, nBefore, isBatch) => {
+	return (props, hParent, nUsedParent, nRealParent, nBefore, isBatch) => {
 		const context = getContextContainer();
 		try {
 			if (__DEV__) {
 				if (!import.meta.hot || !devId) {
 					setContextContainer(context);
-					mountJsx(block(jsx), hParent, nUsedParent, nRealParent, nBefore, isBatch);
+					mountJsx(__DEV__evalComponent(block, props), hParent, nUsedParent, nRealParent, nBefore, isBatch);
 					return;
 				}
 
@@ -62,9 +62,9 @@ export function component(
 					setContextContainer(context);
 					mount(
 						/* jsx = */ {
-							...jsx,
+							...props,
 							[S_COMPONENT]: (() => (
-								mountJsx(impl(jsx), hGroup, nUsedParent, nRealParent, nMarker, isBatch)
+								mountJsx(__DEV__evalComponent(impl, props), hGroup, nUsedParent, nRealParent, nMarker, isBatch)
 							)) satisfies ComponentHandler,
 						},
 						/* hGroup = */ hGroup,
@@ -83,7 +83,7 @@ export function component(
 			}
 			else {
 				setContextContainer(context);
-				mountJsx(block(jsx), hParent, nUsedParent, nRealParent, nBefore, isBatch);
+				mountJsx(block(props), hParent, nUsedParent, nRealParent, nBefore, isBatch);
 			}
 		}
 		finally {
@@ -91,6 +91,20 @@ export function component(
 			setContextContainer(context);
 		}
 	};
+}
+
+function __DEV__evalComponent(block: ComponentBlock, props: JsxObject) {
+	const prevLifecycle = runtime.componentEvalLifecycle ?? null;
+	const prevEffect = runtime.componentEvalEffect ?? null;
+	try {
+		runtime.componentEvalLifecycle = runtime.l;
+		runtime.componentEvalEffect = runtime.e;
+		return block(props);
+	}
+	finally {
+		runtime.componentEvalLifecycle = prevLifecycle;
+		runtime.componentEvalEffect = prevEffect;
+	}
 }
 
 /**

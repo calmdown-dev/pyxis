@@ -4,12 +4,12 @@ import type { ElementsType, S_ELEM_NAME, S_NODE_TYPE } from "~/support/types";
 import type { MountingGroup } from "./Renderer";
 import { runtime } from "./Runtime";
 
-export interface Adapter<TNode, TIntrinsicElements extends ElementsType = ElementsType> {
+export interface Adapter<TNode, TElements extends ElementsType = ElementsType> {
 	/**
 	 * Carries information about the available intrinsic elements when using this Adapter.
 	 * @deprecated **Type only, does not exist at runtime!**
 	 */
-	readonly $elements?: TIntrinsicElements;
+	readonly $elements?: TElements;
 
 	/**
 	 * A function able to schedule a callback to be executed at a later time, e.g. `queueMicrotask`.

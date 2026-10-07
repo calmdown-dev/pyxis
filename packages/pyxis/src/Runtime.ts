@@ -28,11 +28,17 @@ export interface Runtime {
 	 */
 	n: boolean;
 
-	/** hot module reload registry for components, only populated in dev builds */
+	/** hot module reload registry for components, only used in dev builds */
 	hmrComponent?: ComponentRegistry;
 
-	/** hot module reload registry for atom state, only populated in dev builds */
+	/** hot module reload registry for atom state, only used in dev builds */
 	hmrState?: StateRegistry;
+
+	/** when running component code, tracks the Lifecycle given to that component, only used in dev builds */
+	componentEvalLifecycle?: Lifecycle | null;
+
+	/** when running component code, tracks the Effect (if any) within which it's running, only used in dev builds */
+	componentEvalEffect?: Effect<any> | null;
 }
 
 export interface ExtensionPropDestination {

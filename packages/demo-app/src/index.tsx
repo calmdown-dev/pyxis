@@ -1,18 +1,18 @@
-import { pyxis, type ElementsOf, type JsxResult } from "@calmdown/pyxis";
+import { renderer, type ElementsOf, type JsxResult } from "@calmdown/pyxis";
 import { ClassListExtension, DomAdapter, EventExtension } from "@calmdown/pyxis-dom";
 
 import { TestApp } from "./TestApp";
 
-const renderer = pyxis(DomAdapter)
+const pyxis = renderer(DomAdapter)
 	.extend("cl", ClassListExtension)
 	.extend("on", EventExtension)
-	.build();
+	.create();
 
 declare global {
 	namespace JSX {
 		type Element = JsxResult;
-		type IntrinsicElements = ElementsOf<typeof renderer>;
+		type IntrinsicElements = ElementsOf<typeof pyxis>;
 	}
 }
 
-renderer.mount(document.body, <TestApp />);
+pyxis.mount(document.body, <TestApp />);
