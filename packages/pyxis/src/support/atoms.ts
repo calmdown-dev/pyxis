@@ -1,24 +1,38 @@
 import { isAtom, read, update, write, type Atom, type MaybeAtom } from "~/data/Atom";
-import type { JsxText } from "~/Component";
+import { derived } from "~/data/Derivation";
 
 import { noop } from "./common";
-import { derived } from '~/data/Derivation';
 
 /**
  * A template string tag that creates a Derivation Atom from the tagged template. The derivation
  * automatically observes any Atoms among substitutions and updates the resulting string whenever
  * one or more of these Atoms change.
+ *
+ * Substitutions use String conversion; Failed conversions get replaced with `[error]`. Ideally,
+ * you'd want to make sure `String(yourValue)` never fails.
  */
-export function text(strings: TemplateStringsArray, ...values: JsxText[]) {
+export function text(strings: TemplateStringsArray, ...values: unknown[]) {
 	const { length } = values;
 	return derived(() => {
+		let result = strings[0];
 		let index = 0;
-		let text = strings[0];
+		let value;
+
 		while (index < length) {
-			text += read(values[index]) + strings[++index];
+			value = read(values[index]);
+
+			// only catch stringification errors
+			try {
+				value = String(value);
+			}
+			catch {
+				value = "[error]";
+			}
+
+			result += value + strings[++index];
 		}
 
-		return text;
+		return result;
 	});
 }
 

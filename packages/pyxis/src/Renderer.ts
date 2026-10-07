@@ -1,6 +1,5 @@
-import { Text } from "~/component/Text";
-import { isAtom } from "~/data/Atom";
-import { unlinkAll } from "~/data/Dependency";
+import { isAtom, type ReadAtom } from "~/data/Atom";
+import { bind, unlinkAll } from "~/data/Dependency";
 import { setLifecycle, type Lifecycle } from "~/data/Lifecycle";
 import { createScheduler } from "~/data/Scheduler";
 import { invoke } from "~/support/common";
@@ -372,7 +371,7 @@ export function unmount<TNode>(hNode: HNode<TNode>, top: boolean = true) {
 }
 
 /**
- * Mounts components described by the JsxResult to the specified location in the node tree.
+ * Mounts components described by JSX to the specified location in the node tree.
  */
 export function mountJsx<TNode>(
 	jsx: any,
@@ -389,31 +388,119 @@ export function mountJsx<TNode>(
 			}
 
 			if (Array.isArray(jsx)) {
-				const { length } = jsx;
-				let index = 0;
-				for (; index < length; index += 1) {
-					mountJsx(jsx[index], hParent, nUsedParent, nRealParent, nBefore, isBatch);
+				const text = mountJsxArray(jsx, hParent, nUsedParent, nRealParent, nBefore, isBatch);
+				if (text) {
+					mountStaticText(text, hParent, nUsedParent, nBefore, isBatch);
 				}
 
 				break;
 			}
 
-			if (!isAtom(jsx)) {
-				(jsx[S_COMPONENT] as ComponentHandler | undefined)
-					?.(jsx, hParent, nUsedParent, nRealParent, nBefore, isBatch);
+			if (isAtom(jsx)) {
+				mountDynamicText(jsx, hParent, nUsedParent, nBefore, isBatch);
+			}
+			else {
+				(jsx[S_COMPONENT] as ComponentHandler | undefined)?.(jsx, hParent, nUsedParent, nRealParent, nBefore, isBatch);
+			}
 
+			break;
+
+		case "string":
+			if (jsx === "") {
 				break;
 			}
 
 			// fall through
 
-		case "string":
 		case "number":
-		case "boolean":
 		case "bigint":
-			Text(jsx, hParent, nUsedParent, nRealParent, nBefore, isBatch);
+			mountStaticText("" + jsx, hParent, nUsedParent, nBefore, isBatch);
 			break;
 	}
+}
+
+/**
+ * Mounts components described by an array of JSX items to the specified location in the node tree.
+ * Returns pending static text.
+ */
+function mountJsxArray<TNode>(
+	jsx: readonly any[],
+	hParent: HNode<TNode>,
+	nUsedParent: TNode,
+	nRealParent: TNode,
+	nBefore: TNode | null,
+	isBatch: boolean,
+	text: string = "",
+): string {
+	const { length } = jsx;
+	let index = 0;
+	let item;
+
+	for (; index < length; index += 1) {
+		item = jsx[index];
+		switch (typeof item) {
+			case "string":
+			case "number":
+			case "bigint":
+				text += item;
+				break;
+
+			case "boolean":
+				break;
+
+			default:
+				if (item === null || item === undefined) {
+					break;
+				}
+
+				if (Array.isArray(item)) {
+					text = mountJsxArray(item, hParent, nUsedParent, nRealParent, nBefore, isBatch, text);
+					break;
+				}
+
+				if (text) {
+					mountStaticText(text, hParent, nUsedParent, nBefore, isBatch);
+					text = "";
+				}
+
+				mountJsx(item, hParent, nUsedParent, nRealParent, nBefore, isBatch);
+				break;
+		}
+	}
+
+	return text;
+}
+
+function mountStaticText<TNode>(
+	text: string,
+	hParent: HNode<TNode>,
+	nUsedParent: TNode,
+	nBefore: TNode | null,
+	isBatch: boolean,
+) {
+	const node = hParent.$ng.adapter.text(text, null);
+	insert(node, null, hParent, nUsedParent, nBefore, isBatch);
+}
+
+function mountDynamicText<TNode>(
+	atom: ReadAtom<Nil<string | number | bigint | boolean>>,
+	hParent: HNode<TNode>,
+	nUsedParent: TNode,
+	nBefore: TNode | null,
+	isBatch: boolean,
+) {
+	const { adapter } = hParent.$ng;
+	let node: TNode | null = null;
+
+	bind(hParent.$ng, atom, () => {
+		const value = atom.get();
+		node = adapter.text(
+			value === null || value === undefined || typeof value === "boolean" ? "" : "" + value,
+			node,
+		);
+	});
+
+	insert(node!, null, hParent, nUsedParent, nBefore, isBatch);
 }
 
 /**

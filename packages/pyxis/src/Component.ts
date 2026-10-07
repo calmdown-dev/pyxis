@@ -127,7 +127,8 @@ export type JsxChildrenProp<T> = T extends readonly [ any, any, ...any[] ]
 			: T;
 
 /**
- * Primitive types accepted to render as text.
+ * Primitive values (or Atoms of such primitives) accepted as text children. Nil and boolean values
+ * do not render any text.
  */
 export type JsxText = MaybeReadAtom<Nil<string | number | boolean | bigint>>;
 
