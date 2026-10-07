@@ -41,14 +41,14 @@ export type ElemName<P> = P extends { readonly [S_ELEM_NAME]?: infer N extends s
 export type Mutable<T> = { -readonly [K in keyof T]: T[K] };
 
 /**
- * A tuple of up to 2 arguments.
+ * A tuple of up to 3 arguments.
  */
-export type ArgsMax2<A0 = any, A1 = any> = [ a0?: A0, a1?: A1 ];
+export type ArgsMax3<A0 = any, A1 = any, A2 = any> = [ a0?: A0, a1?: A1, a2?: A2 ];
 
 /**
  * Describes a callback with up to two stored arguments.
  */
-export interface Callback<TArgs extends ArgsMax2 = ArgsMax2, TReturn = void> {
+export interface Callback<TArgs extends ArgsMax3 = ArgsMax3, TReturn = void> {
 	/** @internal */
 	$fn: (this: any, ...args: TArgs) => TReturn;
 
@@ -57,4 +57,7 @@ export interface Callback<TArgs extends ArgsMax2 = ArgsMax2, TReturn = void> {
 
 	/** @internal */
 	$a1?: TArgs[1];
+
+	/** @internal */
+	$a2?: TArgs[2];
 }

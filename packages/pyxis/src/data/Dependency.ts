@@ -1,11 +1,11 @@
-import type { ArgsMax2, Callback, Nil } from "~/support/types";
+import type { ArgsMax3, Callback, Nil } from "~/support/types";
 
 import type { Lifecycle } from "./Lifecycle";
 
 /**
  * A dependency callback of an Atom. The callback will be run whenever the relevant Atom changes.
  */
-export interface Dependency<TArgs extends ArgsMax2 = ArgsMax2> extends Callback<TArgs> {
+export interface Dependency<TArgs extends ArgsMax3 = ArgsMax3> extends Callback<TArgs> {
 	/** @internal */
 	$lifecycle?: Nil<Lifecycle>;
 
@@ -37,7 +37,7 @@ export interface Dependency<TArgs extends ArgsMax2 = ArgsMax2> extends Callback<
 	$ln?: Nil<Dependency>;
 }
 
-export interface DependencyList<TArgs extends ArgsMax2 = ArgsMax2> {
+export interface DependencyList<TArgs extends ArgsMax3 = ArgsMax3> {
 	/**
 	 * The head of the dependencies linked list.
 	 * @internal
@@ -60,7 +60,7 @@ export function bind(lifecycle: Lifecycle, target: DependencyList, block: () => 
  * Links a Dependency to an Atom and Lifecycle.
  * @internal
  */
-export function link<TArgs extends ArgsMax2>(lifecycle: Lifecycle, target: DependencyList<TArgs>, dep: Dependency<TArgs>) {
+export function link<TArgs extends ArgsMax3>(lifecycle: Lifecycle, target: DependencyList<TArgs>, dep: Dependency<TArgs>) {
 	// link to target
 	if (target.$dt) {
 		target.$dt.$an = dep;

@@ -1,5 +1,5 @@
 import { invoke } from "~/support/common";
-import type { ArgsMax2, Callback } from "~/support/types";
+import type { ArgsMax3, Callback } from "~/support/types";
 
 import { getLifecycle, type Lifecycle } from "./Lifecycle";
 
@@ -35,7 +35,7 @@ export interface Scheduler {
  * @see {@link Scheduler}
  * @internal
  */
-export interface UpdateCallback<TArgs extends ArgsMax2 = ArgsMax2> extends Callback<TArgs> {
+export interface UpdateCallback<TArgs extends ArgsMax3 = ArgsMax3> extends Callback<TArgs> {
 	/**
 	 * The Lifecycle responsible for this callback.
 	 */
