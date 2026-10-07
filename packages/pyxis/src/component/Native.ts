@@ -5,8 +5,6 @@ import { insert, type HNode } from "~/Renderer";
 import { runtime } from "~/Runtime";
 import { S_TAG_NAME } from "~/symbols";
 
-const RE_EXT = /^([^:]+?):(.+)$/;
-
 export function Native<TNode>(
 	jsx: JsxObject,
 	hParent: HNode<TNode>,
@@ -21,30 +19,31 @@ export function Native<TNode>(
 	const routing = runtime.x;
 
 	let name;
-	let match;
+	let index;
 	let value;
 	let target;
 
-	// for..in doesn't iterate symbol keys, so we don't need to manually exclude
-	// internal symbols (S_COMPONENT, S_TAG_NAME, S_DEV_INFO), just children
+	// for..in doesn't iterate symbol keys, so we don't need to manually exclude internal symbols
+	// (S_COMPONENT, S_TAG_NAME, S_DEV_INFO), just children
+	//
+	// also since props from transpiled JSX are always plain objects, we shouldn't need to run
+	// checks to exclude inherited fields
 	for (name in jsx) {
+		index = name.indexOf(":");
 		value = jsx[name];
 
-		// reserved ':' prefix for extension props set by reference via the `ext` utility
-		if (name.charCodeAt(0) === 58) {
+		if (index === 0) {
+			// reserved ':' prefix for extension props set by reference via the `ext` utility
 			if ((target = routing[name])) {
 				target.$ext.set(nNode, target.$prop, value, hGroup);
 			}
 			else if (__DEV__) {
 				throw new Error(`invalid reserved prop "${name}"`);
 			}
-
-			continue;
 		}
-
-		match = RE_EXT.exec(name);
-		if (match) {
-			$extensions[match[1]]?.set(nNode, match[2], value, hGroup);
+		else if (index > 0) {
+			// regular prefixed extension props
+			$extensions[name.slice(0, index)]?.set(nNode, name.slice(index + 1), value, hGroup);
 		}
 		else if (name !== "children") {
 			if (isAtom(value)) {

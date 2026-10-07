@@ -160,6 +160,12 @@ export function ext<TMapping extends ExtensionPropMapping<any>, TNodeType, TElem
 	let prop;
 	let route;
 
+	// Typical usage declares plain objects inline with the `ext` call, we are very unlikely to
+	// receive objects with inherited fields here, so we skip the extra checks. It's already bad
+	// enough that library code incurs the penalty of running this function for every extension it
+	// uses...
+	//
+	// FUTURE: This would be remedied with a pre-compiler, though... *wink*
 	for (prop in values) {
 		route = prefix + prop;
 		routing[route] ??= {
