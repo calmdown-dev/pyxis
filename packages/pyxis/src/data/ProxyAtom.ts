@@ -3,7 +3,6 @@ import { S_ATOM } from "~/symbols";
 
 import { isAtom, notify, type Atom, type MaybeAtom } from "./Atom";
 import { link, unlink, type Dependency } from "./Dependency";
-import { __DEV__assertNotEffect } from "./Effect";
 import { getLifecycle, type Lifecycle } from "./Lifecycle";
 import { scheduleTick } from "./Scheduler";
 
@@ -33,10 +32,6 @@ export interface ProxyAtom<T> extends Atom<T> {
  * it, otherwise it will be a read-only atom with a static value until rebound.
  */
 export function proxyOf<T>(initialValue: MaybeAtom<T>, lifecycle = getLifecycle()): ProxyAtom<T> {
-	if (__DEV__) {
-		__DEV__assertNotEffect();
-	}
-
 	// `set` is assigned by the use call below
 	const self: Omit<ProxyAtom<T>, "set"> = {
 		[S_ATOM]: true,

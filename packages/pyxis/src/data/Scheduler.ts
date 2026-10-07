@@ -21,11 +21,11 @@ export interface Scheduler {
 	/**
 	 * Array of pending end-of-update callbacks, cleared after each tick.
 	 */
-	readonly $onTock: UpdateCallback[];
+	$onTock: UpdateCallback[];
 
 	/**
-	 * Increments with each scheduler tick. Used to deduplicate updates and detect dependency
-	 * cycles.
+	 * Increments with each scheduler tick. Identifies pending callbacks and invalidates any
+	 * discarded callbacks when a tick throws.
 	 */
 	$epoch: number;
 }
@@ -47,15 +47,10 @@ export interface UpdateCallback<TArgs extends ArgsMax3 = ArgsMax3> extends Callb
 	$life?: number;
 
 	/**
-	 * Schedule epoch - tracked to prevent scheduling the same callback multiple times within
-	 * the same tick.
+	 * Schedule epoch - tracked to deduplicate callbacks while they are pending. Cleared before
+	 * execution so a running callback can schedule itself again.
 	 */
 	$se?: number;
-
-	/**
-	 * Run epoch - only tracked in dev mode to detect dependency loops.
-	 */
-	$re?: number;
 }
 
 /**
@@ -68,10 +63,11 @@ export interface TickFn {
 
 /** @internal */
 export function createScheduler(tick: TickFn) {
+	const ticks: UpdateCallback[] = [];
+	let tocks: UpdateCallback[] = [];
+	let tocksParked: UpdateCallback[] = [];
 	let isPending = false;
 
-	const ticks: UpdateCallback[] = [];
-	const tocks: UpdateCallback[] = [];
 	const scheduler: Scheduler = {
 		$epoch: 1,
 		$onTick: ticks,
@@ -87,42 +83,71 @@ export function createScheduler(tick: TickFn) {
 	};
 
 	const update = () => {
+		const epoch = scheduler.$epoch;
+		let hasDrained = false;
+
 		try {
 			let index = 0;
 			let callback;
 
-			// array lengths are re-read on each cycle, as they may increase when new updates get
-			// added by the running code
+			// Array lengths are re-read on each cycle, as they may increase when additional
+			// callbacks get queued by the code we're invoking.
 
-			// run ticks
 			for (; index < ticks.length; index += 1) {
 				callback = ticks[index];
+				callback.$se = 0;
 				if (callback.$life === callback.$lifecycle!.$life) {
-					if (__DEV__) {
-						callback.$re = scheduler.$epoch;
-					}
-
 					invoke(callback);
 				}
 			}
 
-			// run tocks
+			// The main queue drained, tick phase is now done. There may still be pending tock
+			// callbacks queued, but at this point the current epoch is sealed. If tock callbacks
+			// schedule additional work, it will be queued for the next future update rather than
+			// executed synchronously in this one.
+
+			ticks.length = 0;
+
+			scheduler.$onTock = tocksParked;
+			scheduler.$epoch = epoch + 1;
+
+			hasDrained = true;
+
 			for (index = 0; index < tocks.length; index += 1) {
 				callback = tocks[index];
-				if (callback.$life === callback.$lifecycle!.$life) {
-					if (__DEV__) {
-						callback.$re = scheduler.$epoch;
-					}
 
+				// An earlier tock may have queued this same callback for the next tick (i.e. it is
+				// now in both the `tocks` and `tocksParked` queues and is marked with the future
+				// epoch number). If this happens, we must keep its pending marker intact,
+				// otherwise we can reset it normally.
+				if (callback.$se === epoch) {
+					callback.$se = 0;
+				}
+
+				if (callback.$life === callback.$lifecycle!.$life) {
 					invoke(callback);
 				}
 			}
 		}
 		finally {
+			if (hasDrained) {
+				const tmp = tocksParked;
+				tocksParked = tocks;
+				tocks = tmp;
+
+				tocksParked.length = 0;
+			}
+			else {
+				// tick callback invocation threw, drop scheduled work
+				ticks.length = 0;
+				tocks.length = 0;
+				scheduler.$epoch += 1;
+			}
+
 			isPending = false;
-			ticks.length = 0;
-			tocks.length = 0;
-			scheduler.$epoch += 1;
+			if (ticks.length || tocks.length) {
+				scheduler.$scheduleTick();
+			}
 		}
 	};
 
@@ -132,13 +157,7 @@ export function createScheduler(tick: TickFn) {
 function schedule(lifecycle: Lifecycle, queue: UpdateCallback[], callback: UpdateCallback) {
 	const scheduler = lifecycle.$scheduler;
 	if (callback.$se === scheduler.$epoch) {
-		if (__DEV__ && callback.$re === scheduler.$epoch) {
-			// if run epoch (::$re) matches, the callback already executed this tick and now is being
-			// scheduled again in the same tick -> this is potentially an infinite loop, complain:
-			throw new Error("Refusing to re-schedule an update after it already executed, as it may cause an infinite loop. Are you mutating an Atom inside an effect that observes it?");
-		}
-
-		// if schedule epoch (::$se) matches, the callback was already scheduled -> bail
+		// This callback is already pending; It will observe the latest state when it runs.
 		return;
 	}
 
@@ -155,8 +174,11 @@ export function scheduleTick(lifecycle: Lifecycle, callback: UpdateCallback) {
 }
 
 /**
- * Runs a block of code on the next tick of the scheduler, synchronized with other updates. If a
- * tick is not currently pending, a new one is scheduled.
+ * Runs a block of code on the next tick of the scheduler, synchronized with other updates. Unless
+ * a tick is already pending, a new one is scheduled.
+ *
+ * Atoms written within the block will deliver their update notifications synchronously within the
+ * same tick.
  */
 export function tick(block: () => void, lifecycle = getLifecycle()) {
 	schedule(lifecycle, lifecycle.$scheduler.$onTick, { $fn: block });
@@ -169,7 +191,10 @@ export function scheduleTock(lifecycle: Lifecycle, callback: UpdateCallback) {
 
 /**
  * Runs a block of code after the next tick of the scheduler, once all regular updates finished.
- * If a tick is not currently pending, a new one is scheduled.
+ * Unless a tick is already pending, a new one is scheduled.
+ *
+ * While it is possible to write Atoms within the block, their update notifications are
+ * no longer delivered in the same scheduler tick - they're postponed to the next one.
  */
 export function tock(block: () => void, lifecycle = getLifecycle()) {
 	schedule(lifecycle, lifecycle.$scheduler.$onTock, { $fn: block });

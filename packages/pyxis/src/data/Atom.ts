@@ -4,7 +4,7 @@ import { runtime } from "~/Runtime";
 import { S_ATOM } from "~/symbols";
 
 import { getLifecycle, type Lifecycle } from "./Lifecycle";
-import { __DEV__assertNotEffect, reportAccess } from "./Effect";
+import { reportAccess } from "./Effect";
 import { scheduleTick, type UpdateCallback } from "./Scheduler";
 import type { DependencyList } from "./Dependency";
 
@@ -105,10 +105,6 @@ export function atomOf<T>(): Atom<T | undefined>;
 export function atomOf<T>(initialValue: MaybeAtom<T>, lifecycle?: Lifecycle, devId?: string): Atom<T>;
 
 export function atomOf<T>(initialValue?: MaybeAtom<T>, lifecycle = getLifecycle()) {
-	if (__DEV__) {
-		__DEV__assertNotEffect();
-	}
-
 	if (isAtom(initialValue)) {
 		return initialValue;
 	}

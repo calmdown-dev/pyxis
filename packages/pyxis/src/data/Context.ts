@@ -4,7 +4,6 @@ import { S_ATOM } from "~/symbols";
 
 import { notify, type Atom } from "./Atom";
 import { link, unlink, type Dependency } from "./Dependency";
-import { __DEV__assertNotEffect } from "./Effect";
 import { getLifecycle } from "./Lifecycle";
 
 /**
@@ -71,10 +70,6 @@ interface ContextAtom<T> extends Atom<T> {
  * @see {@link host}
  */
 export function consumerOf<T>(context: Context<T>): Atom<T> | null {
-	if (__DEV__) {
-		__DEV__assertNotEffect();
-	}
-
 	const { $symbol } = context;
 	let ptr: Nil<ContextContainer> = runtime.c;
 	let atom;
@@ -98,10 +93,6 @@ export function host<C>(
 ): C extends Context<infer T> ? ContextAtom<T> : never;
 
 export function host<T>(context: Context<T>, defaultValue?: T) {
-	if (__DEV__) {
-		__DEV__assertNotEffect();
-	}
-
 	if (!runtime.n || !runtime.c) {
 		// split context, current component becomes a host
 		runtime.n = true;

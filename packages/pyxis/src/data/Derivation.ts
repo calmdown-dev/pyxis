@@ -3,7 +3,7 @@ import { S_ATOM } from "~/symbols";
 import { notify, type Atom } from "./Atom";
 import { getLifecycle } from "./Lifecycle";
 import { unlink } from "./Dependency";
-import { __DEV__assertNotEffect, resolve, type Effect, type EffectDependency } from "./Effect";
+import { resolve, type Effect, type EffectDependency } from "./Effect";
 import { scheduleTick } from "./Scheduler";
 
 /**
@@ -25,10 +25,6 @@ export interface Derivation<T = unknown> extends Atom<T>, Effect<T> {
  * Atoms change. Observers are only notified if the new value differs from the previous.
  */
 export function derived<T>(block: () => T, lifecycle = getLifecycle()): Derivation<T> {
-	if (__DEV__) {
-		__DEV__assertNotEffect();
-	}
-
 	const atom: Derivation<T> = {
 		[S_ATOM]: true,
 		$dirty: false,
@@ -65,8 +61,8 @@ function scheduleNotify(this: EffectDependency, derivation: Derivation<any>, cyc
 	}
 
 	// we're already within a scheduler tick; the effect will therefore run synchronously despite
-	// being "scheduled" - this also gives priority to already scheduled updates and prevents
-	// infinite loops when dependency cycles exist
+	// being "scheduled" - this also gives priority to already queued updates and coalesces
+	// additional notifications while the first one is still pending.
 	derivation.$dirty = true;
 	scheduleTick(derivation.$lifecycle, derivation.$notify ??= {
 		$fn: notify,

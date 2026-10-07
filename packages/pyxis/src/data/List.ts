@@ -4,7 +4,7 @@ import { runtime } from "~/Runtime";
 
 import { getLifecycle, type Lifecycle } from "./Lifecycle";
 import type { DependencyList } from "./Dependency";
-import { __DEV__assertNotEffect, reportAccess } from "./Effect";
+import { reportAccess } from "./Effect";
 import { createDelta, itemChanged, itemInserted, itemRemoved, listCleared, listSynced, type Equals, type ListDelta } from "./ListDelta";
 import { scheduleTick, scheduleTock, type UpdateCallback } from "./Scheduler";
 
@@ -22,8 +22,8 @@ export interface ReadonlyList<T> extends Iterable<T>, DependencyList {
 	get(index: number): T | undefined;
 
 	/**
-	 * Gets a set of changes made to this List within the current tick. Returns null when no changes
-	 * were made.
+	 * Gets the pending or most recently delivered set of changes within the current tick. Returns
+	 * null when no changes were made. Each notification delivers a new set of changes.
 	 * Reactive in effects and derivations.
 	 */
 	delta(): ListDelta<T> | null;
@@ -49,6 +49,12 @@ export interface ReadonlyList<T> extends Iterable<T>, DependencyList {
 
 	/** @internal */
 	$delta: ListDelta<T> | null;
+
+	/** @internal */
+	$pendingDelta?: ListDelta<T> | null;
+
+	/** @internal */
+	$notifying?: boolean;
 
 	/** @internal */
 	$notify?: UpdateCallback<[ self: List<T> ]>;
@@ -144,8 +150,6 @@ export function listOf<T>(source: Iterable<T>, lifecycle?: Lifecycle, devId?: st
 
 export function listOf<T>(source?: Nil<Iterable<T>>, lifecycle = getLifecycle()): List<T> {
 	if (__DEV__) {
-		__DEV__assertNotEffect();
-
 		const devId = arguments[2];
 		runtime.hmrState!.restore(lifecycle, devId, value => {
 			if (Array.isArray(value)) {
@@ -194,7 +198,7 @@ export function listOf<T>(source?: Nil<Iterable<T>>, lifecycle = getLifecycle())
 export function sync<T>(list: List<T>, source: readonly T[], eq: Equals<T> = defaultEquals) {
 	const oldState = list.$items;
 	list.$items = source.slice();
-	listSynced(list.$delta ??= createDelta(), oldState, source, eq);
+	listSynced(currentDelta(list), oldState, source, eq);
 	listMutated(list);
 }
 
@@ -239,7 +243,7 @@ function set<T>(this: List<T>, index: number, newItem: T) {
 
 	// only emit deltas when there are observers
 	if (this.$dh) {
-		itemChanged(this.$delta ??= createDelta(), index, oldItem, newItem);
+		itemChanged(currentDelta(this), index, oldItem, newItem);
 		listMutated(this);
 	}
 }
@@ -250,7 +254,7 @@ function clear(this: List<any>) {
 
 	// only emit deltas when there are observers
 	if (this.$dh) {
-		listCleared(this.$delta ??= createDelta(), count);
+		listCleared(currentDelta(this), count);
 		listMutated(this);
 	}
 }
@@ -267,7 +271,7 @@ function insertAt<T>(this: List<T>, index: number, item: T) {
 
 	// only emit deltas when there are observers
 	if (this.$dh) {
-		itemInserted(this.$delta ??= createDelta(), index, item);
+		itemInserted(currentDelta(this), index, item);
 		listMutated(this);
 	}
 }
@@ -296,7 +300,7 @@ function removeAt<T>(this: List<T>, index: number) {
 
 	// only emit deltas when there are observers
 	if (this.$dh) {
-		itemRemoved(this.$delta ??= createDelta(), index, item);
+		itemRemoved(currentDelta(this), index, item);
 		listMutated(this);
 	}
 
@@ -327,6 +331,15 @@ function defaultEquals<T>(item0: T, item1: T) {
 	return Object.is(item0, item1);
 }
 
+function currentDelta<T>(list: List<T>) {
+	const delta = list.$pendingDelta ??= createDelta<T>();
+	if (!list.$notifying) {
+		list.$delta = delta;
+	}
+
+	return delta;
+}
+
 function listMutated(list: List<any>) {
 	if (__DEV__) {
 		runtime.hmrState!.preserve(list.$lifecycle, list.$devId, list.$items);
@@ -344,16 +357,31 @@ function listMutated(list: List<any>) {
 }
 
 function notify(list: List<any>) {
+	// Keep the delivered delta stable for all synchronous observers. Mutations made while
+	// notifying, or by effects afterwards, accumulate in a separate delta for the next pass.
+	list.$delta = list.$pendingDelta!;
+	list.$pendingDelta = null;
+	list.$notifying = true;
 	let current = list.$dh;
 	let next;
 
-	while (current) {
-		next = current.$an;
-		invoke(current);
-		current = next;
+	try {
+		while (current) {
+			next = current.$an;
+			invoke(current);
+			current = next;
+		}
+	}
+	finally {
+		list.$notifying = false;
+		if (list.$pendingDelta) {
+			list.$delta = list.$pendingDelta;
+		}
 	}
 }
 
 function cleanup(list: List<any>) {
-	list.$delta = null;
+	// A preceding tock may have mutated the List for the next tick. Preserve that pending
+	// delta while releasing the changes delivered during the completed update phase.
+	list.$delta = list.$pendingDelta ?? null;
 }

@@ -47,10 +47,13 @@ export type EffectDependency = Dependency<[ effect: Effect<any>, epoch: number ]
 
 /**
  * Creates an Effect - a block of logic executed each time any of the Atoms accessed within it
- * change. The block is first synchronously executed when the Effect is created.
+ * change. The block is first synchronously executed when the Effect is created. Atoms may be
+ * written or even created within the block, but note that writing an Atom this Effect depends on
+ * may cause an infinite update loop when the state doesn't converge to a point where no more
+ * re-runs of this Effect are required.
  *
- * If a teardown callback is returned, it will be run before the next effect re-run, or on component
- * unmount.
+ * When a teardown callback is returned, it will be run before the next re-run of this Effect, or
+ * once the enclosing Component unmounts, whichever comes first.
  */
 export function effect(block: EffectBlock, lifecycle = getLifecycle()) {
 	runEffect({
@@ -71,8 +74,8 @@ function scheduleEffect(this: EffectDependency, effect: Effect<ReturnType<Effect
 	}
 
 	// we're already within a scheduler tick; the effect will therefore run synchronously despite
-	// being "scheduled" - this also gives priority to already scheduled updates and prevents
-	// potential infinite loops in case dependency cycles exist
+	// being "scheduled" - this also gives priority to already queued updates and coalesces
+	// additional re-run attempts while the first one is still pending.
 	scheduleTick(effect.$lifecycle, effect.$resolve ??= {
 		$fn: runEffect,
 		$a0: effect,
@@ -168,20 +171,5 @@ export function noEffect<T>(block: () => T) {
 	}
 	finally {
 		runtime.e = previousEffect;
-	}
-}
-
-/**
- * Asserts that the current code is not running within an effect block.
- * Only used in development; In production, this function should be removed by the bundler.
- */
-export function __DEV__assertNotEffect() {
-	const currentEffect = runtime.e;
-	if (
-		currentEffect &&
-		currentEffect.$lifecycle === getLifecycle() &&
-		currentEffect.$life === currentEffect.$lifecycle.$life
-	) {
-		throw new Error("Attempt to create an Atom inside an effect block.");
 	}
 }

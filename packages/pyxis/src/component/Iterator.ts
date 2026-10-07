@@ -61,16 +61,18 @@ export function Iterator<TNode, T>(
 
 	// list change handler
 	let items: IteratorItemGroup<TNode>[];
-	let skipDelta = Boolean(source.$delta);
+	let skipDelta = source.$pendingDelta ?? source.$delta;
+
 	const onDelta = () => {
-		if (skipDelta) {
+		const delta = source.$delta!;
+		if (skipDelta === delta) {
 			// a delta might've been pending during initial render, but we already rendered against
 			// the lists's up-to-date state, so such delta must be skipped -> bail out
-			skipDelta = false;
+			skipDelta = null;
 			return;
 		}
 
-		const delta = source.$delta!;
+		skipDelta = null;
 		const { changes, lengthChange } = delta;
 		const cMax = changes.length;
 		const iMax = items.length + lengthChange;
