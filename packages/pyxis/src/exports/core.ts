@@ -1,7 +1,7 @@
 export { Fragment, type FragmentProps } from "~/component/Fragment";
 export { Iterator, type ProxyIteratorProps, type RemountIteratorProps } from "~/component/Iterator";
 export { Native } from "~/component/Native";
-export { Show, type ShowProps } from "~/component/Show";
+export { Show, type ShowDataProps, type ShowProps, type ShowProxyDataProps } from "~/component/Show";
 
 export { atomOf, isAtom, peek, read, update, write, type Atom, type MaybeAtom, type MaybeReadAtom, type ReadAtom } from "~/data/Atom";
 export { consumerOf, createContext, host, type Context } from "~/data/Context";
@@ -17,7 +17,7 @@ export { tick, tock, type TickFn } from "~/data/Scheduler";
 export { RefExtension, type RefFn } from "~/extension/RefExtension";
 
 export { assign, atomsOf, text, updates, writes, type AtomsOf, type ValueType } from "~/support/atoms";
-export type { ElementsType, ElemName, Nil, NodeType, PropsType, S_ELEM_NAME, S_NODE_TYPE } from "~/support/types";
+export type { ElementsType, ElemName, Flatten, Nil, NodeType, PropsType, S_ELEM_NAME, S_NODE_TYPE } from "~/support/types";
 
 export { ext, extension, type Adapter, type Extension, type ExtensionPropMapping, type ExtensionsType } from "~/Adapter";
 export { pyxis, type PyxisBuilder } from "~/Builder";

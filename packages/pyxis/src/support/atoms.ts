@@ -1,8 +1,9 @@
 import { atomOf, isAtom, peek, read, update, write, type Atom, type MaybeAtom, type ReadAtom } from "~/data/Atom";
 import { derived } from "~/data/Derivation";
-import { getLifecycle } from "~/data/Lifecycle";
+import { getLifecycle, type Lifecycle } from "~/data/Lifecycle";
 
 import { noop } from "./common";
+import type { Flatten } from "./types";
 
 /**
  * A template string tag that creates a Derivation Atom from the tagged template. The derivation
@@ -82,11 +83,18 @@ export type ValueType<T> = T extends ReadAtom<infer V> ? V : T;
  * Infers an object with its fields' values wrapped in Atoms. Optionally, if a specific TKeys union
  * is provided, only select fields will be wrapped.
  */
-export type AtomsOf<TData extends { readonly [K in string]: any }, TKeys extends keyof TData = keyof TData> = {
-	[K in keyof TData]: K extends TKeys
-		? Atom<ValueType<TData[K]>>
-		: TData[K];
-};
+export type AtomsOf<TData extends { readonly [K in string]: any }, TKeys extends (keyof TData & (string | number)) | undefined = undefined> = (
+	undefined extends TKeys
+		? {
+			[K in keyof TData as K extends string | number ? K : never]: undefined extends TData[K]
+				? MaybeAtom<ValueType<TData[K]>>
+				: Atom<ValueType<TData[K]>>;
+		}
+		: Flatten<(
+			& { [K in TKeys & keyof TData & (string | number)] -?: Atom<ValueType<TData[K]>> }
+			& Omit<Pick<TData, keyof TData & (string | number)>, TKeys & keyof TData>
+		)>
+);
 
 /**
  * Creates a new data object mapped from the one provided, with its fields' values wrapped in
@@ -95,19 +103,34 @@ export type AtomsOf<TData extends { readonly [K in string]: any }, TKeys extends
  */
 export function atomsOf<TData extends { readonly [K in string]: any }>(
 	data: TData,
+	lifecycle?: Lifecycle,
 ): AtomsOf<TData>;
 
-export function atomsOf<TData extends { readonly [K in string]: any }, TKeys extends readonly (keyof TData)[]>(
+export function atomsOf<TData extends { readonly [K in string]: any }, const TKeys extends readonly (keyof TData & (string | number))[]>(
 	data: TData,
-	keys: TKeys,
+	keys: TKeys & (number extends TKeys["length"] ? never : unknown),
+	lifecycle?: Lifecycle,
 ): AtomsOf<TData, TKeys[number]>;
 
 export function atomsOf(
 	data: { readonly [K in string]: any },
-	keys?: readonly string[],
+	keysOrLifecycle?: readonly (string | number)[] | Lifecycle,
+	maybeLifecycle?: Lifecycle,
 ) {
-	const result: { [K in string]: Atom<any> } = {};
-	const lifecycle = getLifecycle();
+	let keys: readonly (string | number)[] | undefined;
+	let lifecycle: Lifecycle | undefined;
+
+	if (keysOrLifecycle === undefined || Array.isArray(keysOrLifecycle)) {
+		keys = keysOrLifecycle as (readonly (string | number)[] | undefined);
+		lifecycle = maybeLifecycle;
+	}
+	else {
+		lifecycle = keysOrLifecycle as (Lifecycle | undefined);
+	}
+
+	lifecycle ??= getLifecycle();
+
+	const result: { [K in string]: Atom<any> } = Object.create(null);
 	if (keys) {
 		const { length } = keys;
 		let index = 0;
@@ -135,26 +158,42 @@ export function atomsOf(
 }
 
 /**
- * Assigns values taken from the provided data object to the store (typically previously created via
- * {@link atomsOf}). Optionally, a tuple of keys can be given to only assign the select fields,
- * ignoring others.
+ * Assigns values taken from the provided data object to the store (typically previously created
+ * via {@link atomsOf}). Optionally, a tuple of keys can be given to treat select fields as
+ * guaranteed Atoms while copying others as-is. Typically, you'd pass the same keys tuple to both
+ * `atomsOf` and later `assign` calls.
  */
-export function assign<TData extends { readonly [K in string]: any }, TStore extends Readonly<AtomsOf<TData>>>(
+export function assign<TData extends { readonly [K in string]: any }, TStore extends AtomsOf<TData>>(
 	store: TStore,
 	data: TData,
+	lifecycle?: Lifecycle,
 ): TStore;
 
-export function assign<TData extends { readonly [K in string]: any }, TKeys extends readonly (keyof TData)[], TStore extends Readonly<AtomsOf<Pick<TData, TKeys[number]>>>>(
+export function assign<TData extends { readonly [K in string]: any }, const TKeys extends readonly (keyof TData & (string | number))[], TStore extends AtomsOf<TData, TKeys[number]>>(
 	store: TStore,
 	data: TData,
-	keys: TKeys,
+	keys: TKeys & (number extends TKeys["length"] ? never : unknown),
+	lifecycle?: Lifecycle,
 ): TStore;
 
 export function assign(
-	store: { readonly [K in string]: Atom<any> },
+	store: { [K in string]?: Atom<any> },
 	data: { readonly [K in string]: any },
-	keys?: readonly string[],
+	keysOrLifecycle?: readonly (string | number)[] | Lifecycle,
+	maybeLifecycle?: Lifecycle,
 ) {
+	let keys: readonly (string | number)[] | undefined;
+	let lifecycle: Lifecycle | undefined;
+
+	if (keysOrLifecycle === undefined || Array.isArray(keysOrLifecycle)) {
+		keys = keysOrLifecycle as (readonly (string | number)[] | undefined);
+		lifecycle = maybeLifecycle;
+	}
+	else {
+		lifecycle = keysOrLifecycle as (Lifecycle | undefined);
+	}
+
+	const visited: { [K in string]?: true } = Object.create(null);
 	if (keys) {
 		const { length } = keys;
 		let index = 0;
@@ -162,13 +201,36 @@ export function assign(
 
 		for (; index < length; index += 1) {
 			key = keys[index];
-			store[key].set(peek(data[key]));
+			write(store[key], peek(data[key]));
+			visited[key] = true;
+		}
+
+		for (key in data) {
+			if (!visited[key]) {
+				store[key] = data[key];
+			}
 		}
 	}
 	else {
 		let key;
+		let atom;
+
+		for (key in store) {
+			atom = store[key];
+			if (isAtom(atom)) {
+				write(atom, peek(data[key]));
+			}
+			else {
+				store[key] = atomOf(peek(data[key]), lifecycle ??= getLifecycle());
+			}
+
+			visited[key] = true;
+		}
+
 		for (key in data) {
-			store[key].set(peek(data[key]));
+			if (!visited[key]) {
+				store[key] = atomOf(peek(data[key]), lifecycle ??= getLifecycle());
+			}
 		}
 	}
 

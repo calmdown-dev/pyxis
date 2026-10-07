@@ -41,6 +41,14 @@ export type ElemName<P> = P extends { readonly [S_ELEM_NAME]?: infer N extends s
 export type Mutable<T> = { -readonly [K in keyof T]: T[K] };
 
 /**
+ * Flattens an intersection of objects into a single object.
+ *
+ * Note: The extra `& {}` appendix causes TypeScript to display the resulting type in its expanded
+ * form, rather than showing `Flatten<...>`.
+ */
+export type Flatten<T> = { [K in keyof T]: T[K] } & {};
+
+/**
  * A tuple of up to 3 arguments.
  */
 export type ArgsMax3<A0 = any, A1 = any, A2 = any> = [ a0?: A0, a1?: A1, a2?: A2 ];

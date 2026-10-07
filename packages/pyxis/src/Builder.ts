@@ -1,4 +1,4 @@
-import type { ElementsType, NodeType, PropsType } from "~/support/types";
+import type { ElementsType, Flatten, NodeType, PropsType } from "~/support/types";
 
 import type { Adapter, Extension, ExtensionPropMapping, ExtensionsType } from "./Adapter";
 import { createRenderer, type Renderer } from "./Renderer";
@@ -16,15 +16,13 @@ export interface PyxisBuilder<TNode, TIntrinsicElements extends ElementsType> {
 					(TMapping & { node: NodeType<TIntrinsicElements[TElementName]>; name: TElementName; })["extension"] extends (infer TExtension extends PropsType)
 						? [ keyof TExtension ] extends [ never ]
 							? TIntrinsicElements[TElementName]
-							: MergeIntersection<TIntrinsicElements[TElementName] & ExtensionProps<TExtensionKey, TExtension>>
+							: Flatten<TIntrinsicElements[TElementName] & ExtensionProps<TExtensionKey, TExtension>>
 						: TIntrinsicElements[TElementName]
 				);
 			}
 			: TIntrinsicElements
 	)>;
 }
-
-type MergeIntersection<T> = { [K in keyof T]: T[K] } & {};
 
 type ExtensionProps<TExtensionKey extends string, TExtensionProps extends PropsType> = {
 	readonly [TExtPropKey in `${TExtensionKey}:${keyof TExtensionProps & string}`]?: (
