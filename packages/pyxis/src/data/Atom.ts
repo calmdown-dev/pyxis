@@ -1,12 +1,11 @@
-import { invoke } from "~/support/common";
 import type { Nil } from "~/support/types";
 import { runtime } from "~/Runtime";
 import { S_ATOM } from "~/symbols";
 
-import { getLifecycle, type Lifecycle } from "./Lifecycle";
+import { notify, type DependencyList } from "./Dependency";
 import { reportAccess } from "./Effect";
-import { scheduleTick, type UpdateCallback } from "./Scheduler";
-import type { DependencyList } from "./Dependency";
+import { getLifecycle, type Lifecycle } from "./Lifecycle";
+import { scheduleTick } from "./Scheduler";
 
 /** Contract for Atoms where they need to be read. */
 export interface ReadAtom<out T> extends DependencyList {
@@ -51,15 +50,6 @@ export interface Atom<T = unknown> extends ReadAtom<T> {
 
 	/** @internal */
 	$lastValue?: T;
-
-	/** @internal */
-	$force?: boolean;
-
-	/**
-	 * The notify callback of this Atom.
-	 * @internal
-	 */
-	$notify?: UpdateCallback<[ self: Atom<T> ]>;
 
 	/**
 	 * The ID of this Atom, only present in development mode with transpiler.
@@ -215,11 +205,16 @@ export function write<A>(
 export function write<T>(input: MaybeAtom<T>, value: T, force = false): T {
 	if (isAtom(input)) {
 		if (input.set(value) || force) {
-			input.$force ||= force;
-			scheduleTick(input.$lifecycle, input.$notify ??= {
-				$fn: notify,
-				$a0: input,
-			});
+			if (input.$dh) {
+				input.$force ||= force;
+				scheduleTick(input.$lifecycle, input.$notify ??= {
+					$fn: notifyAtomObservers,
+					$a0: input,
+				});
+			}
+			else if (input.$tracksValue) {
+				input.$lastValue = value;
+			}
 		}
 
 		return input.get();
@@ -246,12 +241,18 @@ export function update<A>(
 
 export function update<T>(input: MaybeAtom<T>, transform: (value: T) => T, force = false): T {
 	if (isAtom(input)) {
-		if (input.set(transform(input.get())) || force) {
-			input.$force ||= force;
-			scheduleTick(input.$lifecycle, input.$notify ??= {
-				$fn: notify,
-				$a0: input,
-			});
+		const value = transform(input.get());
+		if (input.set(value) || force) {
+			if (input.$dh) {
+				input.$force ||= force;
+				scheduleTick(input.$lifecycle, input.$notify ??= {
+					$fn: notifyAtomObservers,
+					$a0: input,
+				});
+			}
+			else if (input.$tracksValue) {
+				input.$lastValue = value;
+			}
 		}
 
 		return input.get();
@@ -264,12 +265,14 @@ export function update<T>(input: MaybeAtom<T>, transform: (value: T) => T, force
  * Notifies the dependencies of an Atom.
  * @internal
  */
-export function notify<T>(input: Atom<T>) {
+export function notifyAtomObservers<T>(input: Atom<T>) {
 	// optimization: when Atom changes multiple times within a single update and ends up with the
-	// same value it started with, the notification can be skipped
+	// same value it started with, the notification can be skipped, unless forced - this flag is set
+	// either by users via the `write` or `update` functions, or by the framework when a new
+	// observer joins while a notification is already pending and might've seen an outdated value
 	if (input.$tracksValue) {
 		const newValue = input.get();
-		if (Object.is(input.$lastValue, newValue) && !input.$force) {
+		if (!input.$force && Object.is(input.$lastValue, newValue)) {
 			return;
 		}
 
@@ -277,12 +280,5 @@ export function notify<T>(input: Atom<T>) {
 	}
 
 	input.$force = false;
-
-	let current = input.$dh;
-	let next;
-	while (current) {
-		next = current.$an;
-		invoke(current);
-		current = next;
-	}
+	notify(input);
 }

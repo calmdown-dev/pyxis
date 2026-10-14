@@ -1,5 +1,5 @@
 import { isAtom, type ReadAtom } from "~/data/Atom";
-import { bind, unlinkAll } from "~/data/Dependency";
+import { bind, teardown } from "~/data/Dependency";
 import { setLifecycle, type Lifecycle } from "~/data/Lifecycle";
 import { createScheduler } from "~/data/Scheduler";
 import { invoke } from "~/support/common";
@@ -345,9 +345,7 @@ export function unmount<TNode>(hNode: HNode<TNode>, top: boolean = true) {
 			hNode.$life += 1;
 		}
 
-		// unmounted groups shouldn't have anything to unlink, but a zombie dependency can have
-		// catastrophic consequences, so...
-		unlinkAll(hNode);
+		teardown(hNode);
 	}
 
 	const { adapter } = hNode.$ng;

@@ -1,6 +1,8 @@
+import { invoke } from "~/support/common";
 import type { ArgsMax3, Callback, Nil } from "~/support/types";
 
 import type { Lifecycle } from "./Lifecycle";
+import type { UpdateCallback } from "./Scheduler";
 
 /**
  * A dependency callback of an Atom. The callback will be run whenever the relevant Atom changes.
@@ -49,6 +51,38 @@ export interface DependencyList<TArgs extends ArgsMax3 = ArgsMax3> {
 	 * @internal
 	 */
 	$dt?: Nil<Dependency<TArgs>>;
+
+	/**
+	 * The tail of the NotifyCursor stack.
+	 * @internal
+	 */
+	$ct?: Nil<NotifyCursor>;
+
+	/**
+	 * The notify callback of this DependencyList.
+	 * @internal
+	 */
+	$notify?: UpdateCallback;
+
+	/**
+	 * Tracks whether the next notification must be delivered overriding any optimizations that may
+	 * otherwise try to skip it.
+	 * @internal
+	 */
+	$force?: boolean;
+}
+
+/** @internal */
+interface NotifyCursor {
+	/**
+	 * Previous in-progress NotifyCursor in the stack.
+	 */
+	$cp?: Nil<NotifyCursor>;
+
+	/**
+	 * The next Dependency the notification dispatch using this NotifyCursor should proceed to.
+	 */
+	$dn?: Nil<Dependency>;
 }
 
 export function bind(lifecycle: Lifecycle, target: DependencyList, block: () => void) {
@@ -60,7 +94,8 @@ export function bind(lifecycle: Lifecycle, target: DependencyList, block: () => 
  * Links a Dependency to an Atom and Lifecycle.
  * @internal
  */
-export function link<TArgs extends ArgsMax3>(lifecycle: Lifecycle, target: DependencyList<TArgs>, dep: Dependency<TArgs>) {
+export function link<TArgs extends ArgsMax3>(lifecycle: Lifecycle, target: DependencyList<TArgs>, dep: Dependency<TArgs>): void;
+export function link(lifecycle: Lifecycle, target: DependencyList, dep: Dependency) {
 	// link to target
 	if (target.$dt) {
 		target.$dt.$an = dep;
@@ -75,15 +110,26 @@ export function link<TArgs extends ArgsMax3>(lifecycle: Lifecycle, target: Depen
 
 	// link to lifecycle
 	if (lifecycle.$dt) {
-		lifecycle.$dt.$ln = dep as Dependency;
+		lifecycle.$dt.$ln = dep;
 		dep.$lp = lifecycle.$dt;
 	}
 	else {
-		lifecycle.$dh = dep as Dependency;
+		lifecycle.$dh = dep;
 	}
 
 	dep.$lifecycle = lifecycle;
-	lifecycle.$dt = dep as Dependency;
+	lifecycle.$dt = dep;
+
+	// advance notify cursors, if active
+	advanceCursorOnAppend(target, dep);
+
+	// if there is already a pending notification, ensure it is delivered regardless of any
+	// optimizations, since the new observer (dep) may have seen an intermediate state and may need
+	// the notification to actually synchronize
+	const pending = target.$notify;
+	if (pending && pending.$se === pending.$lifecycle!.$scheduler.$epoch) {
+		target.$force = true;
+	}
 }
 
 /**
@@ -95,6 +141,9 @@ export function unlink(dep: Dependency) {
 	if (!target) {
 		return; // already unlinked?
 	}
+
+	// advance notify cursors, if active
+	advanceCursorOnRemoval(target, dep);
 
 	// unlink from target
 	if (dep.$ap) {
@@ -140,13 +189,16 @@ export function unlink(dep: Dependency) {
  * Unlinks all Dependencies managed by the given Lifecycle.
  * @internal
  */
-export function unlinkAll(lifecycle: Lifecycle) {
+export function teardown(lifecycle: Lifecycle) {
 	let dep = lifecycle.$dh;
 	let atom;
 	let next;
 
 	while (dep) {
 		atom = dep.$target!;
+
+		// advance notify cursors, if active
+		advanceCursorOnRemoval(atom, dep);
 
 		if (dep.$ap) {
 			dep.$ap.$an = dep.$an;
@@ -174,4 +226,57 @@ export function unlinkAll(lifecycle: Lifecycle) {
 
 	lifecycle.$dh = null;
 	lifecycle.$dt = null;
+}
+
+/**
+ * Invokes all linked dependency callbacks. Resilient against mutations of the list throughout the
+ * dispatch (as long as they only happen via the `link`, `unlink`, or `teardown` functions).
+ * @internal
+ */
+export function notify(list: DependencyList) {
+	const cursor: NotifyCursor = {
+		$cp: list.$ct,
+		$dn: list.$dh,
+	};
+
+	// push cursor stack
+	list.$ct = cursor;
+
+	try {
+		let current;
+		while ((current = cursor.$dn)) {
+			// the callback may run arbitrary user code, which could lead to mutations of the linked
+			// list we're iterating -> we advance the cursor first; the link, unlink, unlinkAll
+			// functions check and adjust it when necessary; this loop will then advance to the
+			// correct next dependency
+			cursor.$dn = current.$an;
+			invoke(current);
+		}
+	}
+	finally {
+		// pop cursor stack
+		list.$ct = cursor.$cp;
+	}
+}
+
+function advanceCursorOnAppend(list: DependencyList, dep: Dependency) {
+	let cursor = list.$ct;
+	while (cursor) {
+		if (!cursor.$dn) {
+			cursor.$dn = dep;
+		}
+
+		cursor = cursor.$cp;
+	}
+}
+
+function advanceCursorOnRemoval(list: DependencyList, dep: Dependency) {
+	let cursor = list.$ct;
+	while (cursor) {
+		if (cursor.$dn === dep) {
+			cursor.$dn = dep.$an;
+		}
+
+		cursor = cursor.$cp;
+	}
 }

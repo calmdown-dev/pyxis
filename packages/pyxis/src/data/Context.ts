@@ -2,7 +2,7 @@ import type { Nil } from "~/support/types";
 import { runtime } from "~/Runtime";
 import { S_ATOM } from "~/symbols";
 
-import { notify, type Atom, type ReadAtom } from "./Atom";
+import { notifyAtomObservers, type Atom, type ReadAtom } from "./Atom";
 import { link, unlink, type Dependency } from "./Dependency";
 import { getLifecycle } from "./Lifecycle";
 
@@ -128,7 +128,7 @@ export function host<T>(context: Context<T>, defaultValue?: T) {
 			localAtom.get = getAncestorValue;
 			localAtom.$ancestor = ancestor;
 			link(lifecycle, ancestor, localAtom.$dep = {
-				$fn: notify<T>,
+				$fn: notifyAtomObservers<T>,
 				$a0: localAtom,
 			});
 		}
@@ -175,7 +175,7 @@ export function contextual<T>(context: Context<T>): ReadAtom<T> {
 			};
 
 			link(atom.$lifecycle, atom, {
-				$fn: notify<T>,
+				$fn: notifyAtomObservers<T>,
 				$a0: consumer,
 			});
 		}

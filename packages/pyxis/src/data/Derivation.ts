@@ -1,6 +1,6 @@
 import { S_ATOM } from "~/symbols";
 
-import { notify, type Atom } from "./Atom";
+import { notifyAtomObservers, type Atom } from "./Atom";
 import { getLifecycle } from "./Lifecycle";
 import { unlink } from "./Dependency";
 import { resolve, type Effect, type EffectDependency } from "./Effect";
@@ -65,7 +65,7 @@ function scheduleNotify(this: EffectDependency, derivation: Derivation<any>, cyc
 	// additional notifications while the first one is still pending.
 	derivation.$dirty = true;
 	scheduleTick(derivation.$lifecycle, derivation.$notify ??= {
-		$fn: notify,
+		$fn: notifyAtomObservers,
 		$a0: derivation,
 	});
 }

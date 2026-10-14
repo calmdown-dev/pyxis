@@ -73,7 +73,7 @@ export function Show<TNode>(
 
 	// prepare batching
 	const adapter = hParent.$ng.adapter;
-	const shouldBatch = Boolean(adapter.batch);
+	const shouldBatch = !!adapter.batch;
 
 	// a sub-group for re-mounting is only necessary when either:
 	// - `when` can change

@@ -20,7 +20,7 @@ export interface Effect<T> {
 	readonly $block: () => T;
 
 	/** @internal */
-	readonly $react: (effect: this, epoch: number) => void;
+	readonly $react: (effect: this, cycle: number) => void;
 
 	/**
 	 * Keeps track of the effect run cycle, incrementing on each effect run. Used to detect stale
@@ -43,7 +43,7 @@ export interface Effect<T> {
 }
 
 /** @internal */
-export type EffectDependency = Dependency<[ effect: Effect<any>, epoch: number ]>;
+export type EffectDependency = Dependency<[ effect: Effect<any>, cycle: number ]>;
 
 /**
  * Creates an Effect - a block of logic executed each time any of the Atoms accessed within it
@@ -66,7 +66,7 @@ export function effect(block: EffectBlock, lifecycle = getLifecycle()) {
 }
 
 function scheduleEffect(this: EffectDependency, effect: Effect<ReturnType<EffectBlock>>, cycle: number) {
-	// lazy cleanup: when we get an update from a stale dependency, the reported epoch will be lower
+	// lazy cleanup: when we get an update from a stale dependency, the reported cycle will be lower
 	// than our current one (see the reportAccess function). We can unlink and skip the effect.
 	if (effect.$cycle > cycle) {
 		unlink(this);
@@ -139,11 +139,11 @@ export function reportAccess(atom: DependencyList) {
 
 	let dep = currentEffect.$deps!.get(atom);
 	if (dep) {
-		// refresh dependency to the current epoch
+		// refresh dependency to the current cycle number
 		dep.$a1 = currentEffect.$cycle;
 		if (!dep.$lifecycle) {
 			// dep has become temporarily stale and got unlinked while still lingering in the
-			// $deps WeakMap - that's okay, but must be re-linked now to work again
+			// $deps WeakMap - that's okay, but must be re-linked to work again
 			link(currentEffect.$lifecycle, atom, dep);
 		}
 	}

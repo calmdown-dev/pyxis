@@ -1,7 +1,7 @@
 import type { Nil } from "~/support/types";
 import { S_ATOM } from "~/symbols";
 
-import { isAtom, notify, type Atom, type MaybeAtom } from "./Atom";
+import { isAtom, notifyAtomObservers, type Atom, type MaybeAtom } from "./Atom";
 import { link, unlink, type Dependency } from "./Dependency";
 import { getLifecycle, type Lifecycle } from "./Lifecycle";
 import { scheduleTick } from "./Scheduler";
@@ -56,7 +56,7 @@ function use<T>(this: ProxyAtom<T>, value: MaybeAtom<T>, canNotify: boolean = tr
 		this.get = getBoundValue;
 		this.set = setBoundValue;
 		link(this.$lifecycle, value, this.$dep ??= {
-			$fn: notify<T>,
+			$fn: notifyAtomObservers<T>,
 			$a0: this,
 		});
 	}
@@ -67,35 +67,34 @@ function use<T>(this: ProxyAtom<T>, value: MaybeAtom<T>, canNotify: boolean = tr
 		this.set = setStaticValue;
 	}
 
-	if (canNotify && !Object.is(oldValue, this.get())) {
+	if (canNotify && !Object.is(oldValue, this.get()) && this.$dh) {
 		scheduleTick(this.$lifecycle, this.$notify ??= {
-			$fn: notify,
+			$fn: notifyAtomObservers,
 			$a0: this,
 		});
 	}
 }
 
 function getBoundValue<T>(this: ProxyAtom<T>) {
-	// calling raw `get` doesn't report access, which is what we want
-	// sites accessing this proxy atom should do so via read, which will report
-	// access on the proxy rather than the bound atom which may change
+	// Calling raw `get` doesn't report access, which is what we want. Sites accessing this proxy
+	// atom would do so via `read`, which then reports access on this proxy rather than the bound
+	// atom which may change
 	return this.$bound!.get();
 }
 
 function setBoundValue<T>(this: ProxyAtom<T>, value: T) {
-	// set the bound atom and schedule a notification if it changed - copies the
-	// behavior of `write`, skipping parts we don't need here.
+	// set the bound atom and schedule a notification if it changed - copies the behavior of
+	// `write`, skipping parts we don't need here
 	const atom = this.$bound!;
-	if (atom.set(value)) {
+	if (atom.set(value) && atom.$dh) {
 		scheduleTick(atom.$lifecycle, atom.$notify ??= {
-			$fn: notify,
+			$fn: notifyAtomObservers,
 			$a0: atom,
 		});
 	}
 
-	// always return false, even if the bound atom changed - this way the
-	// `write` and `update` functions won't schedule a redundant notification
-	// for this proxy
+	// always return false, even if the bound atom changed - this way the `write` and `update`
+	// functions won't schedule a redundant notification for this proxy
 	return false;
 }
 

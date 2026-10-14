@@ -1,5 +1,4 @@
 export {
-	ChangeKind,
 	Fragment,
 	Iterator,
 	RefExtension,
@@ -15,6 +14,10 @@ export {
 	ext,
 	host,
 	isAtom,
+	LC_CHANGE,
+	LC_CLEAR,
+	LC_INSERT,
+	LC_REMOVE,
 	listOf,
 	mounted,
 	noEffect,

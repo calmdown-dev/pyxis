@@ -20,31 +20,30 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-/** @internal */
+// List Change (LC) types defined as constants as they seem to play nicer with bundlers and/or
+// minifiers. TS enums often get flagged as code with side-effects, resisting DCE, inlining etc.
+
 export const LC_CHANGE = 1;
-
-/** @internal */
 export const LC_INSERT = 2;
-
-/** @internal */
 export const LC_REMOVE = 3;
-
-/** @internal */
 export const LC_CLEAR = 4;
 
-// The enum is only the public API, easily erased by dead code elimination unless explicitly used by
-// user code. While the constants above help our minifier to inline/mangle cleanly.
-
-export enum ChangeKind {
-	Change = LC_CHANGE,
-	Insert = LC_INSERT,
-	Remove = LC_REMOVE,
-	Clear = LC_CLEAR,
+/** @internal */
+export interface PendingListDelta<T> {
+	snapshot?: T[];
+	changes: ListChange<T>[];
+	relSize: number;
 }
 
 export interface ListDelta<T> {
-	readonly changes: ListChange<T>[];
-	lengthChange: number;
+	/** raw snapshot of the List as observed at the time this ListDelta was emitted */
+	readonly snapshot: readonly T[];
+
+	/** changes made to the List since its last update */
+	readonly changes: readonly ListChange<T>[];
+
+	/** the relative change of the List size (its item count) */
+	readonly relSize: number;
 }
 
 export type ListChange<T> =
@@ -54,26 +53,26 @@ export type ListChange<T> =
 	| ListCleared;
 
 export interface ListItemChanged<T> {
-	kind: ChangeKind.Change;
+	kind: typeof LC_CHANGE;
 	index: number;
 	oldItem: T;
 	newItem: T;
 }
 
 export interface ListItemInserted<T> {
-	kind: ChangeKind.Insert;
+	kind: typeof LC_INSERT;
 	index: number;
 	newItem: T;
 }
 
 export interface ListItemRemoved<T> {
-	kind: ChangeKind.Remove;
+	kind: typeof LC_REMOVE;
 	index: number;
 	oldItem: T;
 }
 
 export interface ListCleared {
-	kind: ChangeKind.Clear;
+	kind: typeof LC_CLEAR;
 	index: number;
 }
 
@@ -106,21 +105,15 @@ interface DiffState<T> {
 
 
 /** @internal */
-export const EMPTY_DELTA: ListDelta<any> = {
-	changes: [],
-	lengthChange: 0,
-};
-
-/** @internal */
-export function createDelta<T>(): ListDelta<T> {
+export function createDelta<T>(): PendingListDelta<T> {
 	return {
 		changes: [],
-		lengthChange: 0,
+		relSize: 0,
 	};
 }
 
 /** @internal */
-export function itemChanged<T>({ changes: $changes }: ListDelta<T>, at: number, oldItem: T, newItem: T) {
+export function itemChanged<T>({ changes: $changes }: PendingListDelta<T>, at: number, oldItem: T, newItem: T) {
 	const ci = binarySearch($changes, at, latest);
 	if (ci < 0) {
 		// nothing at this index, add new delta
@@ -157,7 +150,7 @@ export function itemChanged<T>({ changes: $changes }: ListDelta<T>, at: number, 
 }
 
 /** @internal */
-export function itemInserted<T>(delta: ListDelta<T>, at: number, item: T) {
+export function itemInserted<T>(delta: PendingListDelta<T>, at: number, item: T) {
 	const { changes: $changes } = delta;
 
 	let ci = binarySearch($changes, at, earliest);
@@ -190,8 +183,17 @@ export function itemInserted<T>(delta: ListDelta<T>, at: number, item: T) {
 			case LC_REMOVE:
 				// insert cancels the removal -> the slot's old item is now replaced, becomes a change
 				// (oldItem carries over from the removal, it's the item that was originally here)
-				(current as unknown as ListItemChanged<T>).kind = LC_CHANGE;
-				(current as unknown as ListItemChanged<T>).newItem = item;
+
+				if (Object.is(current.oldItem, item)) {
+					// the inserted item matches the removed one -> remove this change entirely
+					$changes.splice(ci--, 1);
+				}
+				else {
+					// convert removal to a change
+					(current as unknown as ListItemChanged<T>).kind = LC_CHANGE;
+					(current as unknown as ListItemChanged<T>).newItem = item;
+				}
+
 				break;
 		}
 	}
@@ -203,11 +205,11 @@ export function itemInserted<T>(delta: ListDelta<T>, at: number, item: T) {
 	}
 
 	// update the overall change in list length
-	delta.lengthChange += 1;
+	delta.relSize += 1;
 }
 
 /** @internal */
-export function itemRemoved<T>(delta: ListDelta<T>, at: number, item: T) {
+export function itemRemoved<T>(delta: PendingListDelta<T>, at: number, item: T) {
 	const { changes: $changes } = delta;
 
 	let ci = binarySearch($changes, at, latest);
@@ -258,23 +260,26 @@ export function itemRemoved<T>(delta: ListDelta<T>, at: number, item: T) {
 	}
 
 	// update the overall change in list length
-	delta.lengthChange -= 1;
+	delta.relSize -= 1;
 }
 
 /** @internal */
-export function listCleared<T>(delta: ListDelta<T>, count: number) {
-	const { changes: $changes } = delta;
-	$changes.length = 0;
-	$changes.push({
+export function listCleared<T>(delta: PendingListDelta<T>, count: number) {
+	delta.changes.length = 0;
+	delta.relSize -= count;
+	if (delta.relSize === 0) {
+		// the list was already empty
+		return;
+	}
+
+	delta.changes.push({
 		kind: LC_CLEAR,
 		index: -1,
 	});
-
-	delta.lengthChange -= count;
 }
 
 /** @internal */
-export function listSynced<T>(delta: ListDelta<T>, oldState: readonly T[], newState: readonly T[], eq: Equals<T>) {
+export function listSynced<T>(delta: PendingListDelta<T>, oldState: readonly T[], newState: readonly T[], eq: Equals<T>) {
 	let index = 0;
 	let N = oldState.length;
 	let M = newState.length;
@@ -286,7 +291,7 @@ export function listSynced<T>(delta: ListDelta<T>, oldState: readonly T[], newSt
 
 	// check for list equality
 	if (index === N && index === M) {
-		return;
+		return false;
 	}
 
 	// eliminate common suffix
@@ -322,6 +327,7 @@ export function listSynced<T>(delta: ListDelta<T>, oldState: readonly T[], newSt
 	};
 
 	let offset = 0;
+	let hasChanges = false;
 	let rs, re, is, ie, r, i;
 	do {
 		myersDiff(state);
@@ -342,17 +348,21 @@ export function listSynced<T>(delta: ListDelta<T>, oldState: readonly T[], newSt
 		}
 
 		for (r = rs; r < re; r += 1) {
-			itemRemoved(delta, rs + offset, oldState[r]); // TODO: verify this
+			itemRemoved(delta, rs + offset, oldState[r]);
+			hasChanges = true;
 		}
 
 		for (i = is; i < ie; i += 1) {
 			itemInserted(delta, rs + offset, newState[i]);
+			hasChanges = true;
 			offset += 1;
 		}
 
 		offset -= re - rs;
 	}
 	while (state.$c < 2);
+
+	return hasChanges;
 }
 
 
