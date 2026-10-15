@@ -53,6 +53,7 @@ function use<T>(this: ProxyAtom<T>, value: MaybeAtom<T>, canNotify: boolean = tr
 	if (isAtom(value)) {
 		this.$upstream = value;
 		this.$value = null;
+		this.$tracksValue = false;
 		this.get = getUpstreamValue;
 		this.set = setUpstreamValue;
 		link(this.$lifecycle, value, this.$dep ??= {
@@ -63,6 +64,8 @@ function use<T>(this: ProxyAtom<T>, value: MaybeAtom<T>, canNotify: boolean = tr
 	else {
 		this.$upstream = null;
 		this.$value = value;
+		this.$tracksValue = true;
+		this.$lastValue = oldValue;
 		this.get = getStaticValue;
 		this.set = setStaticValue;
 	}

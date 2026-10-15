@@ -46,7 +46,7 @@ export interface Atom<T = unknown> extends ReadAtom<T> {
 	readonly $lifecycle: Lifecycle;
 
 	/** @internal */
-	readonly $tracksValue?: boolean;
+	$tracksValue?: boolean;
 
 	/** @internal */
 	$lastValue?: T;

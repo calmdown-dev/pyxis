@@ -116,7 +116,6 @@ export function host<T>(context: Context<T>, defaultValue?: T, lifecycle = getLi
 	const localAtom: ContextAtom<T> = {
 		[S_ATOM]: true,
 		$lifecycle: lifecycle,
-		$tracksValue: true,
 		$value: defaultValue,
 		get: getHostedValue,
 		set: setHostedValue,
@@ -132,6 +131,10 @@ export function host<T>(context: Context<T>, defaultValue?: T, lifecycle = getLi
 				$a0: localAtom,
 			});
 		}
+	}
+	else {
+		localAtom.$tracksValue = true;
+		localAtom.$lastValue = defaultValue;
 	}
 
 	if (__DEV__) {
@@ -213,6 +216,8 @@ function setHostedValue<T>(this: ContextAtom<T>, value: T) {
 		this.$dep = null;
 		this.$upstream = null;
 		this.get = getHostedValue;
+		this.$tracksValue = true;
+		this.$lastValue = oldValue;
 	}
 	else {
 		oldValue = this.$value;
