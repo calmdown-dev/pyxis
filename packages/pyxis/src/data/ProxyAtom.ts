@@ -92,11 +92,16 @@ function use<T>(this: ProxyAtom<T>, value: MaybeAtom<T>, isInit: boolean = false
 		this.$value = value;
 	}
 
-	if (shouldNotify && this.$dh) {
-		scheduleTick(this.$lifecycle, this.$notify ??= {
-			$fn: notifyAtomObservers,
-			$a0: this,
-		});
+	if (this.$dh) {
+		if (shouldNotify) {
+			scheduleTick(this.$lifecycle, this.$notify ??= {
+				$fn: notifyAtomObservers,
+				$a0: this,
+			});
+		}
+	}
+	else if (this.$tracksValue) {
+		this.$lastValue = value as any;
 	}
 }
 
@@ -118,8 +123,9 @@ function setUpstreamValue<T>(this: ProxyAtom<T>, value: T) {
 		});
 	}
 
-	// always return false, even if the upstream atom changed - this way the `write` and `update`
-	// functions won't schedule a redundant notification for this proxy
+	// Always return false, even if the upstream changed. This way, `write` and `update` functions
+	// don't schedule notifications, which is desirable. The proxy forwards notifications from the
+	// upstream Atom, which will have one already scheduled if the value changed.
 	return false;
 }
 
