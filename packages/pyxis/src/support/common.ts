@@ -17,3 +17,9 @@ export function invoke(callback: Callback<ArgsMax3>) {
  * Does absolutely nothing.
  */
 export function noop() {}
+
+/**
+ * A plain object (cast to any) internal to Pyxis, guaranteed to never equal any value arriving from
+ * user code.
+ */
+export const UNIQUE_VALUE: any = {};

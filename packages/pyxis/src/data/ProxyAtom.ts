@@ -1,3 +1,4 @@
+import { UNIQUE_VALUE } from "~/support/common";
 import type { Nil } from "~/support/types";
 import { S_ATOM } from "~/symbols";
 
@@ -15,7 +16,6 @@ export interface ProxyAtom<T> extends Atom<T> {
 
 	/** @internal */
 	use(value: MaybeAtom<T>, canNotify?: boolean): void;
-
 
 	/** @internal */
 	$dep?: Dependency;
@@ -51,23 +51,32 @@ function use<T>(this: ProxyAtom<T>, value: MaybeAtom<T>, canNotify: boolean = tr
 
 	const oldValue = this.get();
 	if (isAtom(value)) {
+		if (!this.$upstream) {
+			// switching from static to forwarding mode
+			this.$value = null;
+			this.$tracksValue = false;
+			this.$lastValue = null!;
+			this.get = getUpstreamValue;
+			this.set = setUpstreamValue;
+		}
+
 		this.$upstream = value;
-		this.$value = null;
-		this.$tracksValue = false;
-		this.get = getUpstreamValue;
-		this.set = setUpstreamValue;
 		link(this.$lifecycle, value, this.$dep ??= {
 			$fn: notifyAtomObservers<T>,
 			$a0: this,
 		});
 	}
 	else {
-		this.$upstream = null;
+		if (this.$upstream) {
+			// switching from forwarding to static mode
+			this.$upstream = null;
+			this.$tracksValue = true;
+			this.$lastValue = UNIQUE_VALUE;
+			this.get = getStaticValue;
+			this.set = setStaticValue;
+		}
+
 		this.$value = value;
-		this.$tracksValue = true;
-		this.$lastValue = oldValue;
-		this.get = getStaticValue;
-		this.set = setStaticValue;
 	}
 
 	if (canNotify && !Object.is(oldValue, this.get()) && this.$dh) {

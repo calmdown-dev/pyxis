@@ -5,6 +5,7 @@ import { S_ATOM } from "~/symbols";
 import { notifyAtomObservers, type Atom, type ReadAtom } from "./Atom";
 import { link, unlink, type Dependency } from "./Dependency";
 import { getLifecycle, type Lifecycle } from "./Lifecycle";
+import { UNIQUE_VALUE } from "~/support/common";
 
 /**
  * Describes a Context propagating data throughout the Component hierarchy.
@@ -121,18 +122,18 @@ export function host<T>(context: Context<T>, defaultValue?: T, lifecycle = getLi
 		set: setHostedValue,
 	};
 
-	if (defaultValue === undefined) {
-		const upstream = lookupUpstream(context);
-		if (upstream) {
-			localAtom.get = getUpstreamValue;
-			localAtom.$upstream = upstream;
-			link(lifecycle, upstream, localAtom.$dep = {
-				$fn: notifyAtomObservers<T>,
-				$a0: localAtom,
-			});
-		}
+	let upstream;
+	if (defaultValue === undefined && (upstream = lookupUpstream(context))) {
+		// start in forwarding mode
+		localAtom.get = getUpstreamValue;
+		localAtom.$upstream = upstream;
+		link(lifecycle, upstream, localAtom.$dep = {
+			$fn: notifyAtomObservers<T>,
+			$a0: localAtom,
+		});
 	}
 	else {
+		// start in hosting mode
 		localAtom.$tracksValue = true;
 		localAtom.$lastValue = defaultValue;
 	}
@@ -211,13 +212,15 @@ function getHostedValue<T>(this: ContextAtom<T>) {
 function setHostedValue<T>(this: ContextAtom<T>, value: T) {
 	let oldValue;
 	if (this.$upstream) {
-		oldValue = this.$upstream.get();
 		unlink(this.$dep!);
-		this.$dep = null;
+		oldValue = this.$upstream.get();
+
+		// switching from forwarding to hosting mode
 		this.$upstream = null;
-		this.get = getHostedValue;
+		this.$dep = null;
 		this.$tracksValue = true;
-		this.$lastValue = oldValue;
+		this.$lastValue = UNIQUE_VALUE;
+		this.get = getHostedValue;
 	}
 	else {
 		oldValue = this.$value;
