@@ -126,8 +126,15 @@ export function link(lifecycle: Lifecycle, target: DependencyList, dep: Dependen
 	dep.$lifecycle = lifecycle;
 	lifecycle.$dt = dep;
 
-	// advance notify cursors, if active
-	advanceCursorOnAppend(target, dep);
+	// advance cursors, in case any notification dispatch is currently active
+	let cursor = target.$ct;
+	while (cursor) {
+		if (!cursor.$dn) {
+			cursor.$dn = dep;
+		}
+
+		cursor = cursor.$cp;
+	}
 
 	// if there is already a pending update notification, ensure it is delivered regardless of any
 	// optimizations, since the new observer (dep) may have seen an intermediate state and may need
@@ -154,10 +161,17 @@ export function unlink(dep: Dependency) {
 		return; // already unlinked?
 	}
 
-	// advance notify cursors, if active
-	advanceCursorOnRemoval(target, dep);
+	// advance cursors, in case any notification dispatch is currently active
+	let cursor = target.$ct;
+	while (cursor) {
+		if (cursor.$dn === dep) {
+			cursor.$dn = dep.$an;
+		}
 
-	// unlink from target
+		cursor = cursor.$cp;
+	}
+
+	// unlink from target (atom)
 	if (dep.$ap) {
 		dep.$ap.$an = dep.$an;
 	}
@@ -203,29 +217,40 @@ export function unlink(dep: Dependency) {
  */
 export function teardown(lifecycle: Lifecycle) {
 	let dep = lifecycle.$dh;
-	let atom;
+	let target;
+	let cursor;
 	let next;
 
 	while (dep) {
-		atom = dep.$target!;
+		target = dep.$target!;
 
-		// advance notify cursors, if active
-		advanceCursorOnRemoval(atom, dep);
+		// advance cursors, in case any notification dispatch is currently active
+		cursor = target.$ct;
+		while (cursor) {
+			if (cursor.$dn === dep) {
+				cursor.$dn = dep.$an;
+			}
 
+			cursor = cursor.$cp;
+		}
+
+		// unlink from target (atom)
 		if (dep.$ap) {
 			dep.$ap.$an = dep.$an;
 		}
-		else if (atom.$dh === dep) {
-			atom.$dh = dep.$an;
+		else if (target.$dh === dep) {
+			target.$dh = dep.$an;
 		}
 
 		if (dep.$an) {
 			dep.$an.$ap = dep.$ap;
 		}
-		else if (atom.$dt === dep) {
-			atom.$dt = dep.$ap;
+		else if (target.$dt === dep) {
+			target.$dt = dep.$ap;
 		}
 
+		// teardown the dependency - we're removing everything from the Lifecycle, so we don't have
+		// to preserve the linked list's consistency during this loop
 		next = dep.$ln;
 		dep.$lifecycle = null;
 		dep.$target = null;
@@ -268,27 +293,5 @@ export function notify(list: DependencyList) {
 	finally {
 		// pop cursor stack
 		list.$ct = cursor.$cp;
-	}
-}
-
-function advanceCursorOnAppend(list: DependencyList, dep: Dependency) {
-	let cursor = list.$ct;
-	while (cursor) {
-		if (!cursor.$dn) {
-			cursor.$dn = dep;
-		}
-
-		cursor = cursor.$cp;
-	}
-}
-
-function advanceCursorOnRemoval(list: DependencyList, dep: Dependency) {
-	let cursor = list.$ct;
-	while (cursor) {
-		if (cursor.$dn === dep) {
-			cursor.$dn = dep.$an;
-		}
-
-		cursor = cursor.$cp;
 	}
 }

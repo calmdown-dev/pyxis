@@ -15,7 +15,7 @@ export interface ProxyAtom<T> extends Atom<T> {
 	use(value: MaybeAtom<T>): void;
 
 	/** @internal */
-	use(value: MaybeAtom<T>, canNotify?: boolean): void;
+	use(value: MaybeAtom<T>, isInit?: boolean): void;
 
 	/** @internal */
 	$dep?: Dependency;
@@ -33,31 +33,35 @@ export interface ProxyAtom<T> extends Atom<T> {
  */
 export function proxyOf<T>(initialValue: MaybeAtom<T>, lifecycle = getLifecycle()): ProxyAtom<T> {
 	// `set` is assigned by the use call below
-	const self: Omit<ProxyAtom<T>, "set"> = {
+	const self: Omit<ProxyAtom<T>, "get" | "set"> = {
 		[S_ATOM]: true,
 		$lifecycle: lifecycle,
 		use,
-		get: getStaticValue,
 	};
 
-	self.use(initialValue, false);
+	self.use(initialValue, true);
 	return self as ProxyAtom<T>;
 }
 
-function use<T>(this: ProxyAtom<T>, value: MaybeAtom<T>, canNotify: boolean = true) {
-	if (this.$dep) {
-		unlink(this.$dep);
+function use<T>(this: ProxyAtom<T>, value: MaybeAtom<T>, isInit: boolean = false) {
+	if (this.$upstream === value) {
+		// value is an Atom and we're already forwarding it, nothing to do
+		return;
 	}
 
-	const oldValue = this.get();
+	let shouldNotify = true;
 	if (isAtom(value)) {
-		if (!this.$upstream) {
+		if (!this.$upstream || isInit) {
 			// switching from static to forwarding mode
 			this.$value = null;
 			this.$tracksValue = false;
 			this.$lastValue = null!;
 			this.get = getUpstreamValue;
 			this.set = setUpstreamValue;
+		}
+		else {
+			// staying in forwarding mode, but re-linking to a different Atom
+			unlink(this.$dep!);
 		}
 
 		this.$upstream = value;
@@ -67,19 +71,24 @@ function use<T>(this: ProxyAtom<T>, value: MaybeAtom<T>, canNotify: boolean = tr
 		});
 	}
 	else {
-		if (this.$upstream) {
+		if (this.$upstream || isInit) {
 			// switching from forwarding to static mode
+			unlink(this.$dep!);
 			this.$upstream = null;
 			this.$tracksValue = true;
 			this.$lastValue = UNIQUE_VALUE;
 			this.get = getStaticValue;
 			this.set = setStaticValue;
 		}
+		else {
+			// staying in static mode, notification may be skipped if the value didn't change
+			shouldNotify = !Object.is(this.$value, value);
+		}
 
 		this.$value = value;
 	}
 
-	if (canNotify && !Object.is(oldValue, this.get()) && this.$dh) {
+	if (shouldNotify && this.$dh) {
 		scheduleTick(this.$lifecycle, this.$notify ??= {
 			$fn: notifyAtomObservers,
 			$a0: this,
