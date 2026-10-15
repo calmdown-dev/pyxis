@@ -21,7 +21,7 @@ export interface ProxyAtom<T> extends Atom<T> {
 	$dep?: Dependency;
 
 	/** @internal */
-	$bound?: Nil<Atom<T>>;
+	$upstream?: Nil<Atom<T>>;
 
 	/** @internal */
 	$value?: Nil<T>;
@@ -29,7 +29,7 @@ export interface ProxyAtom<T> extends Atom<T> {
 
 /**
  * Creates a ProxyAtom bound to the provided initial value. If it is an Atom, the proxy will mirror
- * it, otherwise it will be a read-only atom with a static value until rebound.
+ * it, otherwise it will be a read-only atom with a static value until rebound via its `use` method.
  */
 export function proxyOf<T>(initialValue: MaybeAtom<T>, lifecycle = getLifecycle()): ProxyAtom<T> {
 	// `set` is assigned by the use call below
@@ -51,17 +51,17 @@ function use<T>(this: ProxyAtom<T>, value: MaybeAtom<T>, canNotify: boolean = tr
 
 	const oldValue = this.get();
 	if (isAtom(value)) {
-		this.$bound = value;
+		this.$upstream = value;
 		this.$value = null;
-		this.get = getBoundValue;
-		this.set = setBoundValue;
+		this.get = getUpstreamValue;
+		this.set = setUpstreamValue;
 		link(this.$lifecycle, value, this.$dep ??= {
 			$fn: notifyAtomObservers<T>,
 			$a0: this,
 		});
 	}
 	else {
-		this.$bound = null;
+		this.$upstream = null;
 		this.$value = value;
 		this.get = getStaticValue;
 		this.set = setStaticValue;
@@ -75,17 +75,17 @@ function use<T>(this: ProxyAtom<T>, value: MaybeAtom<T>, canNotify: boolean = tr
 	}
 }
 
-function getBoundValue<T>(this: ProxyAtom<T>) {
-	// Calling raw `get` doesn't report access, which is what we want. Sites accessing this proxy
-	// atom would do so via `read`, which then reports access on this proxy rather than the bound
-	// atom which may change
-	return this.$bound!.get();
+function getUpstreamValue<T>(this: ProxyAtom<T>) {
+	// Calling raw `get` doesn't report access, which is what we want here. Sites accessing this
+	// proxy atom would do so via `read`, which then reports access on this proxy rather than the
+	// upstream atom, which may change
+	return this.$upstream!.get();
 }
 
-function setBoundValue<T>(this: ProxyAtom<T>, value: T) {
-	// set the bound atom and schedule a notification if it changed - copies the behavior of
+function setUpstreamValue<T>(this: ProxyAtom<T>, value: T) {
+	// set the upstream atom and schedule a notification if it changed - copies the behavior of
 	// `write`, skipping parts we don't need here
-	const atom = this.$bound!;
+	const atom = this.$upstream!;
 	if (atom.set(value) && atom.$dh) {
 		scheduleTick(atom.$lifecycle, atom.$notify ??= {
 			$fn: notifyAtomObservers,
@@ -93,7 +93,7 @@ function setBoundValue<T>(this: ProxyAtom<T>, value: T) {
 		});
 	}
 
-	// always return false, even if the bound atom changed - this way the `write` and `update`
+	// always return false, even if the upstream atom changed - this way the `write` and `update`
 	// functions won't schedule a redundant notification for this proxy
 	return false;
 }

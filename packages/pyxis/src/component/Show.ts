@@ -1,7 +1,7 @@
 import { isAtom, read, type MaybeAtom, type ReadAtom } from "~/data/Atom";
 import { getContextContainer, setContextContainer } from "~/data/Context";
 import { link } from "~/data/Dependency";
-import { effect } from "~/data/Effect";
+import { effect, noEffect } from "~/data/Effect";
 import { withLifecycle } from "~/data/Lifecycle";
 import { createProxy, updateProxy, type Proxied, type ProxyObject } from "~/data/ProxyAtom";
 import type { Nil } from "~/support/types";
@@ -37,22 +37,22 @@ export function Show<T>(props: JsxProps<ShowDataProps<T>>): JsxResult;
 export function Show<T, P extends readonly (keyof T)[]>(props: JsxProps<ShowProxyDataProps<T, P>>): JsxResult;
 
 export function Show<TNode>(
-	jsx: JsxObject,
+	props: JsxObject,
 	hParent: HNode<TNode>,
 	nUsedParent: TNode,
 	nRealParent: TNode,
 	nBefore: TNode | null,
 	isBatch: boolean,
 ) {
-	const when = jsx.when as MaybeAtom<boolean> | undefined;
+	const when = props.when as MaybeAtom<boolean> | undefined;
 	if (!isAtom(when) && when === false) {
 		// when is statically set to false -> bail out early
 		return;
 	}
 
-	const { children, data } = jsx;
-	const proxyKeys = jsx.proxy as readonly PropertyKey[] | undefined;
-	const template: MaybeAtom<(data: any) => any> = Object.hasOwn(jsx, "data")
+	const { children, data } = props;
+	const proxyKeys = props.proxy as readonly PropertyKey[] | undefined;
+	const template: MaybeAtom<(data: any) => any> = Object.hasOwn(props, "data")
 		? children[0] as MaybeAtom<DataTemplate<any>> // enforced by overload typings
 		: () => children;
 
@@ -125,8 +125,15 @@ export function Show<TNode>(
 		}
 
 		setContextContainer(context);
+		const jsx = noEffect(
+			withLifecycle,
+			hGroup,
+			read(template),
+			read(dataOrProxy),
+		);
+
 		mount(
-			/* jsx = */ withLifecycle(hGroup, read(template), read(dataOrProxy)),
+			/* jsx = */ jsx,
 			/* hGroup = */ hGroup,
 			/* nUsedParent = */ nBatchParent,
 			/* nRealParent = */ nRealParent,

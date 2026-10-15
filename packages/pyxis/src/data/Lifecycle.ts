@@ -1,4 +1,4 @@
-import type { Callback, Nil } from "~/support/types";
+import type { ArgsMax3, Callback, Nil } from "~/support/types";
 import { runtime } from "~/Runtime";
 
 import type { DependencyList } from "./Dependency";
@@ -98,7 +98,7 @@ export function setLifecycle(lifecycle: Lifecycle | null): Lifecycle | null {
  * return the specified object.
  * @see {@link getLifecycle}
  */
-export function withLifecycle<TArgs extends [ arg?: any ], TReturn>(
+export function withLifecycle<TArgs extends ArgsMax3, TReturn>(
 	lifecycle: Lifecycle,
 	block: (...args: TArgs) => TReturn,
 	...args: TArgs
@@ -106,16 +106,18 @@ export function withLifecycle<TArgs extends [ arg?: any ], TReturn>(
 
 export function withLifecycle(
 	lifecycle: Lifecycle,
-	block: (arg: any) => any,
-	arg: any,
+	block: (a0: any, a1: any, a2: any) => any,
+	a0?: any,
+	a1?: any,
+	a2?: any,
 ) {
-	const previousLifecycle = runtime.l;
+	const prevLifecycle = runtime.l;
 	runtime.l = lifecycle;
 
 	try {
-		return block(arg);
+		return block(a0, a1, a2);
 	}
 	finally {
-		runtime.l = previousLifecycle;
+		runtime.l = prevLifecycle;
 	}
 }

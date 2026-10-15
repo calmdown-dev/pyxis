@@ -66,7 +66,7 @@ export function Iterator<TNode, T>(
 		let nBatchParent = nInitParent;
 		let nBatchBefore = nInitBefore;
 
-		const isLocalBatch = shouldBatch && !initIsBatch && source.$items.length > 0;
+		const isLocalBatch = shouldBatch && !initIsBatch && initItems.length > 0;
 		if (isLocalBatch) {
 			nBatchParent = adapter.batch!();
 			nBatchBefore = null;

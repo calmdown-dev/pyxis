@@ -62,7 +62,13 @@ export interface DependencyList<TArgs extends ArgsMax3 = ArgsMax3> {
 	 * The notify callback of this DependencyList.
 	 * @internal
 	 */
-	$notify?: UpdateCallback;
+	$notify?: Nil<UpdateCallback>;
+
+	/**
+	 * In chained data relations (proxy and context atoms), tracks the upstream atom forwarding
+	 * notifications to this atom.
+	 */
+	$upstream?: Nil<DependencyList>;
 
 	/**
 	 * Tracks whether the next notification must be delivered overriding any optimizations that may
@@ -123,13 +129,19 @@ export function link(lifecycle: Lifecycle, target: DependencyList, dep: Dependen
 	// advance notify cursors, if active
 	advanceCursorOnAppend(target, dep);
 
-	// if there is already a pending notification, ensure it is delivered regardless of any
+	// if there is already a pending update notification, ensure it is delivered regardless of any
 	// optimizations, since the new observer (dep) may have seen an intermediate state and may need
 	// the notification to actually synchronize
-	const pending = target.$notify;
-	if (pending && pending.$se === pending.$lifecycle!.$scheduler.$epoch) {
-		target.$force = true;
+	let update;
+	do {
+		update = target.$notify;
+		if (update && update.$se === update.$lifecycle!.$scheduler.$epoch) {
+			target.$force = true;
+		}
+
+		target = target.$upstream!;
 	}
+	while (target);
 }
 
 /**

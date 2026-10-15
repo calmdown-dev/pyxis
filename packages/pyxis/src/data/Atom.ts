@@ -203,24 +203,24 @@ export function write<A>(
 ): A extends MaybeAtom<infer T> ? T : never;
 
 export function write<T>(input: MaybeAtom<T>, value: T, force = false): T {
-	if (isAtom(input)) {
-		if (input.set(value) || force) {
-			if (input.$dh) {
-				input.$force ||= force;
-				scheduleTick(input.$lifecycle, input.$notify ??= {
-					$fn: notifyAtomObservers,
-					$a0: input,
-				});
-			}
-			else if (input.$tracksValue) {
-				input.$lastValue = value;
-			}
-		}
-
-		return input.get();
+	if (!isAtom(input)) {
+		return input;
 	}
 
-	return input;
+	if (input.set(value) || force) {
+		if (input.$dh) {
+			input.$force ||= force;
+			scheduleTick(input.$lifecycle, input.$notify ??= {
+				$fn: notifyAtomObservers,
+				$a0: input,
+			});
+		}
+		else if (input.$tracksValue) {
+			return (input.$lastValue = input.get());
+		}
+	}
+
+	return input.get();
 }
 
 /**
@@ -240,25 +240,25 @@ export function update<A>(
 ): A extends MaybeAtom<infer T> ? T : never;
 
 export function update<T>(input: MaybeAtom<T>, transform: (value: T) => T, force = false): T {
-	if (isAtom(input)) {
-		const value = transform(input.get());
-		if (input.set(value) || force) {
-			if (input.$dh) {
-				input.$force ||= force;
-				scheduleTick(input.$lifecycle, input.$notify ??= {
-					$fn: notifyAtomObservers,
-					$a0: input,
-				});
-			}
-			else if (input.$tracksValue) {
-				input.$lastValue = value;
-			}
-		}
-
-		return input.get();
+	if (!isAtom(input)) {
+		return input;
 	}
 
-	return input;
+	const value = transform(input.get());
+	if (input.set(value) || force) {
+		if (input.$dh) {
+			input.$force ||= force;
+			scheduleTick(input.$lifecycle, input.$notify ??= {
+				$fn: notifyAtomObservers,
+				$a0: input,
+			});
+		}
+		else if (input.$tracksValue) {
+			return (input.$lastValue = input.get());
+		}
+	}
+
+	return input.get();
 }
 
 /**

@@ -1,4 +1,4 @@
-import type { Nil } from "~/support/types";
+import type { ArgsMax3, Nil } from "~/support/types";
 
 import { getLifecycle, onUnmounted, setLifecycle, type Lifecycle } from "./Lifecycle";
 import { link, unlink, type Dependency, type DependencyList } from "./Dependency";
@@ -162,14 +162,24 @@ export function reportAccess(atom: DependencyList) {
  * Runs a block of code removed from any effects. Accessing atoms within this block will be ignored
  * by any effect that may otherwise be observing this code.
  */
-export function noEffect<T>(block: () => T) {
-	const previousEffect = runtime.e;
+export function noEffect<TArgs extends ArgsMax3, TReturn>(
+	block: (...args: TArgs) => TReturn,
+	...args: TArgs
+): TReturn;
+
+export function noEffect(
+	block: (a0: any, a1: any, a2: any) => any,
+	a0?: any,
+	a1?: any,
+	a2?: any,
+) {
+	const prevEffect = runtime.e;
 	runtime.e = null;
 
 	try {
-		return block();
+		return block(a0, a1, a2);
 	}
 	finally {
-		runtime.e = previousEffect;
+		runtime.e = prevEffect;
 	}
 }

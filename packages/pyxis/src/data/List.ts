@@ -84,9 +84,6 @@ export interface ReadonlyList<T> extends Iterable<T>, DependencyList {
 	/** @internal */
 	$itemsLock: number;
 
-	/** @internal */
-	$isDirty?: boolean;
-
 	/**
 	 * The ID of this List, only used in dev builds.
 	 * @internal
@@ -253,7 +250,7 @@ function get(this: List<any>, index: number) {
 }
 
 function dirty(this: List<any>) {
-	return this.$isDirty || this.$pendingDelta !== null;
+	return !!(this.$pendingDelta || this.$ct);
 }
 
 function delta<T>(this: List<T>) {
@@ -395,7 +392,7 @@ function assertIndex(list: List<any>, index: number) {
 	}
 }
 
-function initDelta<T>(list: List<T>) {
+function initDelta(list: List<any>) {
 	return (list.$pendingDelta ??= createDelta());
 }
 
@@ -422,29 +419,25 @@ function listMutated(list: List<any>) {
 	});
 }
 
-function notifyListObservers<T>(list: List<T>) {
+function notifyListObservers(list: List<any>) {
 	// Keep the delivered delta stable for observers. Mutations made while notifying accumulate in a
 	// separate delta for the next pass.
 
 	const delta = list.$pendingDelta!;
 	list.$pendingDelta = null;
 
-	if (!list.$force && delta.changes.length === 0) {
-		// the delta is a no-op and the notification isn't forced, skip it
-		return;
+	// unless forced, skip notifications whenever the delta is a no-op
+	if (list.$force || delta.changes.length > 0) {
+		delta.snapshot = list.$items;
+		list.$committedDelta = delta as ListDelta<any>;
+		list.$itemsLock += 1; // protect the snapshot
+		list.$force = false;
+
+		notify(list);
 	}
-
-	delta.snapshot = list.$items;
-	list.$committedDelta = delta as ListDelta<T>;
-	list.$itemsLock += 1; // protect the snapshot
-	list.$isDirty = true;
-	list.$force = false;
-
-	notify(list);
 }
 
-function afterNotifyListObservers<T>(list: List<T>) {
+function afterNotifyListObservers(list: List<any>) {
 	list.$committedDelta = null;
 	list.$itemsLock = Math.max(list.$itemsLock - 1, 0); // release snapshot
-	list.$isDirty = false;
 }

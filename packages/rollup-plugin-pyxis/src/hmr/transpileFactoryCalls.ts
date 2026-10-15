@@ -26,7 +26,7 @@ const factoryArgCount: { [K in FactoryKind]: number } = {
 	component: 1,
 	context: 0,
 	list: 2,
-	host: 2,
+	host: 3,
 };
 
 export interface TranspileFactoryCallsCall extends TranspileTsxCall {

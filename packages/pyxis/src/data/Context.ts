@@ -4,7 +4,7 @@ import { S_ATOM } from "~/symbols";
 
 import { notifyAtomObservers, type Atom, type ReadAtom } from "./Atom";
 import { link, unlink, type Dependency } from "./Dependency";
-import { getLifecycle } from "./Lifecycle";
+import { getLifecycle, type Lifecycle } from "./Lifecycle";
 
 /**
  * Describes a Context propagating data throughout the Component hierarchy.
@@ -50,7 +50,7 @@ export interface ContextContainer {
 /** @internal */
 interface ContextAtom<T> extends Atom<T> {
 	$dep?: Nil<Dependency>;
-	$ancestor?: Nil<Atom<T>>;
+	$upstream?: Nil<Atom<T>>;
 	$value?: T;
 
 	/** cached readonly consumer Atom, only used in dev builds */
@@ -89,10 +89,11 @@ export function setContextContainer(container: ContextContainer | null) {
 export function host<C>(
 	context: C,
 	defaultValue?: C extends Context<infer T> ? T : never,
+	lifecycle?: Lifecycle,
 	devId?: string,
 ): C extends Context<infer T> ? Atom<T> : never;
 
-export function host<T>(context: Context<T>, defaultValue?: T) {
+export function host<T>(context: Context<T>, defaultValue?: T, lifecycle = getLifecycle()) {
 	if (__DEV__) {
 		__DEV__assertIsWithinComponent("host");
 	}
@@ -105,9 +106,8 @@ export function host<T>(context: Context<T>, defaultValue?: T) {
 		};
 	}
 
-	const lifecycle = getLifecycle();
 	if (__DEV__) {
-		const devId = arguments[2];
+		const devId = arguments[3];
 		runtime.hmrState!.restore(lifecycle, devId, value => {
 			defaultValue = value;
 		});
@@ -123,11 +123,11 @@ export function host<T>(context: Context<T>, defaultValue?: T) {
 	};
 
 	if (defaultValue === undefined) {
-		const ancestor = lookupAncestor(context);
-		if (ancestor) {
-			localAtom.get = getAncestorValue;
-			localAtom.$ancestor = ancestor;
-			link(lifecycle, ancestor, localAtom.$dep = {
+		const upstream = lookupUpstream(context);
+		if (upstream) {
+			localAtom.get = getUpstreamValue;
+			localAtom.$upstream = upstream;
+			link(lifecycle, upstream, localAtom.$dep = {
 				$fn: notifyAtomObservers<T>,
 				$a0: localAtom,
 			});
@@ -135,7 +135,7 @@ export function host<T>(context: Context<T>, defaultValue?: T) {
 	}
 
 	if (__DEV__) {
-		localAtom.$devId = arguments[2];
+		localAtom.$devId = arguments[3];
 		if (Object.hasOwn(runtime.c, context.$symbol)) {
 			throw new Error("Component declares multiple hosts of the same Context.");
 		}
@@ -155,7 +155,7 @@ export function contextual<T>(context: Context<T>): ReadAtom<T> {
 		__DEV__assertIsWithinComponent("contextual");
 	}
 
-	const atom = lookupAncestor(context);
+	const atom = lookupUpstream(context);
 	if (__DEV__) {
 		if (!atom) {
 			throw new Error("no ancestor is hosting this context");
@@ -169,8 +169,8 @@ export function contextual<T>(context: Context<T>): ReadAtom<T> {
 			consumer = atom.$consumer = {
 				[S_ATOM]: true,
 				$lifecycle: atom.$lifecycle,
-				$ancestor: atom,
-				get: getAncestorValue,
+				$upstream: atom,
+				get: getUpstreamValue,
 				set: __DEV__setConsumerValue,
 			};
 
@@ -186,7 +186,7 @@ export function contextual<T>(context: Context<T>): ReadAtom<T> {
 	return atom!;
 }
 
-function lookupAncestor<T>(context: Context<T>): ContextAtom<T> | undefined {
+function lookupUpstream<T>(context: Context<T>): ContextAtom<T> | undefined {
 	const { $symbol } = context;
 	let ptr: Nil<ContextContainer> = runtime.c;
 	let atom;
@@ -197,8 +197,8 @@ function lookupAncestor<T>(context: Context<T>): ContextAtom<T> | undefined {
 	return atom;
 }
 
-function getAncestorValue<T>(this: ContextAtom<T>) {
-	return this.$ancestor!.get();
+function getUpstreamValue<T>(this: ContextAtom<T>) {
+	return this.$upstream!.get();
 }
 
 function getHostedValue<T>(this: ContextAtom<T>) {
@@ -207,11 +207,11 @@ function getHostedValue<T>(this: ContextAtom<T>) {
 
 function setHostedValue<T>(this: ContextAtom<T>, value: T) {
 	let oldValue;
-	if (this.$ancestor) {
-		oldValue = this.$ancestor.get();
+	if (this.$upstream) {
+		oldValue = this.$upstream.get();
 		unlink(this.$dep!);
 		this.$dep = null;
-		this.$ancestor = null;
+		this.$upstream = null;
 		this.get = getHostedValue;
 	}
 	else {
