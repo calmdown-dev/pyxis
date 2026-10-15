@@ -210,12 +210,10 @@ function getHostedValue<T>(this: ContextAtom<T>) {
 }
 
 function setHostedValue<T>(this: ContextAtom<T>, value: T) {
-	let oldValue;
+	let didChange = true;
 	if (this.$upstream) {
-		unlink(this.$dep!);
-		oldValue = this.$upstream.get();
-
 		// switching from forwarding to hosting mode
+		unlink(this.$dep!);
 		this.$upstream = null;
 		this.$dep = null;
 		this.$tracksValue = true;
@@ -223,7 +221,7 @@ function setHostedValue<T>(this: ContextAtom<T>, value: T) {
 		this.get = getHostedValue;
 	}
 	else {
-		oldValue = this.$value;
+		didChange = !Object.is(this.$value, value);
 	}
 
 	this.$value = value;
@@ -231,7 +229,7 @@ function setHostedValue<T>(this: ContextAtom<T>, value: T) {
 		runtime.hmrState!.preserve(this.$lifecycle, this.$devId, value);
 	}
 
-	return !Object.is(oldValue, value);
+	return didChange;
 }
 
 function __DEV__setConsumerValue(): never {

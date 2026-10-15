@@ -44,14 +44,15 @@ export function proxyOf<T>(initialValue: MaybeAtom<T>, lifecycle = getLifecycle(
 }
 
 function use<T>(this: ProxyAtom<T>, value: MaybeAtom<T>, isInit: boolean = false) {
-	if (this.$upstream === value) {
+	const upstream = this.$upstream;
+	if (upstream && upstream === value) {
 		// value is an Atom and we're already forwarding it, nothing to do
 		return;
 	}
 
 	let shouldNotify = true;
 	if (isAtom(value)) {
-		if (!this.$upstream || isInit) {
+		if (!upstream || isInit) {
 			// switching from static to forwarding mode
 			this.$value = null;
 			this.$tracksValue = false;
@@ -71,14 +72,17 @@ function use<T>(this: ProxyAtom<T>, value: MaybeAtom<T>, isInit: boolean = false
 		});
 	}
 	else {
-		if (this.$upstream || isInit) {
+		if (upstream || isInit) {
 			// switching from forwarding to static mode
-			unlink(this.$dep!);
 			this.$upstream = null;
 			this.$tracksValue = true;
 			this.$lastValue = UNIQUE_VALUE;
 			this.get = getStaticValue;
 			this.set = setStaticValue;
+
+			if (!isInit) {
+				unlink(this.$dep!);
+			}
 		}
 		else {
 			// staying in static mode, notification may be skipped if the value didn't change
