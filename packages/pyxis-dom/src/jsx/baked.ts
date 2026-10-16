@@ -2678,7 +2678,7 @@ export interface MathMLMathElementProps extends MathMLCommonProps {
 export interface MatMLFracElementProps extends MathMLCommonProps {
 	readonly [S_NODE_TYPE]?: MathMLElement;
 	readonly [S_ELEM_NAME]?: "mfrac";
-	readonly children?: never;
+	readonly children?: JsxChildren;
 	readonly linethickness?: MaybeReadAtom<string>;
 }
 
@@ -2727,7 +2727,7 @@ export interface MatMLPaddedElementProps extends MathMLCommonProps {
 export interface MatMLRowElementProps extends MathMLCommonProps {
 	readonly [S_NODE_TYPE]?: MathMLElement;
 	readonly [S_ELEM_NAME]?: "mrow";
-	readonly children?: never;
+	readonly children?: JsxChildren;
 }
 
 export interface MatMLSpaceElementProps extends MathMLCommonProps {
@@ -2750,7 +2750,7 @@ export interface MatMLTDElementProps extends MathMLCommonProps {
 export interface MatMLTextElementProps extends MathMLCommonProps {
 	readonly [S_NODE_TYPE]?: MathMLElement;
 	readonly [S_ELEM_NAME]?: "mtext";
-	readonly children?: never;
+	readonly children?: JsxChildren;
 }
 
 export interface MatMLUnderElementProps extends MathMLCommonProps {

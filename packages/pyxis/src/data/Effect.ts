@@ -88,7 +88,13 @@ function runEffect(effect: Effect<ReturnType<EffectBlock>>) {
 		return;
 	}
 
-	effect.$dispose?.();
+	try {
+		effect.$dispose?.();
+	}
+	finally {
+		effect.$dispose = null;
+	}
+
 	effect.$dispose = resolve(effect) as Nil<() => void>;
 
 	if (!effect.$tracksUnmount && effect.$dispose) {

@@ -87,7 +87,7 @@ export interface Extension<TNode, TPropMapping extends ExtensionPropMapping<TNod
 	readonly $prefix: string;
 
 	/**
-	 * Carries information about the props this extension adds to native elements.
+	 * Carries a mapping type used to infer the props this extension adds to native elements.
 	 * @deprecated **Type only, does not exist at runtime!**
 	 */
 	readonly $mapping?: TPropMapping;

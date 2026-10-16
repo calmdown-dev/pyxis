@@ -11,16 +11,15 @@ import { UNIQUE_VALUE } from "~/support/common";
  * Describes a Context propagating data throughout the Component hierarchy.
  * @see {@link contextOf}
  */
-export interface Context<in T> {
+export interface Context<T> {
 	/** @internal */
 	readonly $symbol: symbol;
 
 	/**
-	 * Carries typings of the data propagated by this Context. Declared as a function type to
-	 * correctly enforce assignability.
+	 * Carries typings of the data propagated by this Context.
 	 * @deprecated **Type only, does not exist at runtime!**
 	 */
-	readonly $contract?: (value: T) => void;
+	readonly $contract?: T;
 }
 
 /**

@@ -76,7 +76,7 @@ export const EventExtension = extension<Node, EventPropMapping>((node, prop, val
 	}
 
 	// listen
-	const lifecycle = getExtendedLifecycle();
+	const lifecycle = getEventsLifecycle();
 	const listenerWithLifecycle = (e: unknown) => {
 		const handler = peek(listenerAtom);
 		if (handler) {
@@ -85,7 +85,7 @@ export const EventExtension = extension<Node, EventPropMapping>((node, prop, val
 	};
 
 	node.addEventListener(prop, listenerWithLifecycle, options);
-	lifecycle.$events.push({
+	lifecycle.$evListeners.push({
 		$f: listenerWithLifecycle,
 		$n: node,
 		$e: prop,
@@ -94,10 +94,12 @@ export const EventExtension = extension<Node, EventPropMapping>((node, prop, val
 });
 
 
-function getExtendedLifecycle() {
-	const lifecycle = getLifecycle() as ExtendedLifecycle;
-	if (!lifecycle.$events) {
-		const entries: ListenerEntry[] = [];
+function getEventsLifecycle() {
+	const lifecycle = getLifecycle() as EventsLifecycle;
+	if (!lifecycle.$evInstalled) {
+		const entries = (lifecycle.$evListeners ??= []);
+		lifecycle.$evInstalled = true;
+
 		unmounted(() => {
 			const { length } = entries;
 			let index = 0;
@@ -109,16 +111,16 @@ function getExtendedLifecycle() {
 			}
 
 			entries.length = 0;
+			lifecycle.$evInstalled = false;
 		});
-
-		lifecycle.$events = entries;
 	}
 
 	return lifecycle;
 }
 
-interface ExtendedLifecycle extends Lifecycle {
-	$events: ListenerEntry[];
+interface EventsLifecycle extends Lifecycle {
+	$evListeners: ListenerEntry[];
+	$evInstalled: boolean;
 }
 
 interface ListenerEntry {

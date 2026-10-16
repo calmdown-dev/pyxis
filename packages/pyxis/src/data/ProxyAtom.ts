@@ -156,7 +156,7 @@ const EMPTY_SOURCE: Record<PropertyKey, unknown> = {};
  **/
 export function createProxy(lifecycle: Lifecycle, data: any, keys: readonly PropertyKey[]) {
 	const source = isObject(data) ? data : EMPTY_SOURCE;
-	const proxy = {} as ProxyObject;
+	const proxy = Object.create(null) as ProxyObject;
 	const { length } = keys;
 
 	let index = 0;

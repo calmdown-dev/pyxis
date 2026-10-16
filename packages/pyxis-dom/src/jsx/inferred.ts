@@ -2138,7 +2138,6 @@ export type MathMLCommonProps = Finalize<WrapProps<{
 }>>;
 
 type MathMLProps<T, N extends string, P = {}> = Finalize<NodeTypeProp<T> & ElemNameProp<N> & ChildrenProp & WrapProps<P>>;
-type MathMLPropsNoChildren<T, N extends string, P = {}> = Finalize<NodeTypeProp<T> & ElemNameProp<N> & NoChildrenProp & WrapProps<P>>;
 
 /**
  * @bake
@@ -2158,7 +2157,7 @@ export type MathMLMathElementProps = MathMLProps<MathMLElement, "mathml", {
  * @bake
  * @extends MathMLCommonProps
  */
-export type MatMLFracElementProps = MathMLPropsNoChildren<MathMLElement, "mfrac", {
+export type MatMLFracElementProps = MathMLProps<MathMLElement, "mfrac", {
 	linethickness: string;
 }>;
 
@@ -2212,7 +2211,7 @@ export type MatMLPaddedElementProps = MathMLProps<MathMLElement, "mpadded", {
  * @bake
  * @extends MathMLCommonProps
  */
-export type MatMLRowElementProps = MathMLPropsNoChildren<MathMLElement, "mrow">;
+export type MatMLRowElementProps = MathMLProps<MathMLElement, "mrow">;
 
 /**
  * @bake
@@ -2237,7 +2236,7 @@ export type MatMLTDElementProps = MathMLProps<MathMLElement, "mtd", {
  * @bake
  * @extends MathMLCommonProps
  */
-export type MatMLTextElementProps = MathMLPropsNoChildren<MathMLElement, "mtext">;
+export type MatMLTextElementProps = MathMLProps<MathMLElement, "mtext">;
 
 /**
  * @bake

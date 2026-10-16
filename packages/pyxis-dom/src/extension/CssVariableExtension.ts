@@ -29,7 +29,7 @@ export const CssVariableExtension = extension<Node, CssVariablePropMapping>((nod
 			setProp((node as StylableElement).style, prop, value.get());
 		});
 	}
-	else if (value) {
+	else if (value !== null && value !== undefined) {
 		setProp((node as StylableElement).style, prop, value);
 	}
 });

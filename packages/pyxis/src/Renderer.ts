@@ -59,16 +59,16 @@ export interface Hierarchy<TNode> {
 	readonly $ng: MountingGroup<TNode>;
 
 	/**
-	 * the nearest *ancestor* group this node belongs to
-	 * @internal
-	 */
-	readonly $pg: MountingGroup<TNode> | null;
-
-	/**
 	 * the nearest native node (ancestor or self) - on groups, this is only present in dev mode
 	 * @internal
 	 */
 	readonly $nn?: TNode;
+
+	/**
+	 * the parent h-node of this h-node
+	 * @internal
+	 */
+	$ph: HNode<TNode> | null;
 
 	/**
 	 * the first child of this h-node
@@ -112,8 +112,8 @@ export function createRenderer<TNode, TIntrinsicElements extends ElementsType>(
 		$scheduler: createScheduler(adapter.tick),
 		$extensions: extensions,
 		$life: 1,
-		$pg: null,
 		$ng: null!,
+		$ph: null,
 		unmount: () => unmount(hGroup),
 		mount: (nRoot, jsx) => {
 			if (__DEV__) {
@@ -149,8 +149,8 @@ export function fork<TNode>(
 		$scheduler: ng.$scheduler,
 		$extensions: ng.$extensions,
 		$life: 1,
-		$pg: ng,
 		$ng: null!,
+		$ph: hParent,
 	};
 
 	hGroup.$ng = hGroup;
@@ -163,7 +163,9 @@ export function fork<TNode>(
 }
 
 /**
- * Adds a HNode to the hierarchy.
+ * Adds a HNode to the hierarchy. When reusing nodes, callers must make sure `untrack` has been
+ * previously called on the node.
+ * @see {@link untrack}
  */
 export function track<TNode>(
 	hNode: HNode<TNode>,
@@ -171,7 +173,7 @@ export function track<TNode>(
 	hBefore: HNode<TNode> | null = null,
 ) {
 	// insert into hierarchy before given sibling
-	if (hBefore?.$pg === hParent) {
+	if (hBefore?.$ph === hParent) {
 		if (hBefore.$hp) {
 			hNode.$hp = hBefore.$hp;
 			hNode.$hn = hBefore;
@@ -202,24 +204,28 @@ export function track<TNode>(
 
 		hParent.$ht = hNode;
 	}
+
+	hNode.$ph = hParent;
 }
 
 /**
- * Removes a HNode from the tracking hierarchy.
+ * Removes a HNode from the tracking hierarchy. Removed nodes may be reused and re-inserted using
+ * the `track` function.
+ * @see {@link track}
  */
 export function untrack<TNode>(hNode: HNode<TNode>) {
 	if (hNode.$hp) {
 		hNode.$hp.$hn = hNode.$hn;
 	}
-	else if (hNode.$pg?.$hh === hNode) {
-		hNode.$pg.$hh = hNode.$hn;
+	else if (hNode.$ph?.$hh === hNode) {
+		hNode.$ph.$hh = hNode.$hn;
 	}
 
 	if (hNode.$hn) {
 		hNode.$hn.$hp = hNode.$hp;
 	}
-	else if (hNode.$pg?.$ht === hNode) {
-		hNode.$pg.$ht = hNode.$hp;
+	else if (hNode.$ph?.$ht === hNode) {
+		hNode.$ph.$ht = hNode.$hp;
 	}
 
 	hNode.$hp = null;
@@ -259,7 +265,7 @@ export function mount<TNode>(
 
 		// only dispatch mount notifications when the parent group is already mounted, or if this is the
 		// top-level group - otherwise, mount notification will arrive once the parent mounts
-		if (hGroup.$pg?.mounted !== false) {
+		if (hGroup.$ph?.$ng.mounted !== false) {
 			notifyMounted(hGroup);
 		}
 	}
@@ -364,6 +370,7 @@ export function unmount<TNode>(hNode: HNode<TNode>, top: boolean = true) {
 		next = current.$hn;
 		current.$hp = null;
 		current.$hn = null;
+		current.$ph = null;
 		current = next;
 	}
 
@@ -534,9 +541,9 @@ export function insert<TNode>(
 
 		track(hNative = {
 			$isNative: true,
-			$pg: hNative,
 			$ng: hNative,
 			$nn: nNode,
+			$ph: hNative,
 		}, hParent, hBefore);
 	}
 

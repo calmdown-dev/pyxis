@@ -155,14 +155,17 @@ export function createScheduler(tick: TickFn) {
 }
 
 function schedule(lifecycle: Lifecycle, queue: UpdateCallback[], callback: UpdateCallback) {
+	// always update lifecycle metadata - the callback object may have been reused while the
+	// lifecycle changed, which could happen in a single tick, so this cannot skipped
+	callback.$lifecycle = lifecycle;
+	callback.$life = lifecycle.$life;
+
 	const scheduler = lifecycle.$scheduler;
 	if (callback.$se === scheduler.$epoch) {
 		// This callback is already pending; It will observe the latest state when it runs.
 		return;
 	}
 
-	callback.$lifecycle = lifecycle;
-	callback.$life = lifecycle.$life;
 	callback.$se = scheduler.$epoch;
 	queue.push(callback);
 	scheduler.$scheduleTick();

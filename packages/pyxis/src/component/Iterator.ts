@@ -15,7 +15,7 @@ export interface RemountIteratorProps<T> {
 
 export interface ProxyIteratorProps<T, P extends readonly (keyof T)[]> {
 	source: ReadonlyList<T>;
-	proxy: P;
+	proxy: P & ("proxied" extends P[number] ? never : unknown);
 	children: [ template: DataTemplate<Proxied<T, P>> ];
 }
 

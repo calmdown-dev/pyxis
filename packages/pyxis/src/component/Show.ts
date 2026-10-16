@@ -22,7 +22,7 @@ export interface ShowDataProps<T> {
 
 export interface ShowProxyDataProps<T, P extends readonly (keyof T)[]> {
 	when?: MaybeAtom<boolean>;
-	proxy: P;
+	proxy: P & ("proxied" extends P[number] ? never : unknown);
 	data: MaybeAtom<T>;
 	children: [ template: DataTemplate<Proxied<T, P>> | ReadAtom<Nil<DataTemplate<Proxied<T, P>>>> ];
 }
