@@ -16,10 +16,11 @@ export interface Context<T> {
 	readonly $symbol: symbol;
 
 	/**
-	 * Carries typings of the data propagated by this Context.
+	 * Carries typings of the data propagated by this Context. Typed as a function to enforce
+	 * correct variance of the generic value type.
 	 * @deprecated **Type only, does not exist at runtime!**
 	 */
-	readonly $contract?: T;
+	readonly $contract?: (value: T) => T;
 }
 
 /**
@@ -88,10 +89,17 @@ export function setContextContainer(container: ContextContainer | null) {
  */
 export function host<C>(
 	context: C,
-	defaultValue?: C extends Context<infer T> ? T : never,
+	defaultValue: C extends Context<infer T> ? T : never,
 	lifecycle?: Lifecycle,
 	devId?: string,
 ): C extends Context<infer T> ? Atom<T> : never;
+
+export function host<C>(
+	context: C,
+	defaultValue?: C extends Context<infer T> ? T | undefined : never,
+	lifecycle?: Lifecycle,
+	devId?: string,
+): C extends Context<infer T> ? Atom<T | undefined> : never;
 
 export function host<T>(context: Context<T>, defaultValue?: T, lifecycle = getLifecycle()) {
 	if (__DEV__) {
