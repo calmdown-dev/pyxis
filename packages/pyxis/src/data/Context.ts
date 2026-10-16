@@ -54,6 +54,9 @@ interface ContextAtom<T> extends Atom<T> {
 	$upstream?: Nil<Atom<T>>;
 	$value?: T;
 
+	/** tracks whether value has been defined, only used in dev builds */
+	$defined?: boolean;
+
 	/** cached readonly consumer Atom, only used in dev builds */
 	$consumer?: ContextAtom<T>;
 }
@@ -78,10 +81,10 @@ export function setContextContainer(container: ContextContainer | null) {
  * When a default value is specified, it will immediately be used as the hosted value, overriding
  * any value hosted by ancestors of this Component.
  *
- * Without a default value specified, the context initializes as "transparent" forwarding values
- * hosted by ancestors of this Component, or `undefined` if no host exists. Once the returned Atom
- * is written into for the first time, it breaks this link and begins hosting the new value from
- * that point onwards.
+ * Without a default value specified, the Context initializes as "transparent," forwarding values
+ * hosted by ancestors of this Component. Once the returned Atom is written into for the first time,
+ * it breaks this link and begins hosting the new value from that point onwards. In forwarding mode,
+ * if no ancestor hosts the Context, the value is not well defined and reading the Atom will fail.
  *
  * Descendants of this Component are able to consume the hosted value via `contextual(context)`
  * receiving a readonly Atom.
@@ -89,17 +92,10 @@ export function setContextContainer(container: ContextContainer | null) {
  */
 export function host<C>(
 	context: C,
-	defaultValue: C extends Context<infer T> ? T : never,
+	defaultValue?: C extends Context<infer T> ? T : never,
 	lifecycle?: Lifecycle,
 	devId?: string,
 ): C extends Context<infer T> ? Atom<T> : never;
-
-export function host<C>(
-	context: C,
-	defaultValue?: C extends Context<infer T> ? T | undefined : never,
-	lifecycle?: Lifecycle,
-	devId?: string,
-): C extends Context<infer T> ? Atom<T | undefined> : never;
 
 export function host<T>(context: Context<T>, defaultValue?: T, lifecycle = getLifecycle()) {
 	if (__DEV__) {
@@ -143,6 +139,9 @@ export function host<T>(context: Context<T>, defaultValue?: T, lifecycle = getLi
 		// start in hosting mode
 		localAtom.$tracksValue = true;
 		localAtom.$lastValue = defaultValue;
+		if (__DEV__) {
+			localAtom.$defined = true;
+		}
 	}
 
 	if (__DEV__) {
@@ -158,7 +157,7 @@ export function host<T>(context: Context<T>, defaultValue?: T, lifecycle = getLi
 
 /**
  * Gets a readonly Atom carrying the value inherited from the nearest ancestor of the current
- * Component hosting the specified Context.
+ * Component hosting the specified Context. This call fails if no ancestor is hosting the Context.
  * @see {@link host}
  */
 export function contextual<T>(context: Context<T>): ReadAtom<T> {
@@ -169,7 +168,7 @@ export function contextual<T>(context: Context<T>): ReadAtom<T> {
 	const atom = lookupUpstream(context);
 	if (__DEV__) {
 		if (!atom) {
-			throw new Error("no ancestor is hosting this context");
+			throw new Error("No ancestor is hosting this Context.");
 		}
 
 		// in dev builds, we create a separate consumer Atom forwarding the hosted value with a
@@ -213,6 +212,10 @@ function getUpstreamValue<T>(this: ContextAtom<T>) {
 }
 
 function getHostedValue<T>(this: ContextAtom<T>) {
+	if (__DEV__ && !this.$defined) {
+		throw new Error("Cannot read Context before it has been initialized.");
+	}
+
 	return this.$value!;
 }
 
@@ -226,6 +229,9 @@ function setHostedValue<T>(this: ContextAtom<T>, value: T) {
 		this.$tracksValue = true;
 		this.$lastValue = UNIQUE_VALUE;
 		this.get = getHostedValue;
+		if (__DEV__) {
+			this.$defined = true;
+		}
 	}
 	else {
 		didChange = !Object.is(this.$value, value);
@@ -240,15 +246,15 @@ function setHostedValue<T>(this: ContextAtom<T>, value: T) {
 }
 
 function __DEV__setConsumerValue(): never {
-	throw new Error("contextual Atoms cannot be written");
+	throw new Error("Contextual Atoms cannot be written.");
 }
 
 function __DEV__assertIsWithinComponent(fn: string) {
 	if (!runtime.componentEvalLifecycle || runtime.componentEvalLifecycle !== runtime.l) {
-		throw new Error(`"${fn}" can only be used directly within components`);
+		throw new Error(`"${fn}" can only be used directly within components.`);
 	}
 
 	if (runtime.componentEvalEffect !== runtime.e) {
-		throw new Error(`"${fn}" cannot be used within effects or derivations`);
+		throw new Error(`"${fn}" cannot be used within effects or derivations.`);
 	}
 }
