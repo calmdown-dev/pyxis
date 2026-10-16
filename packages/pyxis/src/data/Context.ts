@@ -84,10 +84,23 @@ export function setContextContainer(container: ContextContainer | null) {
  * Without a default value specified, the Context initializes as "transparent," forwarding values
  * hosted by ancestors of this Component. Once the returned Atom is written into for the first time,
  * it breaks this link and begins hosting the new value from that point onwards. In forwarding mode,
- * if no ancestor hosts the Context, the value is not well defined and reading the Atom will fail.
+ * if no ancestor hosts the Context, the value is not well defined and reading the Atom fails until
+ * at least one of the hosts define a value.
  *
  * Descendants of this Component are able to consume the hosted value via `contextual(context)`
  * receiving a readonly Atom.
+ *
+ * Note that due to how JavaScript arguments are handled, `undefined` is always treated as no
+ * default provided, even if it is an allowed value of the Context. To explicitly initialize hosts
+ * to the literal value `undefined`, you need to write the Atom separately, e.g.:
+ *
+ * ```ts
+ * const MyContext = contextOf<number | undefined>();
+ *
+ * // ...then, within a component:
+ * const value = host(MyContext);
+ * write(value, undefined);
+ * ```
  * @see {@link contextual}
  */
 export function host<C>(
