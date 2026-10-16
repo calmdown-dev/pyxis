@@ -242,9 +242,6 @@ function setHostedValue<T>(this: ContextAtom<T>, value: T) {
 		this.$tracksValue = true;
 		this.$lastValue = UNIQUE_VALUE;
 		this.get = getHostedValue;
-		if (__DEV__) {
-			this.$defined = true;
-		}
 	}
 	else {
 		didChange = !Object.is(this.$value, value);
@@ -252,6 +249,7 @@ function setHostedValue<T>(this: ContextAtom<T>, value: T) {
 
 	this.$value = value;
 	if (__DEV__) {
+		this.$defined = true;
 		runtime.hmrState!.preserve(this.$lifecycle, this.$devId, value);
 	}
 
