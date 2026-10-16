@@ -153,7 +153,7 @@ export function host<T>(context: Context<T>, defaultValue?: T, lifecycle = getLi
 		localAtom.$tracksValue = true;
 		localAtom.$lastValue = defaultValue;
 		if (__DEV__) {
-			localAtom.$defined = true;
+			localAtom.$defined = defaultValue !== undefined;
 		}
 	}
 
