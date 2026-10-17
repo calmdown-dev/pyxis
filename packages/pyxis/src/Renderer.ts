@@ -272,11 +272,11 @@ export function mount<TNode>(
 	}
 	finally {
 		setLifecycle(previousLifecycle);
+	}
 
-		hGroup.$canMount = true;
-		if (!isBatch) {
-			flushMounted(hGroup);
-		}
+	hGroup.$canMount = true;
+	if (!isBatch) {
+		flushMounted(hGroup);
 	}
 }
 
@@ -364,7 +364,9 @@ export function unmount<TNode>(hNode: HNode<TNode>, top?: boolean): void;
 export function unmount<TNode>(hNode: HNode<TNode>, top: boolean = true) {
 	if (hNode.$isGroup) {
 		try {
-			if (hNode.mounted && hNode.$onUnmount?.length) {
+			// deliberately checking $canMount here - when a group is unmounting, even if it never
+			// reached a full `mounted = true` state, cleanup must run
+			if (hNode.$canMount && hNode.$onUnmount?.length) {
 				const previousLifecycle = setLifecycle(hNode);
 				try {
 					hNode.$onUnmount.forEach(invoke);

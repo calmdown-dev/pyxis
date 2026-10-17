@@ -112,7 +112,7 @@ function getEventsLifecycle() {
 
 			entries.length = 0;
 			lifecycle.$evInstalled = false;
-		});
+		}, lifecycle);
 	}
 
 	return lifecycle;

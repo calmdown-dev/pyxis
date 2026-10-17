@@ -1,6 +1,6 @@
 import type { MaybeReadAtom } from "~/data/Atom";
 import { getContextContainer, setContextContainer } from "~/data/Context";
-import { unmounted } from "~/data/Lifecycle";
+import { onUnmounted } from "~/data/Lifecycle";
 import type { Nil, PropsType } from "~/support/types";
 
 import { mount, mountJsx, fork, unmount, type HNode, insert } from "./Renderer";
@@ -47,8 +47,11 @@ export function component(
 		try {
 			if (__DEV__) {
 				if (!import.meta.hot || !devId) {
-					setContextContainer(context);
-					mountJsx(__DEV__evalComponent(block, props), hParent, nUsedParent, nRealParent, nBefore, isBatch);
+					__DEV__evalComponent(() => {
+						setContextContainer(context);
+						mountJsx(block(props), hParent, nUsedParent, nRealParent, nBefore, isBatch);
+					});
+
 					return;
 				}
 
@@ -59,23 +62,25 @@ export function component(
 				const unsubscribe = runtime.hmrComponent!.subscribe(devId, impl => {
 					unmount(hGroup);
 
-					setContextContainer(context);
-					mount(
-						/* jsx = */ {
-							...props,
-							[S_COMPONENT]: (() => (
-								mountJsx(__DEV__evalComponent(impl, props), hGroup, nUsedParent, nRealParent, nMarker, isBatch)
-							)) satisfies ComponentHandler,
-						},
-						/* hGroup = */ hGroup,
-						/* nUsedParent = */ nUsedParent,
-						/* nRealParent = */ nRealParent,
-						/* nBefore = */ nMarker,
-						/* isBatch = */ isBatch,
-					);
+					__DEV__evalComponent(() => {
+						setContextContainer(context);
+						mount(
+							/* jsx = */ {
+								...props,
+								[S_COMPONENT]: (() => (
+									mountJsx(impl(props), hGroup, nUsedParent, nRealParent, nMarker, isBatch)
+								)) satisfies ComponentHandler,
+							},
+							/* hGroup = */ hGroup,
+							/* nUsedParent = */ nUsedParent,
+							/* nRealParent = */ nRealParent,
+							/* nBefore = */ nMarker,
+							/* isBatch = */ isBatch,
+						);
+					});
 				});
 
-				unmounted(unsubscribe);
+				onUnmounted(hParent.$ng, { $fn: unsubscribe });
 
 				// forget stale batch before future re-renders
 				nUsedParent = nRealParent;
@@ -93,13 +98,13 @@ export function component(
 	};
 }
 
-function __DEV__evalComponent(block: ComponentBlock, props: JsxObject) {
+function __DEV__evalComponent(block: () => void) {
 	const prevLifecycle = runtime.componentEvalLifecycle ?? null;
 	const prevEffect = runtime.componentEvalEffect ?? null;
 	try {
 		runtime.componentEvalLifecycle = runtime.l;
 		runtime.componentEvalEffect = runtime.e;
-		return block(props);
+		block();
 	}
 	finally {
 		runtime.componentEvalLifecycle = prevLifecycle;
