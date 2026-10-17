@@ -263,6 +263,17 @@ export function teardown(lifecycle: Lifecycle) {
 
 	lifecycle.$dh = null;
 	lifecycle.$dt = null;
+
+	lifecycle.$life += 1;
+
+	let callbacks;
+	if ((callbacks = lifecycle.$onMount)) {
+		callbacks.length = 0;
+	}
+
+	if ((callbacks = lifecycle.$onUnmount)) {
+		callbacks.length = 0;
+	}
 }
 
 /**

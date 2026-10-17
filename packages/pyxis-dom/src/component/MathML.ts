@@ -18,8 +18,12 @@ export function MathML(
 	const group = fork(hParent);
 	(group as Mutable<MountingGroup<Node>>).adapter = MathMLAdapter;
 
-	jsx[S_COMPONENT] = Native;
-	jsx[S_TAG_NAME] = "math";
-
-	mount(jsx, group, nUsedParent, nRealParent, nBefore, isBatch);
+	try {
+		jsx[S_COMPONENT] = Native;
+		jsx[S_TAG_NAME] = "math";
+		mount(jsx, group, nUsedParent, nRealParent, nBefore, isBatch);
+	}
+	finally {
+		jsx[S_COMPONENT] = MathML;
+	}
 }

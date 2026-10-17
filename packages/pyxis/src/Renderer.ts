@@ -37,6 +37,16 @@ export interface MountingGroup<TNode> extends Lifecycle, Hierarchy<TNode> {
 
 	/** @internal */
 	readonly $extensions: ExtensionsType<TNode>;
+
+	/** @internal */
+	mounted: boolean;
+
+	/**
+	 * tracks whether all mounting work has been completed and that this Lifecycle can be
+	 * "officially" mounted
+	 * @internal
+	 */
+	$canMount?: boolean;
 }
 
 export interface NativeNode<TNode> extends Hierarchy<TNode> {
@@ -262,6 +272,8 @@ export function mount<TNode>(
 	}
 	finally {
 		setLifecycle(previousLifecycle);
+
+		hGroup.$canMount = true;
 		if (!isBatch) {
 			flushMounted(hGroup);
 		}
@@ -298,17 +310,19 @@ function notifyMounted<TNode>(hNode: HNode<TNode>) {
 		current = current.$hn;
 	}
 
-	let callbacks;
-	if (hNode.$isGroup && !hNode.mounted && (callbacks = hNode.$onMount)) {
-		(hNode as Mutable<MountingGroup<TNode>>).mounted = true;
+	if (hNode.$isGroup && hNode.$canMount && !hNode.mounted) {
+		hNode.mounted = true;
 
-		const previousLifecycle = setLifecycle(hNode);
-		try {
-			callbacks.forEach(invoke);
-		}
-		finally {
-			callbacks.length = 0;
-			setLifecycle(previousLifecycle);
+		let callbacks;
+		if ((callbacks = hNode.$onMount)?.length) {
+			const previousLifecycle = setLifecycle(hNode);
+			try {
+				callbacks.forEach(invoke);
+			}
+			finally {
+				callbacks.length = 0;
+				setLifecycle(previousLifecycle);
+			}
 		}
 	}
 }
@@ -349,24 +363,22 @@ export function unmount<TNode>(group: MountingGroup<TNode>): void;
 export function unmount<TNode>(hNode: HNode<TNode>, top?: boolean): void;
 export function unmount<TNode>(hNode: HNode<TNode>, top: boolean = true) {
 	if (hNode.$isGroup) {
-		if (hNode.mounted) {
-			let callbacks;
-			if (callbacks = hNode.$onUnmount) {
+		try {
+			if (hNode.mounted && hNode.$onUnmount?.length) {
 				const previousLifecycle = setLifecycle(hNode);
 				try {
-					callbacks.forEach(invoke);
+					hNode.$onUnmount.forEach(invoke);
 				}
 				finally {
-					callbacks.length = 0;
 					setLifecycle(previousLifecycle);
 				}
 			}
-
-			(hNode as Mutable<MountingGroup<TNode>>).mounted = false;
-			hNode.$life += 1;
 		}
-
-		teardown(hNode);
+		finally {
+			hNode.mounted = false;
+			hNode.$canMount = false;
+			teardown(hNode);
+		}
 	}
 
 	const { adapter } = hNode.$ng;

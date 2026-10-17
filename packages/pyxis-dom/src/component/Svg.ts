@@ -18,8 +18,12 @@ export function Svg(
 	const group = fork(hParent);
 	(group as Mutable<MountingGroup<Node>>).adapter = SvgAdapter;
 
-	jsx[S_COMPONENT] = Native;
-	jsx[S_TAG_NAME] = "svg";
-
-	mount(jsx, group, nUsedParent, nRealParent, nBefore, isBatch);
+	try {
+		jsx[S_COMPONENT] = Native;
+		jsx[S_TAG_NAME] = "svg";
+		mount(jsx, group, nUsedParent, nRealParent, nBefore, isBatch);
+	}
+	finally {
+		jsx[S_COMPONENT] = Svg;
+	}
 }
