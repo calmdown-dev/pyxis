@@ -1,4 +1,4 @@
-import { Native, fork, type HNode, type JsxObject, type JsxResult, type MountingGroup } from "@calmdown/pyxis/core";
+import { Native, S_COMPONENT, S_TAG_NAME, fork, mount, type HNode, type JsxObject, type JsxResult, type MountingGroup } from "@calmdown/pyxis/core";
 
 import { SvgAdapter } from "~/adapter/SvgAdapter";
 
@@ -8,7 +8,7 @@ import type { Mutable } from "./types";
 export function Svg(props: JSX.IntrinsicElements["Svg"]): JsxResult;
 
 export function Svg(
-	jsx: JsxObject,
+	jsx: Mutable<JsxObject>,
 	hParent: HNode<Node>,
 	nUsedParent: Node,
 	nRealParent: Node,
@@ -18,6 +18,8 @@ export function Svg(
 	const group = fork(hParent);
 	(group as Mutable<MountingGroup<Node>>).adapter = SvgAdapter;
 
-	Native(jsx, group, nUsedParent, nRealParent, nBefore, isBatch);
-	group.mounted = true;
+	jsx[S_COMPONENT] = Native;
+	jsx[S_TAG_NAME] = "svg";
+
+	mount(jsx, group, nUsedParent, nRealParent, nBefore, isBatch);
 }

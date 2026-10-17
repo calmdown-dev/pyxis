@@ -24,4 +24,4 @@ export { component, type Component, type DataTemplate, type JsxChildren, type Js
 export { jsx, jsxs } from "~/jsx";
 export { insert, mount, mountJsx, fork, track, unmount, untrack, type ElementsOf, type HNode, type MountingGroup, type Renderer } from "~/Renderer";
 export { renderer, type RendererBuilder } from "~/RendererBuilder";
-export type { S_ATOM } from "~/symbols";
+export { S_ATOM, S_COMPONENT, S_TAG_NAME } from "~/symbols";

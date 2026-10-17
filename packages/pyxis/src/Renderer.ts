@@ -120,11 +120,12 @@ export function createRenderer<TNode, TIntrinsicElements extends ElementsType>(
 				hGroup.$nn = nRoot;
 			}
 
-			const isBatch = Boolean(adapter.batch);
+			const isBatch = !!adapter.batch;
 			const nParent = isBatch ? adapter.batch!() : nRoot;
 			mount(jsx, hGroup, nParent, nRoot, null, isBatch);
 			if (isBatch) {
 				adapter.insert(nParent, nRoot, null);
+				flushMounted(hGroup);
 			}
 		},
 	};
@@ -163,8 +164,8 @@ export function fork<TNode>(
 }
 
 /**
- * Adds a HNode to the hierarchy. When reusing nodes, callers must make sure `untrack` has been
- * previously called on the node.
+ * Inserts a HNode to the hierarchy. When reusing nodes, callers must make sure `untrack` has been
+ * previously called on the node to be re-inserted.
  * @see {@link untrack}
  */
 export function track<TNode>(
@@ -261,13 +262,25 @@ export function mount<TNode>(
 	}
 	finally {
 		setLifecycle(previousLifecycle);
-		hGroup.mounted = true;
-
-		// only dispatch mount notifications when the parent group is already mounted, or if this is the
-		// top-level group - otherwise, mount notification will arrive once the parent mounts
-		if (hGroup.$ph?.$ng.mounted !== false) {
-			notifyMounted(hGroup);
+		if (!isBatch) {
+			flushMounted(hGroup);
 		}
+	}
+}
+
+/**
+ * Marks the provided hGroup and all of its descendants as mounted and dispatches notifications
+ * where appropriate.
+ *
+ * Normally this happens automatically as part of calling {@link mount}, but it is necessary to
+ * flush manually when rendering into a batch. Batch owners are responsible for calling this
+ * function once the batch has been committed.
+ */
+export function flushMounted<TNode>(hGroup: MountingGroup<TNode>) {
+	// only dispatch mount notifications when the parent group is already mounted, or if this is the
+	// top-level group - otherwise, mount notification will arrive once the parent mounts
+	if (hGroup.$ph?.$ng.mounted !== false) {
+		notifyMounted(hGroup);
 	}
 }
 
@@ -286,7 +299,9 @@ function notifyMounted<TNode>(hNode: HNode<TNode>) {
 	}
 
 	let callbacks;
-	if (hNode.$isGroup && hNode.mounted && (callbacks = hNode.$onMount)) {
+	if (hNode.$isGroup && !hNode.mounted && (callbacks = hNode.$onMount)) {
+		(hNode as Mutable<MountingGroup<TNode>>).mounted = true;
+
 		const previousLifecycle = setLifecycle(hNode);
 		try {
 			callbacks.forEach(invoke);
@@ -347,7 +362,7 @@ export function unmount<TNode>(hNode: HNode<TNode>, top: boolean = true) {
 				}
 			}
 
-			hNode.mounted = false;
+			(hNode as Mutable<MountingGroup<TNode>>).mounted = false;
 			hNode.$life += 1;
 		}
 

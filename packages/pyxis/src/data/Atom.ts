@@ -24,18 +24,20 @@ export interface ReadAtom<out T> extends DependencyList {
 }
 
 /**
- * Holds any single value, managing reactions to its changes. Use the `read`, `write` functions to
- * access its value.
+ * Holds any single value, managing reactions to its changes. Use the `read`, `peek`, `write` or
+ * `update` functions to access or manipulate its value.
  * @see {@link read}
+ * @see {@link peek}
  * @see {@link write}
+ * @see {@link update}
  */
 export interface Atom<T = unknown> extends ReadAtom<T> {
 	/**
-	 * Sets the value of this Atom. Does nothing if this Atom is readonly. Only use this method when
-	 * the target is guaranteed to be an Atom, otherwise it is recommended to use the `write` or
-	 * `update` functions.
+	 * Sets the value of this Atom. Does nothing if this Atom is readonly. This method does *not*
+	 * emit any change notification to the Atom's observers; Using it recklessly can leave observers
+	 * out of date with stale state! Please make sure you know exactly what you're doing; It is
+	 * *strongly* recommended to use the `write` or `update` functions instead.
 	 *
-	 * This method does *not* send out any change notifications to observers!
 	 * @returns Boolean indicating whether the value of this Atom changed.
 	 * @see {@link write}
 	 * @see {@link update}
@@ -189,6 +191,9 @@ export function peek<T>(input: MaybeReadAtom<T>): T {
 /**
  * Checks if the provided input is an Atom, writes its value and returns the new value.
  *
+ * Writing readonly Atoms is simply a no-op. Their current value will be returned and the provided
+ * new value discarded.
+ *
  * Non-atom inputs are never modified in any way. Instead the provided new value is discarded and
  * the input is returned as-is.
  * @see {@link isAtom}
@@ -226,6 +231,9 @@ export function write<T>(input: MaybeAtom<T>, value: T, force = false): T {
 /**
  * Checks if the provided input is an Atom, updates its value using the provided transform function
  * and returns the new value.
+ *
+ * Updating readonly Atoms is simply a no-op. Their current value will be returned and the
+ * transformed new value discarded.
  *
  * Non-atom inputs are never modified in any way and the input is returned as-is.
  * @see {@link isAtom}

@@ -107,6 +107,16 @@ function __DEV__evalComponent(block: ComponentBlock, props: JsxObject) {
 	}
 }
 
+export function __DEV__assertIsDirectComponentCode(fn: string) {
+	if (!runtime.componentEvalLifecycle || runtime.componentEvalLifecycle !== runtime.l) {
+		throw new Error(`"${fn}" can only be used directly within components.`);
+	}
+
+	if (runtime.componentEvalEffect !== runtime.e) {
+		throw new Error(`"${fn}" cannot be used within effects or derivations.`);
+	}
+}
+
 /**
  * Infers the props object for use with JSX. Because Pyxis always supplies components with child
  * arrays (or tuples), the type needs to be adjusted to reflect the internal mechanics.
@@ -149,23 +159,23 @@ export type JsxText = MaybeReadAtom<Nil<string | number | boolean | bigint>>;
 /**
  * Describes the objects returned by JSX factories.
  *
- * Pyxis uses very lightweight factories returning the props object directly,
- * adding a few extra props:
- *
- * - S_COMPONENT ... hidden, contains a reference to the ComponentHandler function
- * - S_TAG_NAME ... hidden, specifies the tag name, only populated for native elements
- * - children ... always present and always an array, empty array for childless components
+ * Pyxis uses lightweight factories returning the props object directly, only adding a few extra
+ * symbol-keyed props.
  */
 export interface JsxObject {
 	[propName: string]: unknown;
-	readonly children: readonly unknown[];
-	readonly [S_DEV_INFO]?: JsxDevSourceInfo;
 
-	/** @internal */
+	/** specifies the ComponentHandler function used to render this object */
 	readonly [S_COMPONENT]: ComponentHandler;
 
-	/** @internal */
+	/** specifies the native element tag name, only populated for native elements */
 	readonly [S_TAG_NAME]?: string;
+
+	/** holds source code location of individual JSX nodes, only populated in dev mode */
+	readonly [S_DEV_INFO]?: JsxDevSourceInfo;
+
+	/** always present and always an array, empty array for childless components */
+	readonly children: readonly unknown[];
 }
 
 export interface JsxDevSourceInfo {

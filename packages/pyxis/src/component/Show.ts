@@ -6,7 +6,7 @@ import { withLifecycle } from "~/data/Lifecycle";
 import { createProxy, updateProxy, type Proxied, type ProxyObject } from "~/data/ProxyAtom";
 import type { Nil } from "~/support/types";
 import type { DataTemplate, JsxChildren, JsxObject, JsxProps, JsxResult } from "~/Component";
-import { insert, mount, mountJsx, fork, unmount, type HNode } from "~/Renderer";
+import { insert, mount, mountJsx, fork, unmount, type HNode, flushMounted } from "~/Renderer";
 
 export interface ShowProps {
 	when?: MaybeAtom<boolean>;
@@ -143,6 +143,7 @@ export function Show<TNode>(
 
 		if (isLocalBatch) {
 			adapter.insert(nBatchParent, nUsedParent, nMarker);
+			flushMounted(hGroup);
 		}
 
 		return () => unmount(hGroup);

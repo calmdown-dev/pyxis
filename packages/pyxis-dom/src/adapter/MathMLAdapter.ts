@@ -17,7 +17,6 @@ export const MathMLAdapter: Adapter<Node, IntrinsicElements> = {
 
 const NS = "http://www.w3.org/1998/Math/MathML";
 
-function element(tagName: string | undefined) {
-	// undefined only comes from the <MathML> component
-	return document.createElementNS(NS, tagName ?? "math");
+function element(tagName: string) {
+	return document.createElementNS(NS, tagName);
 }

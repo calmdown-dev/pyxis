@@ -14,12 +14,17 @@ export interface Scheduler {
 	readonly $scheduleTick: () => void;
 
 	/**
+	 * Array of pending effect update callbacks, cleared after each tick.
+	 */
+	readonly $onEffect: UpdateCallback[];
+
+	/**
 	 * Array of pending update callbacks, cleared after each tick.
 	 */
 	readonly $onTick: UpdateCallback[];
 
 	/**
-	 * Array of pending end-of-update callbacks, cleared after each tick.
+	 * Array of pending end-of-tick callbacks, cleared after each tick.
 	 */
 	$onTock: UpdateCallback[];
 
@@ -63,6 +68,7 @@ export interface TickFn {
 
 /** @internal */
 export function createScheduler(tick: TickFn) {
+	const effects: UpdateCallback[] = [];
 	const ticks: UpdateCallback[] = [];
 	let tocks: UpdateCallback[] = [];
 	let tocksParked: UpdateCallback[] = [];
@@ -70,6 +76,7 @@ export function createScheduler(tick: TickFn) {
 
 	const scheduler: Scheduler = {
 		$epoch: 1,
+		$onEffect: effects,
 		$onTick: ticks,
 		$onTock: tocks,
 		$scheduleTick: () => {
@@ -87,25 +94,40 @@ export function createScheduler(tick: TickFn) {
 		let hasDrained = false;
 
 		try {
-			let index = 0;
+			let effectIndex = 0;
+			let tickIndex = 0;
 			let callback;
 
 			// Array lengths are re-read on each cycle, as they may increase when additional
 			// callbacks get queued by the code we're invoking.
 
-			for (; index < ticks.length; index += 1) {
-				callback = ticks[index];
-				callback.$se = 0;
-				if (callback.$life === callback.$lifecycle!.$life) {
-					invoke(callback);
+			do {
+				// drain tick queue first
+				while (tickIndex < ticks.length) {
+					callback = ticks[tickIndex++];
+					callback.$se = 0;
+					if (callback.$life === callback.$lifecycle!.$life) {
+						invoke(callback);
+					}
+				}
+
+				// run the next effect, then repeat - the effect may schedule additional ticks
+				if (effectIndex < effects.length) {
+					callback = effects[effectIndex++];
+					callback.$se = 0;
+					if (callback.$life === callback.$lifecycle!.$life) {
+						invoke(callback);
+					}
 				}
 			}
+			while (tickIndex < ticks.length || effectIndex < effects.length);
 
 			// The main queue drained, tick phase is now done. There may still be pending tock
 			// callbacks queued, but at this point the current epoch is sealed. If tock callbacks
 			// schedule additional work, it will be queued for the next future update rather than
 			// executed synchronously in this one.
 
+			effects.length = 0;
 			ticks.length = 0;
 
 			scheduler.$onTock = tocksParked;
@@ -113,8 +135,11 @@ export function createScheduler(tick: TickFn) {
 
 			hasDrained = true;
 
-			for (index = 0; index < tocks.length; index += 1) {
-				callback = tocks[index];
+			const { length } = tocks;
+			let tockIndex = 0;
+
+			for (; tockIndex < length; tockIndex += 1) {
+				callback = tocks[tockIndex];
 
 				// An earlier tock may have queued this same callback for the next tick (i.e. it is
 				// now in both the `tocks` and `tocksParked` queues and is marked with the future
@@ -139,6 +164,7 @@ export function createScheduler(tick: TickFn) {
 			}
 			else {
 				// tick callback invocation threw, drop scheduled work
+				effects.length = 0;
 				ticks.length = 0;
 				tocks.length = 0;
 				scheduler.$epoch += 1;
@@ -169,6 +195,11 @@ function schedule(lifecycle: Lifecycle, queue: UpdateCallback[], callback: Updat
 	callback.$se = scheduler.$epoch;
 	queue.push(callback);
 	scheduler.$scheduleTick();
+}
+
+/** @internal */
+export function scheduleEffect(lifecycle: Lifecycle, callback: UpdateCallback) {
+	schedule(lifecycle, lifecycle.$scheduler.$onEffect, callback);
 }
 
 /** @internal */

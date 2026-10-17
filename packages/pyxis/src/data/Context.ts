@@ -1,11 +1,12 @@
+import { UNIQUE_VALUE } from "~/support/common";
 import type { Nil } from "~/support/types";
+import { __DEV__assertIsDirectComponentCode } from "~/Component";
 import { runtime } from "~/Runtime";
 import { S_ATOM } from "~/symbols";
 
 import { notifyAtomObservers, type Atom, type ReadAtom } from "./Atom";
 import { link, unlink, type Dependency } from "./Dependency";
 import { getLifecycle, type Lifecycle } from "./Lifecycle";
-import { UNIQUE_VALUE } from "~/support/common";
 
 /**
  * Describes a Context propagating data throughout the Component hierarchy.
@@ -112,7 +113,7 @@ export function host<C>(
 
 export function host<T>(context: Context<T>, defaultValue?: T, lifecycle = getLifecycle()) {
 	if (__DEV__) {
-		__DEV__assertIsWithinComponent("host");
+		__DEV__assertIsDirectComponentCode("host");
 	}
 
 	if (!runtime.n || !runtime.c) {
@@ -175,7 +176,7 @@ export function host<T>(context: Context<T>, defaultValue?: T, lifecycle = getLi
  */
 export function contextual<T>(context: Context<T>): ReadAtom<T> {
 	if (__DEV__) {
-		__DEV__assertIsWithinComponent("contextual");
+		__DEV__assertIsDirectComponentCode("contextual");
 	}
 
 	const atom = lookupUpstream(context);
@@ -258,14 +259,4 @@ function setHostedValue<T>(this: ContextAtom<T>, value: T) {
 
 function __DEV__setConsumerValue(): never {
 	throw new Error("Contextual Atoms cannot be written.");
-}
-
-function __DEV__assertIsWithinComponent(fn: string) {
-	if (!runtime.componentEvalLifecycle || runtime.componentEvalLifecycle !== runtime.l) {
-		throw new Error(`"${fn}" can only be used directly within components.`);
-	}
-
-	if (runtime.componentEvalEffect !== runtime.e) {
-		throw new Error(`"${fn}" cannot be used within effects or derivations.`);
-	}
 }

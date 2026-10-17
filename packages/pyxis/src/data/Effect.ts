@@ -2,7 +2,7 @@ import type { ArgsMax3, Nil } from "~/support/types";
 
 import { getLifecycle, onUnmounted, setLifecycle, type Lifecycle } from "./Lifecycle";
 import { link, unlink, type Dependency, type DependencyList } from "./Dependency";
-import { scheduleTick, type UpdateCallback } from "./Scheduler";
+import { scheduleEffect, type UpdateCallback } from "./Scheduler";
 import { runtime } from "~/Runtime";
 
 export interface EffectBlock {
@@ -60,12 +60,12 @@ export function effect(block: EffectBlock, lifecycle = getLifecycle()) {
 		$lifecycle: lifecycle,
 		$life: lifecycle.$life,
 		$block: block,
-		$react: scheduleEffect,
+		$react: scheduleReaction,
 		$cycle: 0,
 	});
 }
 
-function scheduleEffect(this: EffectDependency, effect: Effect<ReturnType<EffectBlock>>, cycle: number) {
+function scheduleReaction(this: EffectDependency, effect: Effect<ReturnType<EffectBlock>>, cycle: number) {
 	// lazy cleanup: when we get an update from a stale dependency, the reported cycle will be lower
 	// than our current one (see the reportAccess function). We can unlink and skip the effect.
 	if (effect.$cycle > cycle) {
@@ -76,7 +76,7 @@ function scheduleEffect(this: EffectDependency, effect: Effect<ReturnType<Effect
 	// we're already within a scheduler tick; the effect will therefore run synchronously despite
 	// being "scheduled" - this also gives priority to already queued updates and coalesces
 	// additional re-run attempts while the first one is still pending.
-	scheduleTick(effect.$lifecycle, effect.$resolve ??= {
+	scheduleEffect(effect.$lifecycle, effect.$resolve ??= {
 		$fn: runEffect,
 		$a0: effect,
 	});
@@ -88,13 +88,7 @@ function runEffect(effect: Effect<ReturnType<EffectBlock>>) {
 		return;
 	}
 
-	try {
-		effect.$dispose?.();
-	}
-	finally {
-		effect.$dispose = null;
-	}
-
+	teardownEffect(effect);
 	effect.$dispose = resolve(effect) as Nil<() => void>;
 
 	if (!effect.$tracksUnmount && effect.$dispose) {
@@ -107,8 +101,12 @@ function runEffect(effect: Effect<ReturnType<EffectBlock>>) {
 }
 
 function teardownEffect(effect: Effect<ReturnType<EffectBlock>>) {
-	effect.$dispose?.();
-	effect.$dispose = null;
+	try {
+		effect.$dispose?.();
+	}
+	finally {
+		effect.$dispose = null;
+	}
 }
 
 /**

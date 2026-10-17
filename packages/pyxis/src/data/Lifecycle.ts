@@ -3,10 +3,11 @@ import { runtime } from "~/Runtime";
 
 import type { DependencyList } from "./Dependency";
 import type { Scheduler } from "./Scheduler";
+import { __DEV__assertIsDirectComponentCode } from "~/Component";
 
 export interface Lifecycle extends DependencyList {
-	/** whether this Lifecycle is currently mounted or not */
-	mounted: boolean;
+	/** gets a boolean indicating whether this Lifecycle is currently mounted or not */
+	readonly mounted: boolean;
 
 	/** @internal */
 	readonly $scheduler: Scheduler;
@@ -35,13 +36,17 @@ export interface UnmountBlock {
 
 
 /**
- * Registers a callback to run just after the current Component has mounted.
+ * Registers a block of code to run once the current Component has mounted.
  *
  * If a teardown callback is returned, it will be run just before the Component unmounts (equivalent
  * to adding a separate `unmounted` block).
  * @see {@link unmounted}
  */
 export function mounted(block: MountBlock, lifecycle = getLifecycle()) {
+	if (__DEV__) {
+		__DEV__assertIsDirectComponentCode("mounted");
+	}
+
 	onMounted(lifecycle, {
 		$fn: invokeMountedCallback,
 		$a0: lifecycle,
@@ -63,10 +68,14 @@ function invokeMountedCallback(lifecycle: Lifecycle, block: MountBlock) {
 
 
 /**
- * Registers a callback to run once the current Component is just about to unmount.
+ * Registers a block of code to run once the current Component is just about to unmount.
  * @see {@link mounted}
  */
 export function unmounted(block: UnmountBlock, lifecycle = getLifecycle()) {
+	if (__DEV__) {
+		__DEV__assertIsDirectComponentCode("unmounted");
+	}
+
 	onUnmounted(lifecycle, { $fn: block });
 }
 
@@ -74,6 +83,7 @@ export function unmounted(block: UnmountBlock, lifecycle = getLifecycle()) {
 export function onUnmounted(lifecycle: Lifecycle, callback: Callback) {
 	(lifecycle.$onUnmount ??= []).push(callback);
 }
+
 
 /**
  * Gets the Lifecycle of the calling component.

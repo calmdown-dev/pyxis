@@ -4,7 +4,7 @@ import type { Component, JsxResult } from "~/Component";
 
 import { S_COMPONENT, S_TAG_NAME } from "./symbols";
 
-const EMPTY_ARRAY = Object.freeze([] as const);
+const EMPTY_ARRAY = [] as const;
 
 export function jsx(
 	tagName: string,

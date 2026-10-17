@@ -35,7 +35,7 @@ export function derived<T>(block: () => T, lifecycle = getLifecycle()): Derivati
 		$lastValue: null!,
 		$cycle: 0,
 		$block: block,
-		$react: scheduleNotify,
+		$react: scheduleReaction,
 		get: getValue,
 		set: setValue,
 	};
@@ -47,7 +47,7 @@ export function derived<T>(block: () => T, lifecycle = getLifecycle()): Derivati
 	return atom;
 }
 
-function scheduleNotify(this: EffectDependency, derivation: Derivation<any>, cycle: number) {
+function scheduleReaction(this: EffectDependency, derivation: Derivation<any>, cycle: number) {
 	if (
 		// derivation was scheduled in a previous life and this run is now stale
 		derivation.$life !== derivation.$lifecycle.$life ||
