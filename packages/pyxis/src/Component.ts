@@ -47,11 +47,8 @@ export function component(
 		try {
 			if (__DEV__) {
 				if (!import.meta.hot || !devId) {
-					__DEV__evalComponent(() => {
-						setContextContainer(context);
-						mountJsx(block(props), hParent, nUsedParent, nRealParent, nBefore, isBatch);
-					});
-
+					setContextContainer(context);
+					mountJsx(__DEV__evalComponent(block, props), hParent, nUsedParent, nRealParent, nBefore, isBatch);
 					return;
 				}
 
@@ -62,22 +59,20 @@ export function component(
 				const unsubscribe = runtime.hmrComponent!.subscribe(devId, impl => {
 					unmount(hGroup);
 
-					__DEV__evalComponent(() => {
-						setContextContainer(context);
-						mount(
-							/* jsx = */ {
-								...props,
-								[S_COMPONENT]: (() => (
-									mountJsx(impl(props), hGroup, nUsedParent, nRealParent, nMarker, isBatch)
-								)) satisfies ComponentHandler,
-							},
-							/* hGroup = */ hGroup,
-							/* nUsedParent = */ nUsedParent,
-							/* nRealParent = */ nRealParent,
-							/* nBefore = */ nMarker,
-							/* isBatch = */ isBatch,
-						);
-					});
+					setContextContainer(context);
+					mount(
+						/* jsx = */ {
+							...props,
+							[S_COMPONENT]: (() => (
+								mountJsx(__DEV__evalComponent(impl, props), hGroup, nUsedParent, nRealParent, nMarker, isBatch)
+							)) satisfies ComponentHandler,
+						},
+						/* hGroup = */ hGroup,
+						/* nUsedParent = */ nUsedParent,
+						/* nRealParent = */ nRealParent,
+						/* nBefore = */ nMarker,
+						/* isBatch = */ isBatch,
+					);
 				});
 
 				onUnmounted(hParent.$ng, { $fn: unsubscribe });
@@ -98,13 +93,13 @@ export function component(
 	};
 }
 
-function __DEV__evalComponent(block: () => void) {
+function __DEV__evalComponent(block: ComponentBlock, props: JsxObject) {
 	const prevLifecycle = runtime.componentEvalLifecycle ?? null;
 	const prevEffect = runtime.componentEvalEffect ?? null;
 	try {
 		runtime.componentEvalLifecycle = runtime.l;
 		runtime.componentEvalEffect = runtime.e;
-		block();
+		return block(props);
 	}
 	finally {
 		runtime.componentEvalLifecycle = prevLifecycle;

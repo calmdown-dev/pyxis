@@ -42,11 +42,12 @@ export interface UnmountBlock {
  * to adding a separate `unmounted` block).
  * @see {@link unmounted}
  */
-export function mounted(block: MountBlock, lifecycle = getLifecycle()) {
-	if (__DEV__) {
+export function mounted(block: MountBlock, lifecycle?: Lifecycle) {
+	if (__DEV__ && lifecycle === undefined) {
 		__DEV__assertIsDirectComponentCode("mounted");
 	}
 
+	lifecycle ??= getLifecycle();
 	onMounted(lifecycle, {
 		$fn: invokeMountedCallback,
 		$a0: lifecycle,
@@ -71,12 +72,12 @@ function invokeMountedCallback(lifecycle: Lifecycle, block: MountBlock) {
  * Registers a block of code to run once the current Component is just about to unmount.
  * @see {@link mounted}
  */
-export function unmounted(block: UnmountBlock, lifecycle = getLifecycle()) {
-	if (__DEV__) {
+export function unmounted(block: UnmountBlock, lifecycle?: Lifecycle) {
+	if (__DEV__ && lifecycle === undefined) {
 		__DEV__assertIsDirectComponentCode("unmounted");
 	}
 
-	onUnmounted(lifecycle, { $fn: block });
+	onUnmounted(lifecycle ?? getLifecycle(), { $fn: block });
 }
 
 /** @internal */

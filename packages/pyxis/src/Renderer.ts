@@ -364,9 +364,8 @@ export function unmount<TNode>(hNode: HNode<TNode>, top?: boolean): void;
 export function unmount<TNode>(hNode: HNode<TNode>, top: boolean = true) {
 	if (hNode.$isGroup) {
 		try {
-			// deliberately checking $canMount here - when a group is unmounting, even if it never
-			// reached a full `mounted = true` state, cleanup must run
-			if (hNode.$canMount && hNode.$onUnmount?.length) {
+			// regardless of mounted state, always run teardown callbacks when there are any
+			if (hNode.$onUnmount?.length) {
 				const previousLifecycle = setLifecycle(hNode);
 				try {
 					hNode.$onUnmount.forEach(invoke);
