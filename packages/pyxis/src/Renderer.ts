@@ -16,8 +16,8 @@ export interface Renderer<TNode, TElements extends ElementsType = ElementsType> 
 	 */
 	readonly $elements?: TElements;
 
-	mount: (root: TNode, jsx: JsxResult) => void;
-	unmount: () => void;
+	mount: (root: TNode, jsx: JsxResult) => MountingGroup<TNode>;
+	unmount: (group: MountingGroup<TNode>) => void;
 }
 
 /** Extracts the typings of intrinsic elements supported by the given Renderer. */
@@ -29,7 +29,10 @@ export type ElementsOf<TRenderer, TFallback extends ElementsType = {}> = (
 
 
 export interface MountingGroup<TNode> extends Lifecycle, Hierarchy<TNode> {
+	/** @internal */
 	readonly $isGroup: true;
+
+	/** @internal */
 	readonly $isNative?: never;
 
 	/** the Adapter rendering this MountingGroup */
@@ -49,13 +52,18 @@ export interface MountingGroup<TNode> extends Lifecycle, Hierarchy<TNode> {
 	$canMount?: boolean;
 }
 
-export interface NativeNode<TNode> extends Hierarchy<TNode> {
+interface NativeNode<TNode> extends Hierarchy<TNode> {
+	/** @internal */
 	readonly $isNative: true;
+
+	/** @internal */
 	readonly $isGroup?: never;
+
+	/** @internal */
 	readonly $nn: TNode;
 }
 
-export interface Hierarchy<TNode> {
+interface Hierarchy<TNode> {
 	/** @internal */
 	readonly $isGroup?: true;
 
@@ -116,21 +124,18 @@ export function createRenderer<TNode, TIntrinsicElements extends ElementsType>(
 	adapter: Adapter<TNode>,
 	extensions: ExtensionsType<TNode>,
 ): Renderer<TNode, TIntrinsicElements> {
-	const hGroup: Mutable<MountingGroup<TNode> & Renderer<TNode, TIntrinsicElements>> = {
+	const hRoot: Mutable<MountingGroup<TNode> & Renderer<TNode, TIntrinsicElements>> = {
 		adapter: adapter,
-		mounted: false,
+		mounted: true,
 		$isGroup: true,
 		$scheduler: createScheduler(adapter.tick),
 		$extensions: extensions,
 		$life: 1,
 		$ng: null!,
 		$ph: null,
-		unmount: () => unmount(hGroup),
+		unmount,
 		mount: (nRoot, jsx) => {
-			if (__DEV__) {
-				hGroup.$nn = nRoot;
-			}
-
+			const hGroup = fork(hRoot);
 			const isBatch = !!adapter.batch;
 			const nParent = isBatch ? adapter.batch!() : nRoot;
 			mount(jsx, hGroup, nParent, nRoot, null, isBatch);
@@ -138,11 +143,13 @@ export function createRenderer<TNode, TIntrinsicElements extends ElementsType>(
 				adapter.insert(nParent, nRoot, null);
 				flush(hGroup);
 			}
+
+			return hGroup;
 		},
 	};
 
-	hGroup.$ng = hGroup;
-	return hGroup;
+	hRoot.$ng = hRoot;
+	return hRoot;
 }
 
 /**
