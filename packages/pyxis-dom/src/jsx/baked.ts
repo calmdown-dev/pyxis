@@ -668,6 +668,8 @@ export interface HTMLButtonElementProps extends HTMLCommonProps {
 	readonly value?: MaybeAtom<string>;
 	readonly popoverTargetAction?: MaybeAtom<string>;
 	readonly popoverTargetElement?: MaybeAtom<Element | null>;
+	readonly commandFor?: MaybeAtom<string>;
+	readonly popoverTarget?: MaybeAtom<string>;
 }
 
 export interface HTMLCanvasElementProps extends HTMLCommonProps {
@@ -871,6 +873,7 @@ export interface HTMLInputElementProps extends HTMLCommonProps {
 	readonly value?: MaybeAtom<string>;
 	readonly popoverTargetAction?: MaybeAtom<string>;
 	readonly popoverTargetElement?: MaybeAtom<Element | null>;
+	readonly popoverTarget?: MaybeAtom<string>;
 	readonly align?: MaybeAtom<string>;
 	readonly autocomplete?: MaybeAtom<AutoFill>;
 	readonly size?: MaybeAtom<number>;
@@ -1099,30 +1102,15 @@ export interface HTMLTableSectionElementProps<N extends "tbody" | "tfoot" | "the
 	readonly [S_NODE_TYPE]?: HTMLTableSectionElement;
 	readonly [S_ELEM_NAME]?: N;
 	readonly children?: JsxChildren;
-	readonly align?: MaybeAtom<string>;
-	readonly ch?: MaybeAtom<string>;
-	readonly chOff?: MaybeAtom<string>;
-	readonly vAlign?: MaybeAtom<string>;
 }
 
 export interface HTMLTableCellElementProps<N extends "td" | "th"> extends HTMLCommonProps {
 	readonly [S_NODE_TYPE]?: HTMLTableCellElement;
 	readonly [S_ELEM_NAME]?: N;
 	readonly children?: JsxChildren;
-	readonly height?: MaybeAtom<string>;
-	readonly width?: MaybeAtom<string>;
-	readonly abbr?: MaybeAtom<string>;
-	readonly align?: MaybeAtom<string>;
-	readonly ch?: MaybeAtom<string>;
-	readonly chOff?: MaybeAtom<string>;
-	readonly vAlign?: MaybeAtom<string>;
-	readonly bgColor?: MaybeAtom<string>;
-	readonly axis?: MaybeAtom<string>;
 	readonly colSpan?: MaybeAtom<number>;
 	readonly headers?: MaybeAtom<string>;
-	readonly noWrap?: MaybeAtom<boolean>;
 	readonly rowSpan?: MaybeAtom<number>;
-	readonly scope?: MaybeAtom<string>;
 }
 
 export interface HTMLTemplateElementProps extends HTMLCommonProps {
@@ -1167,11 +1155,6 @@ export interface HTMLTableRowElementProps extends HTMLCommonProps {
 	readonly [S_NODE_TYPE]?: HTMLTableRowElement;
 	readonly [S_ELEM_NAME]?: "tr";
 	readonly children?: JsxChildren;
-	readonly align?: MaybeAtom<string>;
-	readonly ch?: MaybeAtom<string>;
-	readonly chOff?: MaybeAtom<string>;
-	readonly vAlign?: MaybeAtom<string>;
-	readonly bgColor?: MaybeAtom<string>;
 }
 
 export interface HTMLTrackElementProps extends HTMLCommonProps {

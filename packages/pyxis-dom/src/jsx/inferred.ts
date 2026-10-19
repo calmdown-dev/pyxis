@@ -245,7 +245,10 @@ export type HTMLBRElementProps = HTMLPropsNoChildren<HTMLBRElement, "br">;
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLButtonElementProps = HTMLProps<HTMLButtonElement, "button">;
+export type HTMLButtonElementProps = HTMLProps<HTMLButtonElement, "button", {
+	commandFor: string;
+	popoverTarget: string;
+}>;
 
 /**
  * @bake
@@ -368,6 +371,7 @@ export type HTMLImageElementProps = HTMLPropsNoChildren<HTMLImageElement, "img">
  * @extends HTMLCommonProps
  */
 export type HTMLInputElementProps = HTMLPropsNoChildren<HTMLInputElement, "input", {
+	popoverTarget: string;
 	selectionDirection: never;
 	selectionEnd: never;
 	selectionStart: never;
@@ -521,13 +525,31 @@ export type HTMLTableElementProps = HTMLProps<HTMLTableElement, "table">;
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLTableSectionElementProps<N extends "tbody" | "tfoot" | "thead"> = HTMLProps<HTMLTableSectionElement, N>;
+export type HTMLTableSectionElementProps<N extends "tbody" | "tfoot" | "thead"> = HTMLProps<HTMLTableSectionElement, N, {
+	align: never;
+	bgColor: never;
+	ch: never;
+	chOff: never;
+	vAlign: never;
+}>;
 
 /**
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLTableCellElementProps<N extends "td" | "th"> = HTMLProps<HTMLTableCellElement, N>;
+export type HTMLTableCellElementProps<N extends "td" | "th"> = HTMLProps<HTMLTableCellElement, N, {
+	abbr: never;
+	align: never;
+	axis: never;
+	bgColor: never;
+	ch: never;
+	chOff: never;
+	height: never;
+	noWrap: never;
+	scope: never;
+	vAlign: never;
+	width: never;
+}>;
 
 /**
  * @bake
@@ -561,7 +583,13 @@ export type HTMLTimeElementProps = HTMLProps<HTMLTimeElement, "time">;
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLTableRowElementProps = HTMLProps<HTMLTableRowElement, "tr">;
+export type HTMLTableRowElementProps = HTMLProps<HTMLTableRowElement, "tr", {
+	align: never;
+	bgColor: never;
+	ch: never;
+	chOff: never;
+	vAlign: never;
+}>;
 
 /**
  * @bake

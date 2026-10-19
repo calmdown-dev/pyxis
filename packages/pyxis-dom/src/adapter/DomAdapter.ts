@@ -3,7 +3,7 @@ import { peek, type Adapter, type JsxObject } from "@calmdown/pyxis/core";
 import type { IntrinsicElements } from "~/jsx/baked";
 import { PROP_MAP } from "~/jsx/mapping";
 
-import { batch, insert, marker, remove, text } from "./common";
+import { batch, insert, marker, remove, setAttr, text } from "./common";
 
 export const DomAdapter: Adapter<Node, IntrinsicElements> = {
 	element,
@@ -21,24 +21,54 @@ function element(tagName: string) {
 	return document.createElement(tagName);
 }
 
+const isString = (value: unknown) => typeof value === "string";
+const isNumber = (value: unknown) => typeof value === "number";
+const REAPPLIED_PROPS: { readonly [E in string]?: any[] } = {
+	INPUT: [
+		"value", isString,
+		"defaultValue", isString,
+	],
+	TEXTAREA: [
+		"value", isString,
+		"defaultValue", isString,
+	],
+	SELECT: [
+		"value", isString,
+		"selectedIndex", isNumber,
+	],
+};
+
 function finalize(node: Node, props: JsxObject) {
-	switch ((node as Element).tagName) {
-		case "INPUT":
-		case "SELECT": {
-			let prop;
-			if (typeof (prop = peek(props.value)) === "string") {
-				(node as HTMLInputElement | HTMLSelectElement).value = prop;
-			}
+	const pairs = REAPPLIED_PROPS[(node as Element).tagName];
+	if (pairs) {
+		const { length } = pairs;
+		let index = 0;
+		let prop;
+		let value;
 
-			if (typeof (prop = peek(props.selectedIndex)) === "number") {
-				(node as HTMLSelectElement).selectedIndex = prop;
+		do {
+			prop = pairs[index++];
+			value = peek(props[prop]);
+			if (pairs[index++](value)) {
+				(node as { [P in string]: any })[prop] = value;
 			}
-
-			break;
 		}
+		while (index < length);
 	}
 }
 
+const ATTRIBUTE_PROPS: { readonly [P in string]?: string } = {
+	commandFor: "commandfor",
+	popoverTarget: "popovertarget",
+};
+
 function set(node: Node, prop: string, value: any) {
-	(node as { [_ in string]: any })[(PROP_MAP as { [_ in string]?: string })[prop] ?? prop] = value;
+	let name;
+	if ((name = ATTRIBUTE_PROPS[prop])) {
+		setAttr(node, name, value);
+	}
+	else {
+		name = (PROP_MAP as { readonly [P in string]?: string })[prop] || prop;
+		(node as { [P in string]: any })[name] = value;
+	}
 }
