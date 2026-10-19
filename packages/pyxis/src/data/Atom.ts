@@ -7,10 +7,19 @@ import { reportAccess } from "./Effect";
 import { getLifecycle, type Lifecycle } from "./Lifecycle";
 import { scheduleTick } from "./Scheduler";
 
-/** Contract for Atoms where they need to be read. */
+/**
+ * Holds any single value, managing reactions to its changes. A bare Atom is read-only. Use the
+ * `read` and `peek` functions to access its value.
+ * @see {@link read}
+ * @see {@link peek}
+ * @see {@link WriteAtom}
+ */
 export interface Atom<out T> extends DependencyList {
 	/** Pyxis Atom type guard marker. */
 	readonly [S_ATOM]: true;
+
+	/** @internal */
+	readonly $lifecycle: Lifecycle;
 
 	/**
 	 * Gets the value of this Atom. Only use this method when the target is guaranteed to be an
@@ -24,12 +33,14 @@ export interface Atom<out T> extends DependencyList {
 }
 
 /**
- * Holds any single value, managing reactions to its changes. Use the `read`, `peek`, `write` or
- * `update` functions to access or manipulate its value.
+ * Holds any single value, managing reactions to its changes. Values of WriteAtom are mutable and
+ * can be freely changed at any time. Use the `read`, `peek`, `write` or `update` functions to
+ * access or manipulate its value.
  * @see {@link read}
  * @see {@link peek}
  * @see {@link write}
  * @see {@link update}
+ * @see {@link Atom}
  */
 export interface WriteAtom<T = unknown> extends Atom<T> {
 	/**
@@ -43,9 +54,6 @@ export interface WriteAtom<T = unknown> extends Atom<T> {
 	 * @see {@link update}
 	 */
 	set: (value: T) => boolean;
-
-	/** @internal */
-	readonly $lifecycle: Lifecycle;
 
 	/** @internal */
 	$tracksValue?: boolean;
@@ -90,7 +98,7 @@ export type MaybeWriteAtom<T> = WriteAtom<T> | T;
 export function atomOf<T>(): WriteAtom<T | undefined>;
 
 /**
- * Creates a mutable Atom initialized to the provided value.
+ * Creates a WriteAtom initialized to the provided value.
  *
  * If the provided initial value is itself an Atom, its value is automatically unwrapped.
  *
@@ -104,7 +112,6 @@ export function atomOf<T>(): WriteAtom<T | undefined>;
  */
 export function atomOf<T>(initialValue: MaybeAtom<T>, lifecycle?: Lifecycle, devId?: string): WriteAtom<T>;
 
-/*@__NO_SIDE_EFFECTS__*/
 export function atomOf<T>(initialValue?: MaybeAtom<T>, lifecycle = getLifecycle()) {
 	if (isAtom(initialValue)) {
 		initialValue = initialValue.get();
