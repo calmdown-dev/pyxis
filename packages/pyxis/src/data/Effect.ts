@@ -186,7 +186,7 @@ export function resolve<TEffect extends Effect<any>>(effect: TEffect): TEffect e
  * entry from the deps WeakMap.
  * @internal
  */
-function unlinkEffectDep(effect: Effect<any>, dep: EffectDependency) {
+export function unlinkEffectDep<TEffect extends Effect<any>>(effect: TEffect, dep: EffectDependency) {
 	if (dep.$ep) {
 		dep.$ep.$en = dep.$en;
 	}

@@ -3,7 +3,7 @@ import { S_ATOM } from "~/symbols";
 import { notifyAtomObservers, type Atom } from "./Atom";
 import { getLifecycle } from "./Lifecycle";
 import { unlink } from "./Dependency";
-import { resolve, type Effect, type EffectDependency } from "./Effect";
+import { resolve, unlinkEffectDep, type Effect, type EffectDependency } from "./Effect";
 import { scheduleTick } from "./Scheduler";
 
 /**
@@ -56,7 +56,7 @@ function scheduleReaction(this: EffectDependency, derivation: Derivation<any>, c
 		// than our current one (see the reportAccess function). We can unlink the dep and bail out.
 		derivation.$cycle > cycle
 	) {
-		unlink(this);
+		unlinkEffectDep(derivation, this);
 		return;
 	}
 
