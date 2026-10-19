@@ -113,8 +113,8 @@ export function Iterator<TNode, T>(
 		const cMax = changes.length;
 		const iMax = renderedItems.length + relSize;
 		const newItems = new Array<IteratorItemGroup<TNode>>(iMax);
-		const pending: PendingItem<T>[] = [];
-		let recycled: IteratorItemGroup<TNode>[] = [];
+		let pending: PendingItem<T>[] | null = null;
+		let recycled: IteratorItemGroup<TNode>[] | null = null;
 		let item: IteratorItemGroup<TNode>;
 		let inserted = 0;
 		let ci = 0; // change index
@@ -227,7 +227,7 @@ export function Iterator<TNode, T>(
 					}
 					else {
 						// we know enough items will be removed -> add a pending item
-						pending.push({
+						(pending ??= []).push({
 							$index: ni++,
 							$item: change.newItem,
 						});
@@ -238,7 +238,7 @@ export function Iterator<TNode, T>(
 				case LC_REMOVE:
 					item = renderedItems[oi++];
 					if (isProxy) {
-						recycled.push(item);
+						(recycled ??= []).push(item);
 					}
 					else {
 						unmount(item);
@@ -274,11 +274,11 @@ export function Iterator<TNode, T>(
 		}
 
 		// fulfill pending items with recycled ones
-		let pi = pending.length - 1; // pending items index
-		let ri = recycled.length - 1; // recycled items index
+		let pi = pending ? pending.length - 1 : -1; // pending items index
+		let ri = recycled ? recycled.length - 1 : -1; // recycled items index
 		while (pi >= 0) {
-			tmp = pending[pi--];
-			item = (newItems[tmp.$index] = recycled[ri--]);
+			tmp = pending![pi--];
+			item = (newItems[tmp.$index] = recycled![ri--]);
 			updateProxy(item.$data, tmp.$item, proxyKeys!);
 			track(item, hGroup, ref = newItems[tmp.$index + 1]);
 
@@ -295,7 +295,7 @@ export function Iterator<TNode, T>(
 
 		// unmount unused
 		while (ri >= 0) {
-			item = recycled[ri--];
+			item = recycled![ri--];
 			unmount(item);
 			untrack(item);
 		}

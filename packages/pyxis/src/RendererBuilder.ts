@@ -38,6 +38,7 @@ type PrefixedProps<TProps extends PropsType, TPrefix extends string> = {
 	);
 };
 
+/*@__NO_SIDE_EFFECTS__*/
 export function renderer<TNode, TElements extends ElementsType>(adapter: Adapter<TNode, TElements>) {
 	const extensions: ExtensionsType<TNode> = {};
 	const builder: RendererBuilder<TNode, TElements> = {

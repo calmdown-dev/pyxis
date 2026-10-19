@@ -18,7 +18,7 @@ type StylableElement = Element & ElementCSSInlineStyle;
  * <div css:background="red" />
  * ```
  */
-export const CssStyleExtension = extension<Node, CssStylePropMapping>((node, prop, value, group) => {
+export const CssStyleExtension = /*@__PURE__*/ extension<Node, CssStylePropMapping>((node, prop, value, group) => {
 	// extensions are only applicable to JSX elements which get rendered via DomAdapter::element
 	// despite the typings, node is actually guaranteed to be an Element here
 

@@ -67,6 +67,7 @@ export interface TickFn {
 }
 
 /** @internal */
+/*@__NO_SIDE_EFFECTS__*/
 export function createScheduler(tick: TickFn) {
 	const effects: UpdateCallback[] = [];
 	const ticks: UpdateCallback[] = [];

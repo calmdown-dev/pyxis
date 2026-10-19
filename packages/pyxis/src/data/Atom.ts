@@ -96,6 +96,7 @@ export function atomOf<T>(): Atom<T | undefined>;
  */
 export function atomOf<T>(initialValue: MaybeAtom<T>, lifecycle?: Lifecycle, devId?: string): Atom<T>;
 
+/*@__NO_SIDE_EFFECTS__*/
 export function atomOf<T>(initialValue?: MaybeAtom<T>, lifecycle = getLifecycle()) {
 	if (isAtom(initialValue)) {
 		return initialValue;

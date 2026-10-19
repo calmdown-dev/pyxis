@@ -20,7 +20,7 @@ type StylableElement = Element & ElementCSSInlineStyle;
  * <div var:max-size="5rem" /> // sets --max-size: 5rem;
  * ```
  */
-export const CssVariableExtension = extension<Node, CssVariablePropMapping>((node, prop, value, group) => {
+export const CssVariableExtension = /*@__PURE__*/ extension<Node, CssVariablePropMapping>((node, prop, value, group) => {
 	// extensions are only applicable to JSX elements which get rendered via DomAdapter::element
 	// despite the typings, node is actually guaranteed to be an Element here
 

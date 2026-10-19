@@ -19,7 +19,7 @@ type ElementWithDataset = Node & HTMLOrSVGElement;
  * <div data:testId="wrapper" />
  * ```
  */
-export const DatasetExtension = extension<Node, DatasetPropMapping>((node, prop, value, group) => {
+export const DatasetExtension = /*@__PURE__*/ extension<Node, DatasetPropMapping>((node, prop, value, group) => {
 	// extensions are only applicable to JSX elements which get rendered via DomAdapter::element
 	// despite the typings, node is actually guaranteed to be an Element here
 

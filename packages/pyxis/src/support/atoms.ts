@@ -49,6 +49,7 @@ export function writes<A>(
 	force?: boolean,
 ): () => void;
 
+/*@__NO_SIDE_EFFECTS__*/
 export function writes<T>(input: MaybeAtom<T>, value: T, force?: boolean) {
 	return isAtom(input)
 		? () => void write(input, value, force)
@@ -66,6 +67,7 @@ export function updates<A>(
 	force?: boolean,
 ): () => void;
 
+/*@__NO_SIDE_EFFECTS__*/
 export function updates<T>(input: MaybeAtom<T>, transform: (value: T) => T, force?: boolean) {
 	return isAtom(input)
 		? () => void update(input, transform, force)
@@ -193,9 +195,9 @@ export function assign(
 		lifecycle = keysOrLifecycle as (Lifecycle | undefined);
 	}
 
-	const visited: { [K in string]?: true } = Object.create(null);
 	if (keys) {
 		const { length } = keys;
+		const visited: { [K in string]?: true } = Object.create(null);
 		let index = 0;
 		let key;
 
@@ -223,12 +225,10 @@ export function assign(
 			else {
 				store[key] = atomOf(peek(data[key]), lifecycle ??= getLifecycle());
 			}
-
-			visited[key] = true;
 		}
 
 		for (key in data) {
-			if (!visited[key]) {
+			if (!Object.hasOwn(store, key)) {
 				store[key] = atomOf(peek(data[key]), lifecycle ??= getLifecycle());
 			}
 		}

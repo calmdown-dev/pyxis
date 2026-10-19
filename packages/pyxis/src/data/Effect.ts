@@ -29,6 +29,24 @@ export interface Effect<T> {
 	 */
 	$cycle: number;
 
+	/**
+	 * The head of the effect dependencies linked list.
+	 * @internal
+	 */
+	$eh?: Nil<EffectDependency>;
+
+	/**
+	 * The tail of the effect dependencies linked list.
+	 * @internal
+	 */
+	$et?: Nil<EffectDependency>;
+
+	/**
+	 * The number of previously unseen Atoms accessed during the current Effect run.
+	 * @internal
+	 */
+	$rc?: number;
+
 	/** @internal */
 	$deps?: WeakMap<DependencyList, EffectDependency>;
 
@@ -43,7 +61,17 @@ export interface Effect<T> {
 }
 
 /** @internal */
-export type EffectDependency = Dependency<[ effect: Effect<any>, cycle: number ]>;
+export interface EffectDependency extends Dependency<[ effect: Effect<any>, cycle: number ]> {
+	/**
+	 * Previous EffectDependency within an Effect's dependency list.
+	 */
+	$ep?: Nil<EffectDependency>;
+
+	/**
+	 * Next EffectDependency within an Effect's dependency list.
+	 */
+	$en?: Nil<EffectDependency>;
+}
 
 /**
  * Creates an Effect - a block of logic executed each time any of the Atoms accessed within it
@@ -69,7 +97,7 @@ function scheduleReaction(this: EffectDependency, effect: Effect<ReturnType<Effe
 	// lazy cleanup: when we get an update from a stale dependency, the reported cycle will be lower
 	// than our current one (see the reportAccess function). We can unlink and skip the effect.
 	if (effect.$cycle > cycle) {
-		unlink(this);
+		unlinkEffectDep(effect, this);
 		return;
 	}
 
@@ -123,8 +151,9 @@ function teardownEffect(effect: Effect<ReturnType<EffectBlock>>) {
  */
 export function resolve<TEffect extends Effect<any>>(effect: TEffect): TEffect extends Effect<infer T> ? T : unknown {
 	effect.$deps ??= new WeakMap();
-	effect.$cycle += 1;
+	effect.$rc = 0;
 
+	const cycle = (effect.$cycle += 1);
 	const previousEffect = runtime.e;
 	const previousLifecycle = setLifecycle(effect.$lifecycle);
 	runtime.e = effect;
@@ -135,7 +164,48 @@ export function resolve<TEffect extends Effect<any>>(effect: TEffect): TEffect e
 	finally {
 		setLifecycle(previousLifecycle);
 		runtime.e = previousEffect;
+
+		// on re-runs, check if new Atoms were accessed - if so, eagerly cleanup
+		if (cycle > 1 && effect.$rc > 0) {
+			let current = effect.$eh;
+			let next;
+			while (current) {
+				next = current.$en;
+				if (current.$a1! < cycle) {
+					unlinkEffectDep(effect, current);
+				}
+
+				current = next;
+			}
+		}
 	}
+}
+
+/**
+ * Unlinks an EffectDependency from the Effect, its Lifecycle and the target Atom. Also deletes its
+ * entry from the deps WeakMap.
+ * @internal
+ */
+function unlinkEffectDep(effect: Effect<any>, dep: EffectDependency) {
+	if (dep.$ep) {
+		dep.$ep.$en = dep.$en;
+	}
+	else if (effect.$eh === dep) {
+		effect.$eh = dep.$en;
+	}
+
+	if (dep.$en) {
+		dep.$en.$ep = dep.$ep;
+	}
+	else if (effect.$et === dep) {
+		effect.$et = dep.$ep;
+	}
+
+	dep.$ep = null;
+	dep.$en = null;
+
+	effect.$deps!.delete(dep.$target!);
+	unlink(dep);
 }
 
 /**
@@ -166,6 +236,18 @@ export function reportAccess(atom: DependencyList) {
 		});
 
 		currentEffect.$deps!.set(atom, dep);
+		currentEffect.$rc! += 1;
+
+		// add the dependency to the Effect's list
+		if (currentEffect.$et) {
+			currentEffect.$et.$en = dep;
+			dep.$ep = currentEffect.$et;
+		}
+		else {
+			currentEffect.$eh = dep;
+		}
+
+		currentEffect.$et = dep;
 	}
 }
 

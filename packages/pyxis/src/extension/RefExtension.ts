@@ -42,7 +42,7 @@ export interface RefFn<TNode> {
  * Ref callbacks are only called when the node mounts, they never receive `null`. Instead,
  * unmounted nodes may be handled by returning a teardown callback.
  */
-export const RefExtension = extension<any, RefPropMapping>((node, prop, value, group) => {
+export const RefExtension = /*@__PURE__*/ extension<any, RefPropMapping>((node, prop, value, group) => {
 	switch (prop) {
 		case "atom":
 			if (isAtom(value)) {

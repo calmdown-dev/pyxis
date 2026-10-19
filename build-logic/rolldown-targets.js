@@ -19,8 +19,45 @@ export const TypeScriptLibrary = defineTarget("TypeScriptLibrary", target => tar
 			.configure((_, context) => ({
 				dir: "./dist",
 				format: "es",
-				minify: inProduction(context),
 				sourcemap: true,
+				minify: "dce-only",
+				comments: {
+					annotation: true,
+					jsdoc: false,
+					legal: false,
+				},
+				// minify: {
+				// 	compress: {
+				// 		target: "esnext",
+				// 		dropConsole: inProduction(context),
+				// 		dropDebugger: inProduction(context),
+				// 		unused: true,
+				// 		keepNames: {
+				// 			function: false,
+				// 			class: false,
+				// 		},
+				// 		joinVars: true,
+				// 		sequences: true,
+				// 		treeshake: {
+				// 			annotations: true,
+				// 			propertyReadSideEffects: false,
+				// 			propertyWriteSideEffects: false,
+				// 			unknownGlobalSideEffects: false,
+				// 			invalidImportSideEffects: false,
+				// 		},
+				// 	},
+				// 	mangle: {
+				// 		toplevel: true,
+				// 		keepNames: {
+				// 			function: false,
+				// 			class: false,
+				// 		},
+				// 	},
+				// 	codegen: {
+				// 		removeWhitespace: true,
+				// 		legalComments: "none",
+				// 	},
+				// },
 			}))
 		)
 	)

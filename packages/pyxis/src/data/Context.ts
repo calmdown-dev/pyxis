@@ -30,6 +30,7 @@ export interface Context<T> {
  */
 export function contextOf<T>(devId?: string): Context<T>;
 
+/*@__NO_SIDE_EFFECTS__*/
 export function contextOf<T>(): Context<T> {
 	if (__DEV__) {
 		const devId = arguments[0];

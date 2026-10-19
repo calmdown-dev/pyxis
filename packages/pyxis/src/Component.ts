@@ -33,6 +33,7 @@ export function component<TPropsArg extends [ {} ]>(
 	devId?: string,
 ): (...args: [ props: JsxProps<TPropsArg[0]> ]) => JsxResult;
 
+/*@__NO_SIDE_EFFECTS__*/
 export function component(
 	block: ComponentBlock,
 ): ComponentHandler {

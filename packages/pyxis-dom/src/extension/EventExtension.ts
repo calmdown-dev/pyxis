@@ -59,7 +59,7 @@ export type ExtendedEvent<TEvent, TNode = EventTarget, TEventName = string> =
  * <div on:my-event={e => { console.log(e.myValue) }} />
  * ```
  */
-export const EventExtension = extension<Node, EventPropMapping>((node, prop, value) => {
+export const EventExtension = /*@__PURE__*/ extension<Node, EventPropMapping>((node, prop, value) => {
 	// see if listener options have been given
 	type ListenerAtom = MaybeReadAtom<Nil<(e: unknown) => unknown>>;
 	let listenerAtom = value as ListenerAtom;

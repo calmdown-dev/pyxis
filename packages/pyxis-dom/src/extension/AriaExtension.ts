@@ -15,7 +15,7 @@ interface AriaPropMapping extends ExtensionPropMapping<Node> {
  * <div aria:role="button" />
  * ```
  */
-export const AriaExtension = extension<Node, AriaPropMapping>((node, prop, value, group) => {
+export const AriaExtension = /*@__PURE__*/ extension<Node, AriaPropMapping>((node, prop, value, group) => {
 	// extensions are only applicable to JSX elements which get rendered via DomAdapter::element
 	// despite the typings, node is actually guaranteed to be an Element here
 

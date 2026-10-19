@@ -111,6 +111,7 @@ export type HNode<TNode> =
 
 
 /** @internal */
+/*@__NO_SIDE_EFFECTS__*/
 export function createRenderer<TNode, TIntrinsicElements extends ElementsType>(
 	adapter: Adapter<TNode>,
 	extensions: ExtensionsType<TNode>,

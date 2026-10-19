@@ -221,7 +221,7 @@ export function listOf<T>(source?: Nil<Iterable<T>>, lifecycle = getLifecycle())
  * (Myers) is a relatively large chunk of code which would otherwise always get bundled into
  * applications. This way, tools like Terser can easily eliminate the extra code when unused.
  */
-export function sync<T>(list: List<T>, source: Iterable<T>, eq: Equals<T> = defaultEquals) {
+export function sync<T>(list: List<T>, source: Iterable<T>, eq: Equals<T> = Object.is) {
 	const oldItems = list.$items;
 	const newItems = Array.from(source);
 	list.$items = newItems;
@@ -388,10 +388,6 @@ function removeLast<T>(this: List<T>) {
 	return length > 0 ? this.removeAt(length - 1) : undefined;
 }
 
-
-function defaultEquals<T>(item0: T, item1: T) {
-	return Object.is(item0, item1);
-}
 
 function assertIndex(list: List<any>, index: number) {
 	if (index >= list.$items.length || index < 0) {

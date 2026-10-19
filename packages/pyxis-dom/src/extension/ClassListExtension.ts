@@ -24,7 +24,7 @@ interface ClassListPropMapping extends ExtensionPropMapping<Node> {
  * This extension can be used in tandem with the `@calmdown/rollup-plugin-pyxis` plugin to
  * automatically rewrite class names when using CSS modules.
  */
-export const ClassListExtension = extension<Node, ClassListPropMapping>((node, prop, value, group) => {
+export const ClassListExtension = /*@__PURE__*/ extension<Node, ClassListPropMapping>((node, prop, value, group) => {
 	// extensions are only applicable to JSX elements which get rendered via DomAdapter::element
 	// despite the typings, node is actually guaranteed to be an Element here
 

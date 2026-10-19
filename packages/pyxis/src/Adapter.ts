@@ -124,6 +124,7 @@ export interface ExtensionPropMapping<TNode> {
 }
 
 /** Creates an extension with a shared-runtime ID independent of its registered JSX prefix. */
+/*@__NO_SIDE_EFFECTS__*/
 export function extension<TNode, TPropMapping extends ExtensionPropMapping<TNode>>(
 	propSetter: Extension<TNode>["set"],
 ): Extension<TNode, TPropMapping> {
