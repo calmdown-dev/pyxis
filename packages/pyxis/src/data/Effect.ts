@@ -101,10 +101,17 @@ function runEffect(effect: Effect<ReturnType<EffectBlock>>) {
 }
 
 function teardownEffect(effect: Effect<ReturnType<EffectBlock>>) {
+	const fn = effect.$dispose;
+	if (!fn) {
+		return;
+	}
+
+	const previousLifecycle = setLifecycle(effect.$lifecycle);
 	try {
-		effect.$dispose?.();
+		fn();
 	}
 	finally {
+		setLifecycle(previousLifecycle);
 		effect.$dispose = null;
 	}
 }

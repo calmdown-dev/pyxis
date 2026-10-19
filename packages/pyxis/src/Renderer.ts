@@ -135,7 +135,7 @@ export function createRenderer<TNode, TIntrinsicElements extends ElementsType>(
 			mount(jsx, hGroup, nParent, nRoot, null, isBatch);
 			if (isBatch) {
 				adapter.insert(nParent, nRoot, null);
-				flushMounted(hGroup);
+				flush(hGroup);
 			}
 		},
 	};
@@ -276,7 +276,7 @@ export function mount<TNode>(
 
 	hGroup.$canMount = true;
 	if (!isBatch) {
-		flushMounted(hGroup);
+		flush(hGroup);
 	}
 }
 
@@ -288,7 +288,7 @@ export function mount<TNode>(
  * flush manually when rendering into a batch. Batch owners are responsible for calling this
  * function once the batch has been committed.
  */
-export function flushMounted<TNode>(hGroup: MountingGroup<TNode>) {
+export function flush<TNode>(hGroup: MountingGroup<TNode>) {
 	// only dispatch mount notifications when the parent group is already mounted, or if this is the
 	// top-level group - otherwise, mount notification will arrive once the parent mounts
 	if (hGroup.$ph?.$ng.mounted !== false) {

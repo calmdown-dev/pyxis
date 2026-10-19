@@ -5,7 +5,7 @@ import type { ReadonlyList } from "~/data/List";
 import { LC_CHANGE, LC_CLEAR, LC_INSERT, LC_REMOVE } from "~/data/ListDelta";
 import { createProxy, updateProxy, type Proxied } from "~/data/ProxyAtom";
 import type { DataTemplate, JsxObject, JsxProps, JsxResult } from "~/Component";
-import { fork, insert, mount, track, unmount, untrack, type MountingGroup, type HNode, flushMounted } from "~/Renderer";
+import { flush, fork, insert, mount, track, unmount, untrack, type MountingGroup, type HNode } from "~/Renderer";
 
 export interface RemountIteratorProps<T> {
 	source: ReadonlyList<T>;
@@ -94,7 +94,7 @@ export function Iterator<TNode, T>(
 		// commit batch if it's local
 		if (isLocalBatch) {
 			adapter.insert(nBatchParent, nInitParent, nInitBefore);
-			flushMounted(hGroup);
+			flush(hGroup);
 		}
 	};
 
@@ -220,7 +220,7 @@ export function Iterator<TNode, T>(
 							tmp.index !== ni			// next insert is not consecutive
 						)) {
 							adapter.insert(nBatchParent, nRealParent, ref);
-							flushMounted(hGroup);
+							flush(hGroup);
 							nBatchParent = nRealParent;
 							isLocalBatch = false;
 						}

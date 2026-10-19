@@ -124,13 +124,6 @@ export function host<T>(context: Context<T>, defaultValue?: T, lifecycle = getLi
 		};
 	}
 
-	if (__DEV__) {
-		const devId = arguments[3];
-		runtime.hmrState!.restore(lifecycle, devId, value => {
-			defaultValue = value;
-		});
-	}
-
 	const localAtom: ContextAtom<T> = {
 		[S_ATOM]: true,
 		$lifecycle: lifecycle,
@@ -139,8 +132,17 @@ export function host<T>(context: Context<T>, defaultValue?: T, lifecycle = getLi
 		set: setHostedValue,
 	};
 
+	let isUndefined = defaultValue === undefined;
+	if (__DEV__) {
+		const devId = arguments[3];
+		runtime.hmrState!.restore(lifecycle, devId, value => {
+			defaultValue = value;
+			isUndefined = false;
+		});
+	}
+
 	let upstream;
-	if (defaultValue === undefined && (upstream = lookupUpstream(context))) {
+	if (isUndefined && (upstream = lookupUpstream(context))) {
 		// start in forwarding mode
 		localAtom.get = getUpstreamValue;
 		localAtom.$upstream = upstream;
@@ -154,7 +156,7 @@ export function host<T>(context: Context<T>, defaultValue?: T, lifecycle = getLi
 		localAtom.$tracksValue = true;
 		localAtom.$lastValue = defaultValue;
 		if (__DEV__) {
-			localAtom.$defined = defaultValue !== undefined;
+			localAtom.$defined = !isUndefined;
 		}
 	}
 

@@ -31,9 +31,9 @@ export interface ReadonlyList<T> extends Iterable<T>, DependencyList {
 	dirty(): boolean;
 
 	/**
-	 * When called within an effect observing this List, gets a ListDelta object describing all
-	 * changes made to this List within the current update. May return `null` when no changes were
-	 * made during this update.
+	 * When called within an effect observing this List, gets a ListDelta object describing the
+	 * latest changes. May return `null` when no changes were made to this List and the effect ran
+	 * for other reasons.
 	 *
 	 * Reactive in effects and derivations.
 	 */
@@ -250,7 +250,15 @@ function get(this: List<any>, index: number) {
 }
 
 function dirty(this: List<any>) {
-	return !!(this.$pendingDelta || this.$ct);
+	return !!(
+		// currently notifying observers
+		this.$ct || (
+			// a delta is pending, and the notification is scheduled within an active lifecycle
+			this.$pendingDelta &&
+			this.$notify &&
+			this.$notify.$life === this.$notify.$lifecycle?.$scheduler.$epoch
+		)
+	);
 }
 
 function delta<T>(this: List<T>) {
