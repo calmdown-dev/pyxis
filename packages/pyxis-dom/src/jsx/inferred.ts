@@ -1,5 +1,5 @@
 /** @preserve */
-import type { JsxChildren, MaybeReadAtom, S_ELEM_NAME, S_NODE_TYPE } from "@calmdown/pyxis/core";
+import type { JsxChildren, MaybeAtom, S_ELEM_NAME, S_NODE_TYPE } from "@calmdown/pyxis/core";
 
 // pyxis imports, not @preserve'd
 import type { Nil } from "@calmdown/pyxis/core";
@@ -32,7 +32,7 @@ type OmitFunctions<T> = Pick<T, { [K in keyof T] -?: T[K] extends Nil<(...args: 
 type ApplyOverrides<T, O> = Omit<T, keyof O> & Pick<O, { [K in keyof O]: O[K] extends never ? never : K }[keyof O]>;
 
 /** wraps each property type in MaybeReadAtom to allow the use of atoms on properties of intrinsic elements */
-type WrapProps<T> = { [K in keyof T]: MaybeReadAtom<T[K]> };
+type WrapProps<T> = { [K in keyof T]: MaybeAtom<T[K]> };
 
 /** renames props according to the given mapping */
 type MapProps<T, M extends { [K in string]: string }> = {

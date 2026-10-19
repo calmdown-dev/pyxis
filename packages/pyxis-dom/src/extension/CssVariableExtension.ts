@@ -1,8 +1,8 @@
-import { bind, extension, isAtom, type ExtensionPropMapping, type MaybeReadAtom, type Nil } from "@calmdown/pyxis/core";
+import { bind, extension, isAtom, type ExtensionPropMapping, type MaybeAtom, type Nil } from "@calmdown/pyxis/core";
 
 interface CssVariablePropMapping extends ExtensionPropMapping<Node> {
 	extension: {
-		[TVarName in string]?: MaybeReadAtom<Nil<string | number>>;
+		[TVarName in string]?: MaybeAtom<Nil<string | number>>;
 	};
 }
 

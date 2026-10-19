@@ -1,8 +1,8 @@
-import { bind, extension, isAtom, type ExtensionPropMapping, type MaybeReadAtom } from "@calmdown/pyxis/core";
+import { bind, extension, isAtom, type ExtensionPropMapping, type MaybeAtom } from "@calmdown/pyxis/core";
 
 interface ClassListPropMapping extends ExtensionPropMapping<Node> {
 	extension: {
-		[TClassName in string]?: MaybeReadAtom<boolean>;
+		[TClassName in string]?: MaybeAtom<boolean>;
 	};
 }
 

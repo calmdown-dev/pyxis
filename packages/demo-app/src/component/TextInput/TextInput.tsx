@@ -1,9 +1,9 @@
-import { component, write, type MaybeAtom } from "@calmdown/pyxis";
+import { component, write, type MaybeWriteAtom } from "@calmdown/pyxis";
 
 import type { ExtendedProps } from "~/types";
 
 export type TextInputProps = ExtendedProps<"input", {
-	value?: MaybeAtom<string>;
+	value?: MaybeWriteAtom<string>;
 	type?: never;
 	masked?: boolean;
 }>;

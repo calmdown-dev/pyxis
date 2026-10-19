@@ -3,7 +3,7 @@ export { Iterator, type ProxyIteratorProps, type RemountIteratorProps } from "~/
 export { Native } from "~/component/Native";
 export { Show, type ShowDataProps, type ShowProps, type ShowProxyDataProps } from "~/component/Show";
 
-export { atomOf, isAtom, peek, read, update, write, type Atom, type MaybeAtom, type MaybeReadAtom, type ReadAtom } from "~/data/Atom";
+export { atomOf, isAtom, peek, read, update, write, type Atom, type MaybeAtom, type MaybeWriteAtom, type WriteAtom } from "~/data/Atom";
 export { contextOf, contextual, host, type Context } from "~/data/Context";
 export { derived, type Derivation } from "~/data/Derivation";
 export { bind } from "~/data/Dependency";

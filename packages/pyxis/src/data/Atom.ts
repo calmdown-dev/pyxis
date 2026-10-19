@@ -8,7 +8,7 @@ import { getLifecycle, type Lifecycle } from "./Lifecycle";
 import { scheduleTick } from "./Scheduler";
 
 /** Contract for Atoms where they need to be read. */
-export interface ReadAtom<out T> extends DependencyList {
+export interface Atom<out T> extends DependencyList {
 	/** Pyxis Atom type guard marker. */
 	readonly [S_ATOM]: true;
 
@@ -31,7 +31,7 @@ export interface ReadAtom<out T> extends DependencyList {
  * @see {@link write}
  * @see {@link update}
  */
-export interface Atom<T = unknown> extends ReadAtom<T> {
+export interface WriteAtom<T = unknown> extends Atom<T> {
 	/**
 	 * Sets the value of this Atom. Does nothing if this Atom is readonly. This method does *not*
 	 * emit any change notification to the Atom's observers; Using it recklessly can leave observers
@@ -60,12 +60,21 @@ export interface Atom<T = unknown> extends ReadAtom<T> {
 	$devId?: string;
 }
 
-interface DirectAtom<T> extends Atom<any> {
+interface DirectAtom<T> extends WriteAtom<any> {
 	$value: T;
 }
 
 /**
- * Union of the given type or an Atom of that type. Use the `read`, `peek`, `write`, `update` or
+ * Union of the given type or an Atom of that type. Use the `read`, `peek` or `isAtom` functions to
+ * interact with such values.
+ * @see {@link read}
+ * @see {@link peek}
+ * @see {@link isAtom}
+ */
+export type MaybeAtom<T> = Atom<T> | T;
+
+/**
+ * Union of the given type or a WriteAtom of that type. Use the `read`, `peek`, `write`, `update` or
  * `isAtom` functions to interact with such values.
  * @see {@link read}
  * @see {@link peek}
@@ -73,33 +82,32 @@ interface DirectAtom<T> extends Atom<any> {
  * @see {@link update}
  * @see {@link isAtom}
  */
-export type MaybeAtom<T> = Atom<T> | T;
+export type MaybeWriteAtom<T> = WriteAtom<T> | T;
 
 /**
- * Union of the given type or the ReadAtom contract of that type. Use the `read`, `peek` or `isAtom`
- * functions to interact with such values.
- * @see {@link read}
- * @see {@link peek}
- * @see {@link isAtom}
+ * Creates an empty WriteAtom; i.e. value set to `undefined`.
  */
-export type MaybeReadAtom<T> = ReadAtom<T> | T;
+export function atomOf<T>(): WriteAtom<T | undefined>;
 
 /**
- * Creates an empty Atom; i.e. value set to `undefined`.
+ * Creates a mutable Atom initialized to the provided value.
+ *
+ * If the provided initial value is itself an Atom, its value is automatically unwrapped.
+ *
+ * If you're intentionally creating an Atom intended to hold other Atoms, create an empty Atom first
+ * and write it separately, e.g.:
+ *
+ * ```ts
+ * const atom = atomOf<Atom<number>>();
+ * write(atom, otherAtom);
+ * ```
  */
-export function atomOf<T>(): Atom<T | undefined>;
-
-/**
- * Creates an Atom initialized to the provided value. If the provided value is already an Atom, it
- * is returned as-is.
- * @see {@link isAtom}
- */
-export function atomOf<T>(initialValue: MaybeAtom<T>, lifecycle?: Lifecycle, devId?: string): Atom<T>;
+export function atomOf<T>(initialValue: MaybeAtom<T>, lifecycle?: Lifecycle, devId?: string): WriteAtom<T>;
 
 /*@__NO_SIDE_EFFECTS__*/
 export function atomOf<T>(initialValue?: MaybeAtom<T>, lifecycle = getLifecycle()) {
 	if (isAtom(initialValue)) {
-		return initialValue;
+		initialValue = initialValue.get();
 	}
 
 	const atom: DirectAtom<T> = {
@@ -143,10 +151,10 @@ function setValue<T>(this: DirectAtom<T>, value: T) {
 /**
  * Atom type guard, checks if the provided input is an Atom.
  */
+export function isAtom<T = unknown>(input: Nil<MaybeWriteAtom<T>>): input is WriteAtom<T>;
 export function isAtom<T = unknown>(input: Nil<MaybeAtom<T>>): input is Atom<T>;
-export function isAtom<T = unknown>(input: Nil<MaybeReadAtom<T>>): input is ReadAtom<T>;
-export function isAtom<T = unknown>(input: unknown): input is Atom<T>;
-export function isAtom(input: unknown): input is Atom<any> {
+export function isAtom<T = unknown>(input: unknown): input is WriteAtom<T>;
+export function isAtom(input: unknown): input is WriteAtom<any> {
 	return (
 		input !== null &&
 		typeof input === "object" &&
@@ -162,8 +170,8 @@ export function isAtom(input: unknown): input is Atom<any> {
  * @see {@link write}
  * @see {@link update}
  */
-export function read<A>(input: A): A extends MaybeReadAtom<infer T> ? T : never;
-export function read<T>(input: MaybeReadAtom<T>) {
+export function read<A>(input: A): A extends MaybeAtom<infer T> ? T : never;
+export function read<T>(input: MaybeAtom<T>) {
 	if (isAtom<T>(input)) {
 		reportAccess(input);
 		return input.get();
@@ -180,8 +188,8 @@ export function read<T>(input: MaybeReadAtom<T>) {
  * @see {@link write}
  * @see {@link update}
  */
-export function peek<A>(input: A): A extends MaybeReadAtom<infer T> ? T : never;
-export function peek<T>(input: MaybeReadAtom<T>): T {
+export function peek<A>(input: A): A extends MaybeAtom<infer T> ? T : never;
+export function peek<T>(input: MaybeAtom<T>): T {
 	if (isAtom<T>(input)) {
 		return input.get();
 	}
@@ -204,11 +212,11 @@ export function peek<T>(input: MaybeReadAtom<T>): T {
  */
 export function write<A>(
 	input: A,
-	value: A extends Atom<infer T> ? T : never,
+	value: A extends WriteAtom<infer T> ? T : never,
 	force?: boolean,
-): A extends MaybeAtom<infer T> ? T : never;
+): A extends MaybeWriteAtom<infer T> ? T : never;
 
-export function write<T>(input: MaybeAtom<T>, value: T, force = false): T {
+export function write<T>(input: MaybeWriteAtom<T>, value: T, force = false): T {
 	if (!isAtom(input)) {
 		return input;
 	}
@@ -244,11 +252,11 @@ export function write<T>(input: MaybeAtom<T>, value: T, force = false): T {
  */
 export function update<A>(
 	input: A,
-	transform: A extends Atom<infer T> ? (value: T) => T : never,
+	transform: A extends WriteAtom<infer T> ? (value: T) => T : never,
 	force?: boolean,
-): A extends MaybeAtom<infer T> ? T : never;
+): A extends MaybeWriteAtom<infer T> ? T : never;
 
-export function update<T>(input: MaybeAtom<T>, transform: (value: T) => T, force = false): T {
+export function update<T>(input: MaybeWriteAtom<T>, transform: (value: T) => T, force = false): T {
 	if (!isAtom(input)) {
 		return input;
 	}
@@ -274,7 +282,7 @@ export function update<T>(input: MaybeAtom<T>, transform: (value: T) => T, force
  * Notifies the dependencies of an Atom.
  * @internal
  */
-export function notifyAtomObservers<T>(input: Atom<T>) {
+export function notifyAtomObservers<T>(input: WriteAtom<T>) {
 	// optimization: when Atom changes multiple times within a single update and ends up with the
 	// same value it started with, the notification can be skipped, unless forced - this flag is set
 	// either by users via the `write` or `update` functions, or by the framework when a new

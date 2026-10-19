@@ -1,8 +1,8 @@
-import { bind, extension, isAtom, type ExtensionPropMapping, type MaybeReadAtom } from "@calmdown/pyxis/core";
+import { bind, extension, isAtom, type ExtensionPropMapping, type MaybeAtom } from "@calmdown/pyxis/core";
 
 interface DatasetPropMapping extends ExtensionPropMapping<Node> {
 	extension: {
-		[TDataKey in string]?: MaybeReadAtom<string | undefined>;
+		[TDataKey in string]?: MaybeAtom<string | undefined>;
 	};
 }
 

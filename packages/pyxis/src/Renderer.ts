@@ -1,4 +1,4 @@
-import { isAtom, type ReadAtom } from "~/data/Atom";
+import { isAtom, type Atom } from "~/data/Atom";
 import { bind, teardown } from "~/data/Dependency";
 import { setLifecycle, type Lifecycle } from "~/data/Lifecycle";
 import { createScheduler } from "~/data/Scheduler";
@@ -159,9 +159,9 @@ export function createRenderer<TNode, TIntrinsicElements extends ElementsType>(
 }
 
 /**
- * Unmounts a MountingGroup and removes it from the hierarchy. Resilient against errors thrown from
- * user code (e.g. custom unmount callbacks). Also clears the `$ph` ref to its original parent node.
- * Destroyed groups cannot be reused.
+ * Unmounts a MountingGroup and removes it from the hierarchy. The removal is guaranteed even if
+ * user code throws during unmount. Also clears the `$ph` ref to its original parent node. Destroyed
+ * groups cannot be reused.
  * @internal
  */
 function destroy<TNode>(hGroup: MountingGroup<TNode>) {
@@ -549,7 +549,7 @@ function mountStaticText<TNode>(
 }
 
 function mountDynamicText<TNode>(
-	atom: ReadAtom<Nil<string | number | bigint | boolean>>,
+	atom: Atom<Nil<string | number | bigint | boolean>>,
 	hParent: HNode<TNode>,
 	nUsedParent: TNode,
 	nBefore: TNode | null,

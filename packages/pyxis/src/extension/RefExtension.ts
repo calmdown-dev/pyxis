@@ -1,4 +1,4 @@
-import { isAtom, write, type Atom } from "~/data/Atom";
+import { isAtom, write, type WriteAtom } from "~/data/Atom";
 import { onMounted, onUnmounted } from "~/data/Lifecycle";
 import { extension, type ExtensionPropMapping } from "~/Adapter";
 import type { MountingGroup } from "~/Renderer";
@@ -8,7 +8,7 @@ interface RefPropMapping extends ExtensionPropMapping<any> {
 }
 
 interface RefProps<TNode> {
-	readonly atom?: Atom<TNode | null>;
+	readonly atom?: WriteAtom<TNode | null>;
 	readonly call?: RefFn<TNode>;
 }
 

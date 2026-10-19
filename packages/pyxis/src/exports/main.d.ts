@@ -56,7 +56,7 @@ export {
 	type ListItemInserted,
 	type ListItemRemoved,
 	type MaybeAtom,
-	type MaybeReadAtom,
+	type MaybeWriteAtom,
 	type MountBlock,
 	type Nil,
 	type PropsOf,
@@ -64,7 +64,6 @@ export {
 	type Proxied,
 	type ProxyAtom,
 	type ProxyIteratorProps,
-	type ReadAtom,
 	type ReadonlyList,
 	type RendererBuilder,
 	type RefFn,
@@ -75,4 +74,5 @@ export {
 	type UnmountBlock,
 	type ValueType,
 	type WithChildren,
+	type WriteAtom,
 } from "@calmdown/pyxis/core";

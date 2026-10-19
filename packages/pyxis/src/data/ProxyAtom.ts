@@ -2,26 +2,26 @@ import { UNIQUE_VALUE } from "~/support/common";
 import type { Nil } from "~/support/types";
 import { S_ATOM } from "~/symbols";
 
-import { isAtom, notifyAtomObservers, type Atom, type MaybeAtom } from "./Atom";
+import { isAtom, notifyAtomObservers, type WriteAtom, type MaybeWriteAtom } from "./Atom";
 import { link, unlink, type Dependency } from "./Dependency";
 import { getLifecycle, type Lifecycle } from "./Lifecycle";
 import { scheduleTick } from "./Scheduler";
 
-export interface ProxyAtom<T> extends Atom<T> {
+export interface ProxyAtom<T> extends WriteAtom<T> {
 	/**
 	 * Binds this ProxyAtom to a new value. If it is an Atom, the proxy will mirror it, otherwise it
 	 * will be a read-only atom with a static value until rebound.
 	 */
-	use(value: MaybeAtom<T>): void;
+	use(value: MaybeWriteAtom<T>): void;
 
 	/** @internal */
-	use(value: MaybeAtom<T>, isInit?: boolean): void;
+	use(value: MaybeWriteAtom<T>, isInit?: boolean): void;
 
 	/** @internal */
 	$dep?: Dependency;
 
 	/** @internal */
-	$upstream?: Nil<Atom<T>>;
+	$upstream?: Nil<WriteAtom<T>>;
 
 	/** @internal */
 	$value?: Nil<T>;
@@ -31,7 +31,7 @@ export interface ProxyAtom<T> extends Atom<T> {
  * Creates a ProxyAtom bound to the provided initial value. If it is an Atom, the proxy will mirror
  * it, otherwise it will be a read-only atom with a static value until rebound via its `use` method.
  */
-export function proxyOf<T>(initialValue: MaybeAtom<T>, lifecycle = getLifecycle()): ProxyAtom<T> {
+export function proxyOf<T>(initialValue: MaybeWriteAtom<T>, lifecycle = getLifecycle()): ProxyAtom<T> {
 	// `set` is assigned by the use call below
 	const self: Omit<ProxyAtom<T>, "get" | "set"> = {
 		[S_ATOM]: true,
@@ -43,7 +43,7 @@ export function proxyOf<T>(initialValue: MaybeAtom<T>, lifecycle = getLifecycle(
 	return self as ProxyAtom<T>;
 }
 
-function use<T>(this: ProxyAtom<T>, value: MaybeAtom<T>, isInit: boolean = false) {
+function use<T>(this: ProxyAtom<T>, value: MaybeWriteAtom<T>, isInit: boolean = false) {
 	const upstream = this.$upstream;
 	if (upstream && upstream === value) {
 		// value is an Atom and we're already forwarding it, nothing to do
@@ -144,7 +144,7 @@ export type ProxyObject =
 
 export type Proxied<T, P extends readonly (keyof T)[]> =
 	& { readonly proxied: T }
-	& { readonly [K in P[number]]: ProxyAtom<T[K] extends MaybeAtom<infer V> ? V : T[K]> };
+	& { readonly [K in P[number]]: ProxyAtom<T[K] extends MaybeWriteAtom<infer V> ? V : T[K]> };
 
 /**
  * Copies select keys from a data object into a new object where values are all wrapped in

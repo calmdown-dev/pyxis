@@ -4,7 +4,7 @@ import { __DEV__assertIsDirectComponentCode } from "~/Component";
 import { runtime } from "~/Runtime";
 import { S_ATOM } from "~/symbols";
 
-import { notifyAtomObservers, type Atom, type ReadAtom } from "./Atom";
+import { notifyAtomObservers, type WriteAtom, type Atom } from "./Atom";
 import { link, unlink, type Dependency } from "./Dependency";
 import { getLifecycle, type Lifecycle } from "./Lifecycle";
 
@@ -51,9 +51,9 @@ export interface ContextContainer {
 }
 
 /** @internal */
-interface ContextAtom<T> extends Atom<T> {
+interface ContextAtom<T> extends WriteAtom<T> {
 	$dep?: Nil<Dependency>;
-	$upstream?: Nil<Atom<T>>;
+	$upstream?: Nil<WriteAtom<T>>;
 	$value?: T;
 
 	/** tracks whether value has been defined, only used in dev builds */
@@ -110,7 +110,7 @@ export function host<C>(
 	defaultValue?: C extends Context<infer T> ? T : never,
 	lifecycle?: Lifecycle,
 	devId?: string,
-): C extends Context<infer T> ? Atom<T> : never;
+): C extends Context<infer T> ? WriteAtom<T> : never;
 
 export function host<T>(context: Context<T>, defaultValue?: T, lifecycle = getLifecycle()) {
 	if (__DEV__) {
@@ -177,7 +177,7 @@ export function host<T>(context: Context<T>, defaultValue?: T, lifecycle = getLi
  * Component hosting the specified Context. This call fails if no ancestor is hosting the Context.
  * @see {@link host}
  */
-export function contextual<T>(context: Context<T>): ReadAtom<T> {
+export function contextual<T>(context: Context<T>): Atom<T> {
 	if (__DEV__) {
 		__DEV__assertIsDirectComponentCode("contextual");
 	}

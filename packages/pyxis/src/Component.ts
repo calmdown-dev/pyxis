@@ -1,4 +1,4 @@
-import type { MaybeReadAtom } from "~/data/Atom";
+import type { MaybeAtom } from "~/data/Atom";
 import { getContextContainer, setContextContainer } from "~/data/Context";
 import { onUnmounted } from "~/data/Lifecycle";
 import type { Nil, PropsType } from "~/support/types";
@@ -155,7 +155,7 @@ export type JsxChildrenProp<T> = T extends readonly [ any, any, ...any[] ]
  * Primitive values (or Atoms of such primitives) accepted as text children. Nil and boolean values
  * do not render any text.
  */
-export type JsxText = MaybeReadAtom<Nil<string | number | boolean | bigint>>;
+export type JsxText = MaybeAtom<Nil<string | number | boolean | bigint>>;
 
 /**
  * Describes the objects returned by JSX factories.
