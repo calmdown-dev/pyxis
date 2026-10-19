@@ -367,7 +367,11 @@ export type HTMLImageElementProps = HTMLPropsNoChildren<HTMLImageElement, "img">
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLInputElementProps = HTMLPropsNoChildren<HTMLInputElement, "input">;
+export type HTMLInputElementProps = HTMLPropsNoChildren<HTMLInputElement, "input", {
+	selectionDirection: never;
+	selectionEnd: never;
+	selectionStart: never;
+}>;
 
 /**
  * @bake
@@ -535,7 +539,11 @@ export type HTMLTemplateElementProps = HTMLProps<HTMLTemplateElement, "template"
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLTextAreaElementProps = HTMLProps<HTMLTextAreaElement, "textarea">;
+export type HTMLTextAreaElementProps = HTMLPropsNoChildren<HTMLTextAreaElement, "textarea", {
+	selectionDirection: never;
+	selectionEnd: never;
+	selectionStart: never;
+}>;
 
 /**
  * @bake

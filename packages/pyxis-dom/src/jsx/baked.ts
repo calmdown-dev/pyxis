@@ -892,9 +892,6 @@ export interface HTMLInputElementProps extends HTMLCommonProps {
 	readonly placeholder?: MaybeAtom<string>;
 	readonly readOnly?: MaybeAtom<boolean>;
 	readonly required?: MaybeAtom<boolean>;
-	readonly selectionDirection?: MaybeAtom<SelectionDirection | null>;
-	readonly selectionEnd?: MaybeAtom<number | null>;
-	readonly selectionStart?: MaybeAtom<number | null>;
 	readonly step?: MaybeAtom<string>;
 	readonly valueAsDate?: MaybeAtom<Date | null>;
 	readonly valueAsNumber?: MaybeAtom<number>;
@@ -1142,7 +1139,7 @@ export interface HTMLTemplateElementProps extends HTMLCommonProps {
 export interface HTMLTextAreaElementProps extends HTMLCommonProps {
 	readonly [S_NODE_TYPE]?: HTMLTextAreaElement;
 	readonly [S_ELEM_NAME]?: "textarea";
-	readonly children?: JsxChildren;
+	readonly children?: never;
 	readonly name?: MaybeAtom<string>;
 	readonly disabled?: MaybeAtom<boolean>;
 	readonly value?: MaybeAtom<string>;
@@ -1154,9 +1151,6 @@ export interface HTMLTextAreaElementProps extends HTMLCommonProps {
 	readonly placeholder?: MaybeAtom<string>;
 	readonly readOnly?: MaybeAtom<boolean>;
 	readonly required?: MaybeAtom<boolean>;
-	readonly selectionDirection?: MaybeAtom<SelectionDirection>;
-	readonly selectionEnd?: MaybeAtom<number>;
-	readonly selectionStart?: MaybeAtom<number>;
 	readonly rows?: MaybeAtom<number>;
 	readonly cols?: MaybeAtom<number>;
 	readonly wrap?: MaybeAtom<string>;

@@ -22,10 +22,6 @@ export function Native<TNode>(
 	let value;
 	let target;
 
-	// insert node first, including its children - some elements depend on their children already
-	// being present when setting their props (e.g. the <select> element in browser environments)
-	insert(nNode, jsx.children, hParent, nUsedParent, nBefore, isBatch);
-
 	// for..in doesn't iterate symbol keys, so we don't need to manually exclude internal symbols
 	// (S_COMPONENT, S_TAG_NAME, S_DEV_INFO), just the children prop
 	//
@@ -61,4 +57,7 @@ export function Native<TNode>(
 			}
 		}
 	}
+
+	insert(nNode, jsx.children, hParent, nUsedParent, nBefore, isBatch);
+	adapter.finalize?.(nNode, jsx);
 }
