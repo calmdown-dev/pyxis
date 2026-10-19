@@ -550,17 +550,12 @@ export interface HTMLAnchorElementProps extends HTMLCommonProps {
 	readonly [S_NODE_TYPE]?: HTMLAnchorElement;
 	readonly [S_ELEM_NAME]?: "a";
 	readonly children?: JsxChildren;
-	readonly charset?: MaybeAtom<string>;
-	readonly coords?: MaybeAtom<string>;
 	readonly download?: MaybeAtom<string>;
 	readonly hreflang?: MaybeAtom<string>;
-	readonly name?: MaybeAtom<string>;
 	readonly ping?: MaybeAtom<string>;
 	readonly referrerPolicy?: MaybeAtom<string>;
 	readonly rel?: MaybeAtom<string>;
 	readonly relList?: MaybeAtom<string>;
-	readonly rev?: MaybeAtom<string>;
-	readonly shape?: MaybeAtom<string>;
 	readonly target?: MaybeAtom<string>;
 	readonly text?: MaybeAtom<string>;
 	readonly type?: MaybeAtom<string>;
@@ -599,7 +594,6 @@ export interface HTMLAreaElementProps extends HTMLCommonProps {
 	readonly search?: MaybeAtom<string>;
 	readonly username?: MaybeAtom<string>;
 	readonly alt?: MaybeAtom<string>;
-	readonly noHref?: MaybeAtom<boolean>;
 }
 
 export interface HTMLAudioElementProps extends HTMLCommonProps {
@@ -648,7 +642,6 @@ export interface HTMLBRElementProps extends HTMLCommonProps {
 	readonly [S_NODE_TYPE]?: HTMLBRElement;
 	readonly [S_ELEM_NAME]?: "br";
 	readonly children?: never;
-	readonly clear?: MaybeAtom<string>;
 }
 
 export interface HTMLButtonElementProps extends HTMLCommonProps {
@@ -684,19 +677,13 @@ export interface HTMLTableCaptionElementProps extends HTMLCommonProps {
 	readonly [S_NODE_TYPE]?: HTMLTableCaptionElement;
 	readonly [S_ELEM_NAME]?: "caption";
 	readonly children?: JsxChildren;
-	readonly align?: MaybeAtom<string>;
 }
 
 export interface HTMLTableColElementProps<N extends "col" | "colgroup"> extends HTMLCommonProps {
 	readonly [S_NODE_TYPE]?: HTMLTableColElement;
 	readonly [S_ELEM_NAME]?: N;
 	readonly children?: never;
-	readonly width?: MaybeAtom<string>;
-	readonly align?: MaybeAtom<string>;
-	readonly ch?: MaybeAtom<string>;
-	readonly chOff?: MaybeAtom<string>;
 	readonly span?: MaybeAtom<number>;
-	readonly vAlign?: MaybeAtom<string>;
 }
 
 export interface HTMLDataElementProps extends HTMLCommonProps {
@@ -741,14 +728,12 @@ export interface HTMLDivElementProps extends HTMLCommonProps {
 	readonly [S_NODE_TYPE]?: HTMLDivElement;
 	readonly [S_ELEM_NAME]?: "div";
 	readonly children?: JsxChildren;
-	readonly align?: MaybeAtom<string>;
 }
 
 export interface HTMLDListElementProps extends HTMLCommonProps {
 	readonly [S_NODE_TYPE]?: HTMLDListElement;
 	readonly [S_ELEM_NAME]?: "dl";
 	readonly children?: JsxChildren;
-	readonly compact?: MaybeAtom<boolean>;
 }
 
 export interface HTMLEmbedElementProps extends HTMLCommonProps {
@@ -757,10 +742,8 @@ export interface HTMLEmbedElementProps extends HTMLCommonProps {
 	readonly children?: never;
 	readonly height?: MaybeAtom<string>;
 	readonly width?: MaybeAtom<string>;
-	readonly name?: MaybeAtom<string>;
 	readonly type?: MaybeAtom<string>;
 	readonly src?: MaybeAtom<string>;
-	readonly align?: MaybeAtom<string>;
 }
 
 export interface HTMLFieldSetElementProps extends HTMLCommonProps {
@@ -792,18 +775,12 @@ export interface HTMLHeadingElementProps<N extends "h1" | "h2" | "h3" | "h4" | "
 	readonly [S_NODE_TYPE]?: HTMLHeadingElement;
 	readonly [S_ELEM_NAME]?: N;
 	readonly children?: JsxChildren;
-	readonly align?: MaybeAtom<string>;
 }
 
 export interface HTMLHRElementProps extends HTMLCommonProps {
 	readonly [S_NODE_TYPE]?: HTMLHRElement;
 	readonly [S_ELEM_NAME]?: "hr";
 	readonly children?: never;
-	readonly color?: MaybeAtom<string>;
-	readonly width?: MaybeAtom<string>;
-	readonly align?: MaybeAtom<string>;
-	readonly noShade?: MaybeAtom<boolean>;
-	readonly size?: MaybeAtom<string>;
 }
 
 export interface HTMLIFrameElementProps extends HTMLCommonProps {
@@ -815,16 +792,10 @@ export interface HTMLIFrameElementProps extends HTMLCommonProps {
 	readonly name?: MaybeAtom<string>;
 	readonly referrerPolicy?: MaybeAtom<ReferrerPolicy>;
 	readonly src?: MaybeAtom<string>;
-	readonly align?: MaybeAtom<string>;
 	readonly allow?: MaybeAtom<string>;
 	readonly allowFullscreen?: MaybeAtom<boolean>;
-	readonly frameBorder?: MaybeAtom<string>;
 	readonly loading?: MaybeAtom<"eager" | "lazy">;
-	readonly longDesc?: MaybeAtom<string>;
-	readonly marginHeight?: MaybeAtom<string>;
-	readonly marginWidth?: MaybeAtom<string>;
 	readonly sandbox?: MaybeAtom<DOMTokenList>;
-	readonly scrolling?: MaybeAtom<string>;
 	readonly srcdoc?: MaybeAtom<string>;
 }
 
@@ -832,26 +803,19 @@ export interface HTMLImageElementProps extends HTMLCommonProps {
 	readonly [S_NODE_TYPE]?: HTMLImageElement;
 	readonly [S_ELEM_NAME]?: "img";
 	readonly children?: never;
-	readonly border?: MaybeAtom<string>;
 	readonly height?: MaybeAtom<number>;
 	readonly width?: MaybeAtom<number>;
-	readonly name?: MaybeAtom<string>;
 	readonly referrerPolicy?: MaybeAtom<string>;
 	readonly alt?: MaybeAtom<string>;
 	readonly crossOrigin?: MaybeAtom<string | null>;
 	readonly src?: MaybeAtom<string>;
-	readonly align?: MaybeAtom<string>;
 	readonly loading?: MaybeAtom<"eager" | "lazy">;
-	readonly longDesc?: MaybeAtom<string>;
 	readonly decoding?: MaybeAtom<"auto" | "async" | "sync">;
 	readonly fetchPriority?: MaybeAtom<"auto" | "high" | "low">;
-	readonly hspace?: MaybeAtom<number>;
 	readonly isMap?: MaybeAtom<boolean>;
-	readonly lowsrc?: MaybeAtom<string>;
 	readonly sizes?: MaybeAtom<string>;
 	readonly srcset?: MaybeAtom<string>;
 	readonly useMap?: MaybeAtom<string>;
-	readonly vspace?: MaybeAtom<number>;
 }
 
 export interface HTMLInputElementProps extends HTMLCommonProps {
@@ -874,10 +838,8 @@ export interface HTMLInputElementProps extends HTMLCommonProps {
 	readonly popoverTargetAction?: MaybeAtom<string>;
 	readonly popoverTargetElement?: MaybeAtom<Element | null>;
 	readonly popoverTarget?: MaybeAtom<string>;
-	readonly align?: MaybeAtom<string>;
 	readonly autocomplete?: MaybeAtom<AutoFill>;
 	readonly size?: MaybeAtom<number>;
-	readonly useMap?: MaybeAtom<string>;
 	readonly accept?: MaybeAtom<string>;
 	readonly capture?: MaybeAtom<string>;
 	readonly checked?: MaybeAtom<boolean>;
@@ -912,14 +874,12 @@ export interface HTMLLegendElementProps extends HTMLCommonProps {
 	readonly [S_NODE_TYPE]?: HTMLLegendElement;
 	readonly [S_ELEM_NAME]?: "legend";
 	readonly children?: JsxChildren;
-	readonly align?: MaybeAtom<string>;
 }
 
 export interface HTMLLIElementProps extends HTMLCommonProps {
 	readonly [S_NODE_TYPE]?: HTMLLIElement;
 	readonly [S_ELEM_NAME]?: "li";
 	readonly children?: JsxChildren;
-	readonly type?: MaybeAtom<string>;
 	readonly value?: MaybeAtom<number>;
 }
 
@@ -934,7 +894,6 @@ export interface HTMLMenuElementProps extends HTMLCommonProps {
 	readonly [S_NODE_TYPE]?: HTMLMenuElement;
 	readonly [S_ELEM_NAME]?: "menu";
 	readonly children?: JsxChildren;
-	readonly compact?: MaybeAtom<boolean>;
 }
 
 export interface HTMLMeterElementProps extends HTMLCommonProps {
@@ -953,22 +912,11 @@ export interface HTMLObjectElementProps extends HTMLCommonProps {
 	readonly [S_NODE_TYPE]?: HTMLObjectElement;
 	readonly [S_ELEM_NAME]?: "object";
 	readonly children?: JsxChildren;
-	readonly border?: MaybeAtom<string>;
 	readonly height?: MaybeAtom<string>;
 	readonly width?: MaybeAtom<string>;
 	readonly name?: MaybeAtom<string>;
 	readonly type?: MaybeAtom<string>;
-	readonly code?: MaybeAtom<string>;
-	readonly align?: MaybeAtom<string>;
 	readonly data?: MaybeAtom<string>;
-	readonly hspace?: MaybeAtom<number>;
-	readonly useMap?: MaybeAtom<string>;
-	readonly vspace?: MaybeAtom<number>;
-	readonly archive?: MaybeAtom<string>;
-	readonly codeBase?: MaybeAtom<string>;
-	readonly codeType?: MaybeAtom<string>;
-	readonly declare?: MaybeAtom<boolean>;
-	readonly standby?: MaybeAtom<string>;
 }
 
 export interface HTMLOListElementProps extends HTMLCommonProps {
@@ -976,7 +924,6 @@ export interface HTMLOListElementProps extends HTMLCommonProps {
 	readonly [S_ELEM_NAME]?: "ol";
 	readonly children?: JsxChildren;
 	readonly type?: MaybeAtom<string>;
-	readonly compact?: MaybeAtom<boolean>;
 	readonly reversed?: MaybeAtom<boolean>;
 	readonly start?: MaybeAtom<number>;
 }
@@ -1015,7 +962,6 @@ export interface HTMLParagraphElementProps extends HTMLCommonProps {
 	readonly [S_NODE_TYPE]?: HTMLParagraphElement;
 	readonly [S_ELEM_NAME]?: "p";
 	readonly children?: JsxChildren;
-	readonly align?: MaybeAtom<string>;
 }
 
 export interface HTMLPictureElementProps extends HTMLCommonProps {
@@ -1028,7 +974,6 @@ export interface HTMLPreElementProps extends HTMLCommonProps {
 	readonly [S_NODE_TYPE]?: HTMLPreElement;
 	readonly [S_ELEM_NAME]?: "pre";
 	readonly children?: JsxChildren;
-	readonly width?: MaybeAtom<number>;
 }
 
 export interface HTMLProgressElementProps extends HTMLCommonProps {
@@ -1084,16 +1029,7 @@ export interface HTMLTableElementProps extends HTMLCommonProps {
 	readonly [S_NODE_TYPE]?: HTMLTableElement;
 	readonly [S_ELEM_NAME]?: "table";
 	readonly children?: JsxChildren;
-	readonly border?: MaybeAtom<string>;
-	readonly width?: MaybeAtom<string>;
-	readonly summary?: MaybeAtom<string>;
 	readonly caption?: MaybeAtom<HTMLTableCaptionElement | null>;
-	readonly align?: MaybeAtom<string>;
-	readonly bgColor?: MaybeAtom<string>;
-	readonly cellPadding?: MaybeAtom<string>;
-	readonly cellSpacing?: MaybeAtom<string>;
-	readonly frame?: MaybeAtom<string>;
-	readonly rules?: MaybeAtom<string>;
 	readonly tFoot?: MaybeAtom<HTMLTableSectionElement | null>;
 	readonly tHead?: MaybeAtom<HTMLTableSectionElement | null>;
 }
@@ -1104,13 +1040,24 @@ export interface HTMLTableSectionElementProps<N extends "tbody" | "tfoot" | "the
 	readonly children?: JsxChildren;
 }
 
-export interface HTMLTableCellElementProps<N extends "td" | "th"> extends HTMLCommonProps {
+export interface HTMLTableCellElementProps extends HTMLCommonProps {
 	readonly [S_NODE_TYPE]?: HTMLTableCellElement;
-	readonly [S_ELEM_NAME]?: N;
+	readonly [S_ELEM_NAME]?: "td";
 	readonly children?: JsxChildren;
 	readonly colSpan?: MaybeAtom<number>;
 	readonly headers?: MaybeAtom<string>;
 	readonly rowSpan?: MaybeAtom<number>;
+}
+
+export interface HTMLTableHeadingElementProps extends HTMLCommonProps {
+	readonly [S_NODE_TYPE]?: HTMLTableCellElement;
+	readonly [S_ELEM_NAME]?: "th";
+	readonly children?: JsxChildren;
+	readonly abbr?: MaybeAtom<string>;
+	readonly colSpan?: MaybeAtom<number>;
+	readonly headers?: MaybeAtom<string>;
+	readonly rowSpan?: MaybeAtom<number>;
+	readonly scope?: MaybeAtom<string>;
 }
 
 export interface HTMLTemplateElementProps extends HTMLCommonProps {
@@ -1172,8 +1119,6 @@ export interface HTMLUListElementProps extends HTMLCommonProps {
 	readonly [S_NODE_TYPE]?: HTMLUListElement;
 	readonly [S_ELEM_NAME]?: "ul";
 	readonly children?: JsxChildren;
-	readonly type?: MaybeAtom<string>;
-	readonly compact?: MaybeAtom<boolean>;
 }
 
 export interface HTMLVideoElementProps extends HTMLCommonProps {
@@ -1306,11 +1251,11 @@ export interface HTMLIntrinsicElements {
 	sup: HTMLElementProps<"sup">;
 	table: HTMLTableElementProps;
 	tbody: HTMLTableSectionElementProps<"tbody">;
-	td: HTMLTableCellElementProps<"td">;
+	td: HTMLTableCellElementProps;
 	template: HTMLTemplateElementProps;
 	textarea: HTMLTextAreaElementProps;
 	tfoot: HTMLTableSectionElementProps<"tfoot">;
-	th: HTMLTableCellElementProps<"th">;
+	th: HTMLTableHeadingElementProps;
 	thead: HTMLTableSectionElementProps<"thead">;
 	time: HTMLTimeElementProps;
 	// title: HTMLTitleElementProps;

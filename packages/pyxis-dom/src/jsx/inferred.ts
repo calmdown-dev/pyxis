@@ -79,6 +79,7 @@ interface CSSPropOverrides {
 	positionAnchor: string;
 	positionArea: string;
 
+	// deprecated rules:
 	clip: never;
 	cssFloat: never;
 	cssText: never;
@@ -90,6 +91,9 @@ interface CSSPropOverrides {
 	pageBreakAfter: never;
 	pageBreakBefore: never;
 	pageBreakInside: never;
+	wordWrap: never;
+
+	// non-standard rules:
 	webkitAlignContent: never;
 	webkitAlignItems: never;
 	webkitAlignSelf: never;
@@ -155,7 +159,6 @@ interface CSSPropOverrides {
 	webkitTransitionProperty: never;
 	webkitTransitionTimingFunction: never;
 	webkitUserSelect: never;
-	wordWrap: never;
 }
 
 // #endregion
@@ -176,6 +179,7 @@ type HTMLRawProps<T, O> = MapProps<WrapProps<ApplyOverrides<Omit<OmitFunctions<O
 interface HTMLPropOverrides {
 	part: string;
 
+	// not supported as props, instead handled by framework/extensions:
 	classList: never;
 	innerHTML: never;
 	innerText: never;
@@ -195,6 +199,13 @@ export type HTMLCommonProps = Finalize<HTMLRawProps<HTMLElement, {}>>;
  */
 export type HTMLAnchorElementProps = HTMLProps<HTMLAnchorElement, "a", {
 	relList: string;
+
+	// deprecated props:
+	charset: never;
+	coords: never;
+	name: never;
+	rev: never;
+	shape: never;
 }>;
 
 /**
@@ -203,6 +214,9 @@ export type HTMLAnchorElementProps = HTMLProps<HTMLAnchorElement, "a", {
  */
 export type HTMLAreaElementProps = HTMLPropsNoChildren<HTMLAreaElement, "area", {
 	relList: string;
+
+	// deprecated props:
+	noHref: never;
 }>;
 
 /**
@@ -239,7 +253,10 @@ export type HTMLQuoteElementProps<N extends "blockquote" | "q"> = HTMLProps<HTML
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLBRElementProps = HTMLPropsNoChildren<HTMLBRElement, "br">;
+export type HTMLBRElementProps = HTMLPropsNoChildren<HTMLBRElement, "br", {
+	// deprecated props:
+	clear: never;
+}>;
 
 /**
  * @bake
@@ -260,13 +277,23 @@ export type HTMLCanvasElementProps = HTMLProps<HTMLCanvasElement, "canvas">;
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLTableCaptionElementProps = HTMLProps<HTMLTableCaptionElement, "caption">;
+export type HTMLTableCaptionElementProps = HTMLProps<HTMLTableCaptionElement, "caption", {
+	// deprecated props:
+	align: never;
+}>;
 
 /**
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLTableColElementProps<N extends "col" | "colgroup"> = HTMLPropsNoChildren<HTMLTableColElement, N>;
+export type HTMLTableColElementProps<N extends "col" | "colgroup"> = HTMLPropsNoChildren<HTMLTableColElement, N, {
+	// deprecated props:
+	align: never;
+	ch: never;
+	chOff: never;
+	vAlign: never;
+	width: never;
+}>;
 
 /**
  * @bake
@@ -302,19 +329,29 @@ export type HTMLDialogElementProps = HTMLProps<HTMLDialogElement, "dialog">;
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLDivElementProps = HTMLProps<HTMLDivElement, "div">;
+export type HTMLDivElementProps = HTMLProps<HTMLDivElement, "div", {
+	// deprecated props:
+	align: never;
+}>;
 
 /**
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLDListElementProps = HTMLProps<HTMLDListElement, "dl">;
+export type HTMLDListElementProps = HTMLProps<HTMLDListElement, "dl", {
+	// deprecated props:
+	compact: never;
+}>;
 
 /**
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLEmbedElementProps = HTMLPropsNoChildren<HTMLEmbedElement, "embed">;
+export type HTMLEmbedElementProps = HTMLPropsNoChildren<HTMLEmbedElement, "embed", {
+	// deprecated props:
+	align: never;
+	name: never;
+}>;
 
 /**
  * @bake
@@ -334,7 +371,10 @@ export type HTMLFormElementProps = HTMLProps<HTMLFormElement, "form", {
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLHeadingElementProps<N extends "h1" | "h2" | "h3" | "h4" | "h5" | "h6"> = HTMLProps<HTMLHeadingElement, N>;
+export type HTMLHeadingElementProps<N extends "h1" | "h2" | "h3" | "h4" | "h5" | "h6"> = HTMLProps<HTMLHeadingElement, N, {
+	// deprecated props:
+	align: never;
+}>;
 
 // /**
 //  * @bake
@@ -346,7 +386,14 @@ export type HTMLHeadingElementProps<N extends "h1" | "h2" | "h3" | "h4" | "h5" |
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLHRElementProps = HTMLPropsNoChildren<HTMLHRElement, "hr">;
+export type HTMLHRElementProps = HTMLPropsNoChildren<HTMLHRElement, "hr", {
+	// deprecated props:
+	align: never;
+	color: never;
+	noShade: never;
+	size: never;
+	width: never;
+}>;
 
 // /**
 //  * @bake
@@ -358,13 +405,30 @@ export type HTMLHRElementProps = HTMLPropsNoChildren<HTMLHRElement, "hr">;
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLIFrameElementProps = HTMLProps<HTMLIFrameElement, "iframe">;
+export type HTMLIFrameElementProps = HTMLProps<HTMLIFrameElement, "iframe", {
+	// deprecated props:
+	align: never;
+	frameBorder: never;
+	longDesc: never;
+	marginHeight: never;
+	marginWidth: never;
+	scrolling: never;
+}>;
 
 /**
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLImageElementProps = HTMLPropsNoChildren<HTMLImageElement, "img">;
+export type HTMLImageElementProps = HTMLPropsNoChildren<HTMLImageElement, "img", {
+	// deprecated props:
+	align: never;
+	border: never;
+	hspace: never;
+	longDesc: never;
+	lowsrc: never;
+	name: never;
+	vspace: never;
+}>;
 
 /**
  * @bake
@@ -372,6 +436,12 @@ export type HTMLImageElementProps = HTMLPropsNoChildren<HTMLImageElement, "img">
  */
 export type HTMLInputElementProps = HTMLPropsNoChildren<HTMLInputElement, "input", {
 	popoverTarget: string;
+
+	// deprecated props:
+	align: never;
+	useMap: never;
+
+	// not supported as props:
 	selectionDirection: never;
 	selectionEnd: never;
 	selectionStart: never;
@@ -387,13 +457,19 @@ export type HTMLLabelElementProps = HTMLProps<HTMLLabelElement, "label">;
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLLegendElementProps = HTMLProps<HTMLLegendElement, "legend">;
+export type HTMLLegendElementProps = HTMLProps<HTMLLegendElement, "legend", {
+	// deprecated props:
+	align: never;
+}>;
 
 /**
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLLIElementProps = HTMLProps<HTMLLIElement, "li">;
+export type HTMLLIElementProps = HTMLProps<HTMLLIElement, "li", {
+	// deprecated props:
+	type: never;
+}>;
 
 // /**
 //  * @bake
@@ -411,7 +487,10 @@ export type HTMLMapElementProps = HTMLProps<HTMLMapElement, "map">;
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLMenuElementProps = HTMLProps<HTMLMenuElement, "menu">;
+export type HTMLMenuElementProps = HTMLProps<HTMLMenuElement, "menu", {
+	// deprecated props:
+	compact: never;
+}>;
 
 // /**
 //  * @bake
@@ -429,13 +508,29 @@ export type HTMLMeterElementProps = HTMLProps<HTMLMeterElement, "meter">;
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLObjectElementProps = HTMLProps<HTMLObjectElement, "object">;
+export type HTMLObjectElementProps = HTMLProps<HTMLObjectElement, "object", {
+	// deprecated props:
+	align: never;
+	archive: never;
+	border: never;
+	code: never;
+	codeBase: never;
+	codeType: never;
+	declare: never;
+	hspace: never;
+	standby: never;
+	useMap: never;
+	vspace: never;
+}>;
 
 /**
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLOListElementProps = HTMLProps<HTMLOListElement, "ol">;
+export type HTMLOListElementProps = HTMLProps<HTMLOListElement, "ol", {
+	// deprecated props:
+	compact: never;
+}>;
 
 /**
  * @bake
@@ -459,7 +554,10 @@ export type HTMLOutputElementProps = HTMLProps<HTMLOutputElement, "output">;
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLParagraphElementProps = HTMLProps<HTMLParagraphElement, "p">;
+export type HTMLParagraphElementProps = HTMLProps<HTMLParagraphElement, "p", {
+	// deprecated props:
+	align: never;
+}>;
 
 /**
  * @bake
@@ -471,7 +569,10 @@ export type HTMLPictureElementProps = HTMLProps<HTMLPictureElement, "picture">;
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLPreElementProps = HTMLProps<HTMLPreElement, "pre">;
+export type HTMLPreElementProps = HTMLProps<HTMLPreElement, "pre", {
+	// deprecated props:
+	width: never;
+}>;
 
 /**
  * @bake
@@ -519,13 +620,25 @@ export type HTMLSpanElementProps = HTMLProps<HTMLSpanElement, "span">;
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLTableElementProps = HTMLProps<HTMLTableElement, "table">;
+export type HTMLTableElementProps = HTMLProps<HTMLTableElement, "table", {
+	// deprecated props:
+	align: never;
+	bgColor: never;
+	border: never;
+	cellPadding: never;
+	cellSpacing: never;
+	frame: never;
+	rules: never;
+	summary: never;
+	width: never;
+}>;
 
 /**
  * @bake
  * @extends HTMLCommonProps
  */
 export type HTMLTableSectionElementProps<N extends "tbody" | "tfoot" | "thead"> = HTMLProps<HTMLTableSectionElement, N, {
+	// deprecated props:
 	align: never;
 	bgColor: never;
 	ch: never;
@@ -537,7 +650,8 @@ export type HTMLTableSectionElementProps<N extends "tbody" | "tfoot" | "thead"> 
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLTableCellElementProps<N extends "td" | "th"> = HTMLProps<HTMLTableCellElement, N, {
+export type HTMLTableCellElementProps = HTMLProps<HTMLTableCellElement, "td", {
+	// deprecated props:
 	abbr: never;
 	align: never;
 	axis: never;
@@ -555,6 +669,23 @@ export type HTMLTableCellElementProps<N extends "td" | "th"> = HTMLProps<HTMLTab
  * @bake
  * @extends HTMLCommonProps
  */
+export type HTMLTableHeadingElementProps = HTMLProps<HTMLTableCellElement, "th", {
+	// deprecated props:
+	align: never;
+	axis: never;
+	bgColor: never;
+	ch: never;
+	chOff: never;
+	height: never;
+	noWrap: never;
+	vAlign: never;
+	width: never;
+}>;
+
+/**
+ * @bake
+ * @extends HTMLCommonProps
+ */
 export type HTMLTemplateElementProps = HTMLProps<HTMLTemplateElement, "template">;
 
 /**
@@ -562,6 +693,7 @@ export type HTMLTemplateElementProps = HTMLProps<HTMLTemplateElement, "template"
  * @extends HTMLCommonProps
  */
 export type HTMLTextAreaElementProps = HTMLPropsNoChildren<HTMLTextAreaElement, "textarea", {
+	// not supported as props:
 	selectionDirection: never;
 	selectionEnd: never;
 	selectionStart: never;
@@ -584,6 +716,7 @@ export type HTMLTimeElementProps = HTMLProps<HTMLTimeElement, "time">;
  * @extends HTMLCommonProps
  */
 export type HTMLTableRowElementProps = HTMLProps<HTMLTableRowElement, "tr", {
+	// deprecated props
 	align: never;
 	bgColor: never;
 	ch: never;
@@ -601,7 +734,11 @@ export type HTMLTrackElementProps = HTMLPropsNoChildren<HTMLTrackElement, "track
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLUListElementProps = HTMLProps<HTMLUListElement, "ul">;
+export type HTMLUListElementProps = HTMLProps<HTMLUListElement, "ul", {
+	// deprecated props:
+	compact: never;
+	type: never;
+}>;
 
 /**
  * @bake
@@ -714,11 +851,11 @@ export interface HTMLIntrinsicElements {
 	sup: HTMLElementProps<"sup">;
 	table: HTMLTableElementProps;
 	tbody: HTMLTableSectionElementProps<"tbody">;
-	td: HTMLTableCellElementProps<"td">;
+	td: HTMLTableCellElementProps;
 	template: HTMLTemplateElementProps;
 	textarea: HTMLTextAreaElementProps;
 	tfoot: HTMLTableSectionElementProps<"tfoot">;
-	th: HTMLTableCellElementProps<"th">;
+	th: HTMLTableHeadingElementProps;
 	thead: HTMLTableSectionElementProps<"thead">;
 	time: HTMLTimeElementProps;
 	// title: HTMLTitleElementProps;

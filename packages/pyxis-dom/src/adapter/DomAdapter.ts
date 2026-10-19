@@ -23,10 +23,13 @@ function element(tagName: string) {
 
 const isString = (value: unknown) => typeof value === "string";
 const isNumber = (value: unknown) => typeof value === "number";
+const isDate = (value: unknown) => value === null || value instanceof Date;
 const REAPPLIED_PROPS: { readonly [E in string]?: any[] } = {
 	INPUT: [
 		"value", isString,
 		"defaultValue", isString,
+		"valueAsNumber", isNumber,
+		"valueAsDate", isDate,
 	],
 	TEXTAREA: [
 		"value", isString,
