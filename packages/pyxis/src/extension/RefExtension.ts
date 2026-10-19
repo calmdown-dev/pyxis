@@ -1,7 +1,6 @@
 import { isAtom, write, type WriteAtom } from "~/data/Atom";
-import { onMounted, onUnmounted } from "~/data/Lifecycle";
+import { invokeMountedCallback, onMounted, onUnmounted } from "~/data/Lifecycle";
 import { extension, type ExtensionPropMapping } from "~/Adapter";
-import type { MountingGroup } from "~/Renderer";
 
 interface RefPropMapping extends ExtensionPropMapping<any> {
 	extension: RefProps<this["node"]>;
@@ -64,21 +63,13 @@ export const RefExtension = /*@__PURE__*/ extension<any, RefPropMapping>((node, 
 		case "call":
 			if (typeof value === "function") {
 				onMounted(group, {
-					$fn: refCall,
-					$a0: value,
-					$a1: node,
-					$a2: group,
+					$fn: invokeMountedCallback,
+					$a0: group,
+					$a1: value,
+					$a2: node,
 				});
 			}
 
 			break;
 	}
 });
-
-function refCall(setter: RefFn<any>, node: any, group: MountingGroup<any>) {
-	// un/mount callbacks run with Lifecycle set, so we don't need the `withLifecycle` wrapper here
-	const teardown = setter(node);
-	if (teardown) {
-		onUnmounted(group, { $fn: teardown });
-	}
-}

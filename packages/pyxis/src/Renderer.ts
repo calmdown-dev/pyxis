@@ -311,12 +311,8 @@ export function mount<TNode>(
 	nBefore: TNode | null,
 	isBatch: boolean,
 ) {
-	if (hGroup.mounted) {
-		if (__DEV__) {
-			throw new Error("cannot mount a group that has already been mounted");
-		}
-
-		return;
+	if (__DEV__ && hGroup.mounted) {
+		throw new Error("cannot mount a group that has already been mounted");
 	}
 
 	const prevLifecycle = runtime.l;
@@ -395,13 +391,13 @@ function notifyMounted<TNode>(hNode: HNode<TNode>) {
  * @internal
  */
 export function reinsertNodes<TNode>(hGroup: MountingGroup<TNode>, nParent: TNode, nBefore: TNode | null) {
-	if (__DEV__ && !hGroup.mounted) {
-		throw new Error("cannot reinsert nodes of a group that has not been mounted");
+	if (!hGroup.mounted) {
+		return;
 	}
 
 	const { adapter } = hGroup;
-
 	let current = hGroup.$hh;
+
 	while (current) {
 		if (current.$isNative) {
 			adapter.insert(current.$nn, nParent, nBefore);

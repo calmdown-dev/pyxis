@@ -60,9 +60,12 @@ export function onMounted(lifecycle: Lifecycle, callback: Callback) {
 	(lifecycle.$onMount ??= []).push(callback);
 }
 
-function invokeMountedCallback(lifecycle: Lifecycle, block: MountBlock) {
+/** @internal */
+export function invokeMountedCallback(lifecycle: Lifecycle, block: MountBlock): void;
+export function invokeMountedCallback<TArg>(lifecycle: Lifecycle, block: (arg: TArg) => (() => void) | void, arg: TArg): void;
+export function invokeMountedCallback(lifecycle: Lifecycle, block: (arg: any) => (() => void) | void, arg?: any) {
 	const life = lifecycle.$life;
-	const dispose = block();
+	const dispose = block(arg);
 	if (dispose) {
 		if (lifecycle.$life > life) {
 			dispose();

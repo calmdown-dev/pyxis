@@ -72,7 +72,7 @@ export function Iterator<TNode, T>(
 
 		const isAnyBatch = isLocalBatch || initIsBatch;
 		renderedItems = initItems.map((data) => {
-			const item = fork(hGroup) as IteratorItemGroup<TNode>;
+			const item = fork(hGroup, null, hGroup.$context) as IteratorItemGroup<TNode>;
 			item.$marker = __DEV__ ? adapter.marker("IteratorItem") : adapter.marker();
 			item.$data = isProxy ? createProxy(item, data, proxyKeys) : data;
 
@@ -174,7 +174,7 @@ export function Iterator<TNode, T>(
 				case LC_INSERT:
 					if (!isProxy || inserted < relSize) {
 						// we're either in remount mode, or no more items are available for recycling
-						item = (newItems[ni++] = fork(hGroup, renderedItems[oi]) as IteratorItemGroup<TNode>);
+						item = (newItems[ni++] = fork(hGroup, renderedItems[oi], hGroup.$context) as IteratorItemGroup<TNode>);
 						item.$marker = __DEV__ ? adapter.marker("IteratorItem") : adapter.marker();
 						item.$data = isProxy ? createProxy(item, change.newItem, proxyKeys) : change.newItem;
 						inserted += 1;
