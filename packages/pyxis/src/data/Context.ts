@@ -63,17 +63,6 @@ interface ContextAtom<T> extends WriteAtom<T> {
 	$consumer?: ContextAtom<T>;
 }
 
-/** @internal */
-export function getContextContainer() {
-	return runtime.c;
-}
-
-/** @internal */
-export function setContextContainer(container: ContextContainer | null) {
-	runtime.c = container;
-	runtime.n = false;
-}
-
 
 /**
  * Augments the current Component to act as a host (aka provider) of the given Context. Returns a

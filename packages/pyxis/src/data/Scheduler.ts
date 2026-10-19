@@ -1,4 +1,4 @@
-import { invoke } from "~/support/common";
+import { invoke, rethrow } from "~/support/common";
 import type { ArgsMax3, Callback } from "~/support/types";
 
 import { getLifecycle, type Lifecycle } from "./Lifecycle";
@@ -92,90 +92,96 @@ export function createScheduler(tick: TickFn) {
 
 	const update = () => {
 		const epoch = scheduler.$epoch;
-		let hasDrained = false;
+		let errors: unknown[] | null = null;
+		let effectIndex = 0;
+		let tickIndex = 0;
+		let callback;
 
-		try {
-			let effectIndex = 0;
-			let tickIndex = 0;
-			let callback;
+		// Array lengths are re-read on each cycle, as they may increase when additional
+		// callbacks get queued by the code we're invoking.
 
-			// Array lengths are re-read on each cycle, as they may increase when additional
-			// callbacks get queued by the code we're invoking.
-
-			do {
-				// drain tick queue first
-				while (tickIndex < ticks.length) {
-					callback = ticks[tickIndex++];
-					callback.$se = 0;
-					if (callback.$life === callback.$lifecycle!.$life) {
+		do {
+			// drain tick queue first
+			while (tickIndex < ticks.length) {
+				callback = ticks[tickIndex++];
+				callback.$se = 0;
+				if (callback.$life === callback.$lifecycle!.$life) {
+					try {
 						invoke(callback);
 					}
-				}
-
-				// run the next effect, then repeat - the effect may schedule additional ticks
-				if (effectIndex < effects.length) {
-					callback = effects[effectIndex++];
-					callback.$se = 0;
-					if (callback.$life === callback.$lifecycle!.$life) {
-						invoke(callback);
+					catch (ex) {
+						(errors ??= []).push(ex);
 					}
 				}
 			}
-			while (tickIndex < ticks.length || effectIndex < effects.length);
 
-			// The main queue drained, tick phase is now done. There may still be pending tock
-			// callbacks queued, but at this point the current epoch is sealed. If tock callbacks
-			// schedule additional work, it will be queued for the next future update rather than
-			// executed synchronously in this one.
-
-			effects.length = 0;
-			ticks.length = 0;
-
-			scheduler.$onTock = tocksParked;
-			scheduler.$epoch = epoch + 1;
-
-			hasDrained = true;
-
-			const { length } = tocks;
-			let tockIndex = 0;
-
-			for (; tockIndex < length; tockIndex += 1) {
-				callback = tocks[tockIndex];
-
-				// An earlier tock may have queued this same callback for the next tick (i.e. it is
-				// now in both the `tocks` and `tocksParked` queues and is marked with the future
-				// epoch number). If this happens, we must keep its pending marker intact,
-				// otherwise we can reset it normally.
-				if (callback.$se === epoch) {
-					callback.$se = 0;
-				}
-
+			// run the next effect, then repeat - the effect may schedule additional ticks
+			if (effectIndex < effects.length) {
+				callback = effects[effectIndex++];
+				callback.$se = 0;
 				if (callback.$life === callback.$lifecycle!.$life) {
+					try {
+						invoke(callback);
+					}
+					catch (ex) {
+						(errors ??= []).push(ex);
+					}
+				}
+			}
+		}
+		while (tickIndex < ticks.length || effectIndex < effects.length);
+
+		// The main queue drained, tick phase is now done. There may still be pending tocks
+		// queued, but at this point the current epoch is sealed. If tock callbacks schedule
+		// additional work, it will be queued for the next future update rather than executed
+		// synchronously in this one.
+
+		effects.length = 0;
+		ticks.length = 0;
+
+		scheduler.$onTock = tocksParked;
+		scheduler.$epoch = epoch + 1;
+
+		// run pending tocks
+		const { length } = tocks;
+		let tockIndex = 0;
+
+		for (; tockIndex < length; tockIndex += 1) {
+			callback = tocks[tockIndex];
+
+			// An earlier tock may have queued this same callback for the next tick (i.e. it is
+			// now in both the `tocks` and `tocksParked` queues and is marked with the future
+			// epoch number). If this happens, we must keep its pending marker intact,
+			// otherwise we can reset it normally.
+			if (callback.$se === epoch) {
+				callback.$se = 0;
+			}
+
+			if (callback.$life === callback.$lifecycle!.$life) {
+				try {
 					invoke(callback);
 				}
+				catch (ex) {
+					(errors ??= []).push(ex);
+				}
 			}
 		}
-		finally {
-			if (hasDrained) {
-				const tmp = tocksParked;
-				tocksParked = tocks;
-				tocks = tmp;
 
-				tocksParked.length = 0;
-			}
-			else {
-				// tick callback invocation threw, drop scheduled work
-				effects.length = 0;
-				ticks.length = 0;
-				tocks.length = 0;
-				scheduler.$epoch += 1;
-			}
+		// clear tocks queue
+		const tmp = tocksParked;
+		tocksParked = tocks;
+		tocks = tmp;
 
-			isPending = false;
-			if (ticks.length || tocks.length) {
-				scheduler.$scheduleTick();
-			}
+		tocksParked.length = 0;
+
+		// unlock and re-schedule if needed
+		isPending = false;
+		if (ticks.length || tocks.length) {
+			scheduler.$scheduleTick();
 		}
+
+		// re-throw errors, if there were any
+		rethrow(errors);
 	};
 
 	return scheduler;

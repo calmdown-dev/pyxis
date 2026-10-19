@@ -1,6 +1,6 @@
 import type { ArgsMax3, Nil } from "~/support/types";
 
-import { getLifecycle, onUnmounted, setLifecycle, type Lifecycle } from "./Lifecycle";
+import { getLifecycle, onUnmounted, type Lifecycle } from "./Lifecycle";
 import { link, unlink, type Dependency, type DependencyList } from "./Dependency";
 import { scheduleEffect, type UpdateCallback } from "./Scheduler";
 import { runtime } from "~/Runtime";
@@ -134,12 +134,13 @@ function teardownEffect(effect: Effect<ReturnType<EffectBlock>>) {
 		return;
 	}
 
-	const previousLifecycle = setLifecycle(effect.$lifecycle);
+	const prevLifecycle = runtime.l;
+	runtime.l = effect.$lifecycle;
 	try {
 		fn();
 	}
 	finally {
-		setLifecycle(previousLifecycle);
+		runtime.l = prevLifecycle;
 		effect.$dispose = null;
 	}
 }
@@ -154,16 +155,17 @@ export function resolve<TEffect extends Effect<any>>(effect: TEffect): TEffect e
 	effect.$rc = 0;
 
 	const cycle = (effect.$cycle += 1);
-	const previousEffect = runtime.e;
-	const previousLifecycle = setLifecycle(effect.$lifecycle);
+	const prevLifecycle = runtime.l;
+	const prevEffect = runtime.e;
+	runtime.l = effect.$lifecycle;
 	runtime.e = effect;
 
 	try {
 		return effect.$block();
 	}
 	finally {
-		setLifecycle(previousLifecycle);
-		runtime.e = previousEffect;
+		runtime.l = prevLifecycle;
+		runtime.e = prevEffect;
 
 		// on re-runs, check if new Atoms were accessed - if so, eagerly cleanup
 		if (cycle > 1 && effect.$rc > 0) {

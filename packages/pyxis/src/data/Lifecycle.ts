@@ -61,8 +61,14 @@ export function onMounted(lifecycle: Lifecycle, callback: Callback) {
 }
 
 function invokeMountedCallback(lifecycle: Lifecycle, block: MountBlock) {
+	const life = lifecycle.$life;
 	const dispose = block();
 	if (dispose) {
+		if (lifecycle.$life > life) {
+			dispose();
+			return;
+		}
+
 		onUnmounted(lifecycle, { $fn: dispose });
 	}
 }
@@ -95,13 +101,6 @@ export function getLifecycle(): Lifecycle {
 	}
 
 	return runtime.l!;
-}
-
-/** @internal */
-export function setLifecycle(lifecycle: Lifecycle | null): Lifecycle | null {
-	const previous = runtime.l;
-	runtime.l = lifecycle;
-	return previous;
 }
 
 /**

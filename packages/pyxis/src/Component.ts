@@ -1,5 +1,4 @@
 import type { MaybeAtom } from "~/data/Atom";
-import { getContextContainer, setContextContainer } from "~/data/Context";
 import { onUnmounted } from "~/data/Lifecycle";
 import type { Nil, PropsType } from "~/support/types";
 
@@ -44,11 +43,10 @@ export function component(
 	}
 
 	return (props, hParent, nUsedParent, nRealParent, nBefore, isBatch) => {
-		const context = getContextContainer();
+		const capturedContext = runtime.c;
 		try {
 			if (__DEV__) {
 				if (!import.meta.hot || !devId) {
-					setContextContainer(context);
 					mountJsx(__DEV__evalComponent(block, props), hParent, nUsedParent, nRealParent, nBefore, isBatch);
 					return;
 				}
@@ -59,8 +57,6 @@ export function component(
 
 				const unsubscribe = runtime.hmrComponent!.subscribe(devId, impl => {
 					unmount(hGroup);
-
-					setContextContainer(context);
 					mount(
 						/* jsx = */ {
 							...props,
@@ -83,13 +79,13 @@ export function component(
 				isBatch = false;
 			}
 			else {
-				setContextContainer(context);
+				runtime.n = false; // reset context container
 				mountJsx(block(props), hParent, nUsedParent, nRealParent, nBefore, isBatch);
 			}
 		}
 		finally {
 			// reset back to this Component's container, prevents leakage of branched off child contexts
-			setContextContainer(context);
+			runtime.c = capturedContext;
 		}
 	};
 }
@@ -97,9 +93,10 @@ export function component(
 function __DEV__evalComponent(block: ComponentBlock, props: JsxObject) {
 	const prevLifecycle = runtime.componentEvalLifecycle ?? null;
 	const prevEffect = runtime.componentEvalEffect ?? null;
+	runtime.componentEvalLifecycle = runtime.l;
+	runtime.componentEvalEffect = runtime.e;
+	runtime.n = false; // reset context container
 	try {
-		runtime.componentEvalLifecycle = runtime.l;
-		runtime.componentEvalEffect = runtime.e;
 		return block(props);
 	}
 	finally {

@@ -132,6 +132,7 @@ export function atomOf<T>(initialValue?: MaybeAtom<T>, lifecycle = getLifecycle(
 		atom.$devId = devId;
 		runtime.hmrState!.restore(lifecycle, devId, value => {
 			atom.$value = value;
+			atom.$lastValue = value;
 		});
 	}
 

@@ -1,12 +1,11 @@
 import { isAtom, read, type MaybeAtom, type Atom } from "~/data/Atom";
-import { getContextContainer, setContextContainer } from "~/data/Context";
 import { link } from "~/data/Dependency";
-import { effect, noEffect } from "~/data/Effect";
-import { withLifecycle } from "~/data/Lifecycle";
+import { effect } from "~/data/Effect";
 import { createProxy, updateProxy, type Proxied, type ProxyObject } from "~/data/ProxyAtom";
+import { mountTemplate } from "~/support/template";
 import type { Nil } from "~/support/types";
 import type { DataTemplate, JsxChildren, JsxObject, JsxProps, JsxResult } from "~/Component";
-import { flush, fork, insert, mount, mountJsx, unmount, type HNode } from "~/Renderer";
+import { flush, fork, insert, mountJsx, unmount, type HNode } from "~/Renderer";
 
 export interface ShowProps {
 	when?: MaybeAtom<boolean>;
@@ -107,7 +106,6 @@ export function Show<TNode>(
 
 	// re-mounts may be necessary -> create a sub-group
 	const hGroup = fork(hParent);
-	const context = getContextContainer();
 
 	// (re-)render effect
 	let nMarker: TNode | null = nBefore;
@@ -124,16 +122,9 @@ export function Show<TNode>(
 			nBatchBefore = null;
 		}
 
-		setContextContainer(context);
-		const jsx = noEffect(
-			withLifecycle,
-			hGroup,
-			read(template),
-			read(dataOrProxy),
-		);
-
-		mount(
-			/* jsx = */ jsx,
+		mountTemplate(
+			/* template = */ read(template),
+			/* data = */ read(dataOrProxy),
 			/* hGroup = */ hGroup,
 			/* nUsedParent = */ nBatchParent,
 			/* nRealParent = */ nRealParent,

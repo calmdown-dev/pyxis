@@ -16,17 +16,20 @@ export function Native<TNode>(
 	const hGroup = hParent.$ng;
 	const { adapter, $extensions } = hGroup;
 	const nNode = adapter.element(jsx[S_TAG_NAME]!);
-	const routing = runtime.x;
 
 	let name;
 	let index;
 	let value;
 	let target;
 
+	// insert node first, including its children - some elements depend on their children already
+	// being present when setting their props (e.g. the <select> element in browser environments)
+	insert(nNode, jsx.children, hParent, nUsedParent, nBefore, isBatch);
+
 	// for..in doesn't iterate symbol keys, so we don't need to manually exclude internal symbols
-	// (S_COMPONENT, S_TAG_NAME, S_DEV_INFO), just children
+	// (S_COMPONENT, S_TAG_NAME, S_DEV_INFO), just the children prop
 	//
-	// also since props from transpiled JSX are always plain objects, we shouldn't need to run
+	// also, since props from transpiled JSX are always plain objects, we shouldn't need to run
 	// checks to exclude inherited fields
 	for (name in jsx) {
 		index = name.indexOf(":");
@@ -34,7 +37,7 @@ export function Native<TNode>(
 
 		if (index === 0) {
 			// reserved ':' prefix for extension props set by reference via the `ext` utility
-			if ((target = routing[name])) {
+			if ((target = runtime.x[name])) {
 				target.$ext.set(nNode, target.$prop, value, hGroup);
 			}
 			else if (__DEV__) {
@@ -47,8 +50,8 @@ export function Native<TNode>(
 		}
 		else if (name !== "children") {
 			if (isAtom(value)) {
-				const prop = name;
 				const atom = value;
+				const prop = name;
 				bind(hGroup, atom, () => {
 					adapter.set(nNode, prop, atom.get());
 				});
@@ -58,6 +61,4 @@ export function Native<TNode>(
 			}
 		}
 	}
-
-	insert(nNode, jsx.children, hParent, nUsedParent, nBefore, isBatch);
 }

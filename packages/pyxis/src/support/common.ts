@@ -19,6 +19,21 @@ export function invoke(callback: Callback<ArgsMax3>) {
 export function noop() {}
 
 /**
+ * Re-throws a list of collected errors.
+ */
+export function rethrow(errors: readonly unknown[] | null | undefined) {
+	if (errors) {
+		if (errors.length > 1) {
+			throw new AggregateError(errors);
+		}
+
+		if (errors.length === 1) {
+			throw errors[0];
+		}
+	}
+}
+
+/**
  * A plain, empty object (cast to any) internal to Pyxis, guaranteed to never equal any value
  * arriving from user code.
  */

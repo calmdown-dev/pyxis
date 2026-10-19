@@ -1418,21 +1418,21 @@ export type SVGFilterElementProps = SVGProps<SVGFilterElement, "filter", {
 	y: number | string;
 }>;
 
-/**
- * @bake
- * @extends SVGCommonProps
- */
-export type SVGForeignObjectElementProps = SVGProps<SVGForeignObjectElement, "foreignObject", {
-	opacity: number | string;
-	overflow: SVGOverflow;
-	"pointer-events": SVGPointerEvents;
-	requiredExtensions: string;
-	systemLanguage: string;
-	"vector-effect": SVGVectorEffect;
-	visibility: SVGVisibility;
-	x: number | string;
-	y: number | string;
-}>;
+// /**
+//  * @bake
+//  * @extends SVGCommonProps
+//  */
+// export type SVGForeignObjectElementProps = SVGProps<SVGForeignObjectElement, "foreignObject", {
+// 	opacity: number | string;
+// 	overflow: SVGOverflow;
+// 	"pointer-events": SVGPointerEvents;
+// 	requiredExtensions: string;
+// 	systemLanguage: string;
+// 	"vector-effect": SVGVectorEffect;
+// 	visibility: SVGVisibility;
+// 	x: number | string;
+// 	y: number | string;
+// }>;
 
 /**
  * @bake
@@ -2088,7 +2088,7 @@ export interface SVGIntrinsicElements {
 	feTile: SVGFETileElementProps;
 	feTurbulence: SVGFETurbulenceElementProps;
 	filter: SVGFilterElementProps;
-	foreignObject: SVGForeignObjectElementProps;
+	// foreignObject: SVGForeignObjectElementProps;
 	g: SVGGElementProps;
 	image: SVGImageElementProps;
 	line: SVGLineElementProps;

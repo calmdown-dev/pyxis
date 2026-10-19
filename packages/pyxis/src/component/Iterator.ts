@@ -1,11 +1,10 @@
-import { getContextContainer, setContextContainer } from "~/data/Context";
 import { link } from "~/data/Dependency";
-import { withLifecycle } from "~/data/Lifecycle";
 import type { ReadonlyList } from "~/data/List";
 import { LC_CHANGE, LC_CLEAR, LC_INSERT, LC_REMOVE } from "~/data/ListDelta";
 import { createProxy, updateProxy, type Proxied } from "~/data/ProxyAtom";
+import { mountTemplate } from "~/support/template";
 import type { DataTemplate, JsxObject, JsxProps, JsxResult } from "~/Component";
-import { flush, fork, insert, mount, track, unmount, untrack, type MountingGroup, type HNode } from "~/Renderer";
+import { flush, fork, insert, mount, track, unmount, untrack, type MountingGroup, type HNode, reinsertNodes } from "~/Renderer";
 
 export interface RemountIteratorProps<T> {
 	source: ReadonlyList<T>;
@@ -53,7 +52,6 @@ export function Iterator<TNode, T>(
 
 	// create master group
 	const hGroup = fork(hParent) as MountingGroup<TNode>;
-	const context = getContextContainer();
 
 	const { adapter } = hGroup;
 	const shouldBatch = !!adapter.batch;
@@ -79,8 +77,9 @@ export function Iterator<TNode, T>(
 			item.$data = isProxy ? createProxy(item, data, proxyKeys) : data;
 
 			insert(item.$marker, null, item, nBatchParent, nBatchBefore, isAnyBatch);
-			mount(
-				/* jsx = */ withLifecycle(item, template, item.$data),
+			mountTemplate(
+				/* template = */ template,
+				/* data = */ item.$data,
 				/* hGroup = */ item,
 				/* nUsedParent = */ nBatchParent,
 				/* nRealParent = */ nRealParent,
@@ -159,9 +158,9 @@ export function Iterator<TNode, T>(
 							/* isBatch = */ false,
 						);
 
-						setContextContainer(context);
-						mount(
-							/* jsx = */ withLifecycle(item, template, (item.$data = change.newItem)),
+						mountTemplate(
+							/* template = */ template,
+							/* data = */ (item.$data = change.newItem),
 							/* hGroup = */ item,
 							/* nUsedParent = */ nRealParent,
 							/* nRealParent = */ nRealParent,
@@ -202,9 +201,9 @@ export function Iterator<TNode, T>(
 							/* isBatch = */ isLocalBatch,
 						);
 
-						setContextContainer(context);
-						mount(
-							/* jsx = */ withLifecycle(item, template, item.$data),
+						mountTemplate(
+							/* template = */ template,
+							/* data = */ item.$data,
 							/* hGroup = */ item,
 							/* nUsedParent = */ nBatchParent,
 							/* nRealParent = */ nRealParent,
@@ -282,14 +281,10 @@ export function Iterator<TNode, T>(
 			updateProxy(item.$data, tmp.$item, proxyKeys!);
 			track(item, hGroup, ref = newItems[tmp.$index + 1]);
 
-			setContextContainer(context);
-			mount(
-				/* jsx = */ withLifecycle(item, template, item.$data),
+			reinsertNodes(
 				/* hGroup = */ item,
-				/* nUsedParent = */ nRealParent,
-				/* nRealParent = */ nRealParent,
+				/* nParent = */ nRealParent,
 				/* nBefore = */ ref?.$marker ?? nListEndMarker,
-				/* isBatch = */ false,
 			);
 		}
 

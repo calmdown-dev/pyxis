@@ -292,6 +292,9 @@ export function listSynced<T>(delta: PendingListDelta<T>, oldState: readonly T[]
 		M -= 1;
 	}
 
+	N -= index;
+	M -= index;
+
 	// run Myers diff on the smallest possible sub-lists
 	const Z = (Math.min(N, M) + 1) * 2;
 	const L = N + M;
