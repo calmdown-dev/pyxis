@@ -133,23 +133,45 @@ export function createRenderer<TNode, TIntrinsicElements extends ElementsType>(
 		$life: 1,
 		$ng: null!,
 		$ph: null,
-		unmount,
+		unmount: destroy,
 		mount: (nRoot, jsx) => {
 			const hGroup = fork(hRoot);
-			const isBatch = !!adapter.batch;
-			const nParent = isBatch ? adapter.batch!() : nRoot;
-			mount(jsx, hGroup, nParent, nRoot, null, isBatch);
-			if (isBatch) {
-				adapter.insert(nParent, nRoot, null);
-				flush(hGroup);
-			}
+			try {
+				const isBatch = !!adapter.batch;
+				const nParent = isBatch ? adapter.batch!() : nRoot;
+				mount(jsx, hGroup, nParent, nRoot, null, isBatch);
+				if (isBatch) {
+					adapter.insert(nParent, nRoot, null);
+					flush(hGroup);
+				}
 
-			return hGroup;
+				return hGroup;
+			}
+			catch (ex) {
+				destroy(hGroup);
+				throw ex;
+			}
 		},
 	};
 
 	hRoot.$ng = hRoot;
 	return hRoot;
+}
+
+/**
+ * Unmounts a MountingGroup and removes it from the hierarchy. Resilient against errors thrown from
+ * user code (e.g. custom unmount callbacks). Also clears the `$ph` ref to its original parent node.
+ * Destroyed groups cannot be reused.
+ * @internal
+ */
+function destroy<TNode>(hGroup: MountingGroup<TNode>) {
+	try {
+		unmount(hGroup);
+	}
+	finally {
+		untrack(hGroup);
+		hGroup.$ph = null;
+	}
 }
 
 /**
