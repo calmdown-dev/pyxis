@@ -250,15 +250,18 @@ function get(this: List<any>, index: number) {
 }
 
 function dirty(this: List<any>) {
-	return !!(
+	if (this.$ct) {
 		// currently notifying observers
-		this.$ct || (
-			// a delta is pending, and the notification is scheduled within an active lifecycle
-			this.$pendingDelta &&
-			this.$notify &&
-			this.$notify.$life === this.$notify.$lifecycle!.$life
-		)
-	);
+		return true;
+	}
+
+	if (this.$pendingDelta) {
+		// a delta is pending, check that the notification is scheduled within an active lifecycle
+		const pending = this.$notify;
+		return !pending || pending.$life === pending.$lifecycle!.$life;
+	}
+
+	return false;
 }
 
 function delta<T>(this: List<T>) {
@@ -401,7 +404,14 @@ function assertIndex(list: List<any>, index: number) {
 }
 
 function initDelta(list: List<any>) {
-	return (list.$pendingDelta ??= createDelta());
+	if (list.$pendingDelta) {
+		const pending = list.$notify;
+		if (!pending || pending.$life === pending.$lifecycle!.$life) {
+			return list.$pendingDelta;
+		}
+	}
+
+	return (list.$pendingDelta = createDelta());
 }
 
 function copyOnWrite(list: List<any>) {
