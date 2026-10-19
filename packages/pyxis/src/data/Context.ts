@@ -124,14 +124,6 @@ export function host<T>(context: Context<T>, defaultValue?: T, lifecycle = getLi
 		};
 	}
 
-	const localAtom: ContextAtom<T> = {
-		[S_ATOM]: true,
-		$lifecycle: lifecycle,
-		$value: defaultValue,
-		get: getHostedValue,
-		set: setHostedValue,
-	};
-
 	let isUndefined = defaultValue === undefined;
 	if (__DEV__) {
 		const devId = arguments[3];
@@ -140,6 +132,14 @@ export function host<T>(context: Context<T>, defaultValue?: T, lifecycle = getLi
 			isUndefined = false;
 		});
 	}
+
+	const localAtom: ContextAtom<T> = {
+		[S_ATOM]: true,
+		$lifecycle: lifecycle,
+		$value: defaultValue,
+		get: getHostedValue,
+		set: setHostedValue,
+	};
 
 	let upstream;
 	if (isUndefined && (upstream = lookupUpstream(context))) {

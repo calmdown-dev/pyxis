@@ -256,7 +256,7 @@ function dirty(this: List<any>) {
 			// a delta is pending, and the notification is scheduled within an active lifecycle
 			this.$pendingDelta &&
 			this.$notify &&
-			this.$notify.$life === this.$notify.$lifecycle?.$scheduler.$epoch
+			this.$notify.$life === this.$notify.$lifecycle!.$life
 		)
 	);
 }
