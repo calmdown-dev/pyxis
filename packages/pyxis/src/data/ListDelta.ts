@@ -105,14 +105,6 @@ interface DiffState<T> {
 
 
 /** @internal */
-export function createDelta<T>(): PendingListDelta<T> {
-	return {
-		changes: [],
-		relSize: 0,
-	};
-}
-
-/** @internal */
 export function itemChanged<T>({ changes: $changes }: PendingListDelta<T>, at: number, oldItem: T, newItem: T) {
 	const ci = binarySearch($changes, at, latest);
 	if (ci < 0) {

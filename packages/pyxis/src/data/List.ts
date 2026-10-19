@@ -4,7 +4,7 @@ import { runtime } from "~/Runtime";
 import { notify, type DependencyList } from "./Dependency";
 import { reportAccess } from "./Effect";
 import { getLifecycle, type Lifecycle } from "./Lifecycle";
-import { createDelta, itemChanged, itemInserted, itemRemoved, listCleared, listSynced, type Equals, type ListDelta, type PendingListDelta } from "./ListDelta";
+import { itemChanged, itemInserted, itemRemoved, listCleared, listSynced, type Equals, type ListDelta, type PendingListDelta } from "./ListDelta";
 import { scheduleTick, scheduleTock, type UpdateCallback } from "./Scheduler";
 
 export interface ReadonlyList<T> extends Iterable<T>, DependencyList {
@@ -231,8 +231,8 @@ export function sync<T>(list: List<T>, source: Iterable<T>, eq: Equals<T> = defa
 		return;
 	}
 
-	// make sure that if no changes are detected, an empty delta isn't left on the List, marking it dirty
-	const delta = list.$pendingDelta ?? createDelta();
+	// make sure that if no changes are detected, an empty delta isn't left on the List
+	const delta = initDelta(list);
 	if (listSynced(delta, oldItems, newItems, eq)) {
 		list.$pendingDelta = delta;
 		listMutated(list);
@@ -255,13 +255,14 @@ function dirty(this: List<any>) {
 		return true;
 	}
 
-	if (this.$pendingDelta) {
-		// a delta is pending, check that the notification is scheduled within an active lifecycle
-		const pending = this.$notify;
-		return !pending || pending.$life === pending.$lifecycle!.$life;
+	const delta = this.$pendingDelta;
+	if (!delta) {
+		return false;
 	}
 
-	return false;
+	// a delta is pending, check that the notification is scheduled within an active lifecycle and that the delta contains changes
+	const pending = this.$notify;
+	return (!pending || pending.$life === pending.$lifecycle!.$life) && delta.changes.length > 0;
 }
 
 function delta<T>(this: List<T>) {
@@ -306,7 +307,7 @@ function set<T>(this: List<T>, index: number, newItem: T) {
 
 	// only emit deltas when there are observers
 	if (this.$dh) {
-		itemChanged(initDelta(this), index, oldItem, newItem);
+		itemChanged(this.$pendingDelta = initDelta(this), index, oldItem, newItem);
 		listMutated(this);
 	}
 }
@@ -323,7 +324,7 @@ function clear(this: List<any>) {
 
 	// only emit deltas when there are observers
 	if (this.$dh) {
-		listCleared(initDelta(this), count);
+		listCleared(this.$pendingDelta = initDelta(this), count);
 		listMutated(this);
 	}
 }
@@ -341,7 +342,7 @@ function insertAt<T>(this: List<T>, index: number, item: T) {
 
 	// only emit deltas when there are observers
 	if (this.$dh) {
-		itemInserted(initDelta(this), index, item);
+		itemInserted(this.$pendingDelta = initDelta(this), index, item);
 		listMutated(this);
 	}
 }
@@ -371,7 +372,7 @@ function removeAt<T>(this: List<T>, index: number) {
 
 	// only emit deltas when there are observers
 	if (this.$dh) {
-		itemRemoved(initDelta(this), index, item);
+		itemRemoved(this.$pendingDelta = initDelta(this), index, item);
 		listMutated(this);
 	}
 
@@ -403,7 +404,7 @@ function assertIndex(list: List<any>, index: number) {
 	}
 }
 
-function initDelta(list: List<any>) {
+function initDelta<T>(list: List<T>): PendingListDelta<T> {
 	if (list.$pendingDelta) {
 		const pending = list.$notify;
 		if (!pending || pending.$life === pending.$lifecycle!.$life) {
@@ -411,7 +412,10 @@ function initDelta(list: List<any>) {
 		}
 	}
 
-	return (list.$pendingDelta = createDelta());
+	return {
+		changes: [],
+		relSize: 0,
+	};
 }
 
 function copyOnWrite(list: List<any>) {
