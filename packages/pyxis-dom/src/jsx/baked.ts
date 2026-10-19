@@ -1995,21 +1995,6 @@ export interface SVGFilterElementProps extends SVGCommonProps {
 	readonly y?: MaybeAtom<string | number>;
 }
 
-export interface SVGForeignObjectElementProps extends SVGCommonProps {
-	readonly [S_NODE_TYPE]?: SVGForeignObjectElement;
-	readonly [S_ELEM_NAME]?: "foreignObject";
-	readonly children?: JsxChildren;
-	readonly opacity?: MaybeAtom<string | number>;
-	readonly overflow?: MaybeAtom<SVGOverflow>;
-	readonly "pointer-events"?: MaybeAtom<SVGPointerEvents>;
-	readonly requiredExtensions?: MaybeAtom<string>;
-	readonly systemLanguage?: MaybeAtom<string>;
-	readonly "vector-effect"?: MaybeAtom<SVGVectorEffect>;
-	readonly visibility?: MaybeAtom<SVGVisibility>;
-	readonly x?: MaybeAtom<string | number>;
-	readonly y?: MaybeAtom<string | number>;
-}
-
 export interface SVGGElementProps extends SVGCommonProps {
 	readonly [S_NODE_TYPE]?: SVGGElement;
 	readonly [S_ELEM_NAME]?: "g";
@@ -2621,7 +2606,7 @@ export interface SVGIntrinsicElements {
 	feTile: SVGFETileElementProps;
 	feTurbulence: SVGFETurbulenceElementProps;
 	filter: SVGFilterElementProps;
-	foreignObject: SVGForeignObjectElementProps;
+	// foreignObject: SVGForeignObjectElementProps;
 	g: SVGGElementProps;
 	image: SVGImageElementProps;
 	line: SVGLineElementProps;
