@@ -655,8 +655,6 @@ export interface HTMLButtonElementProps extends HTMLCommonProps {
 	readonly value?: MaybeAtom<string>;
 	readonly popoverTargetAction?: MaybeAtom<string>;
 	readonly popoverTargetElement?: MaybeAtom<Element | null>;
-	readonly commandFor?: MaybeAtom<string>;
-	readonly popoverTarget?: MaybeAtom<string>;
 }
 
 export interface HTMLCanvasElementProps extends HTMLCommonProps {
@@ -838,7 +836,6 @@ export interface HTMLInputElementProps extends HTMLCommonProps {
 	readonly value?: MaybeAtom<string>;
 	readonly popoverTargetAction?: MaybeAtom<string>;
 	readonly popoverTargetElement?: MaybeAtom<Element | null>;
-	readonly popoverTarget?: MaybeAtom<string>;
 	readonly autocomplete?: MaybeAtom<AutoFill>;
 	readonly size?: MaybeAtom<number>;
 	readonly accept?: MaybeAtom<string>;

@@ -103,7 +103,7 @@ export function host<C>(
 
 export function host<T>(context: Context<T>, defaultValue?: T, lifecycle = getLifecycle()) {
 	if (__DEV__) {
-		__DEV__assertIsDirectComponentCode("host");
+		__DEV__assertIsDirectComponentCode(host.name);
 	}
 
 	if (!runtime.$currentContextNew || !runtime.$currentContext) {
@@ -168,7 +168,7 @@ export function host<T>(context: Context<T>, defaultValue?: T, lifecycle = getLi
  */
 export function contextual<T>(context: Context<T>): Atom<T> {
 	if (__DEV__) {
-		__DEV__assertIsDirectComponentCode("contextual");
+		__DEV__assertIsDirectComponentCode(contextual.name);
 	}
 
 	const atom = lookupUpstream(context);

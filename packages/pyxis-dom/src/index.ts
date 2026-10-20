@@ -1,7 +1,12 @@
-export { MathML } from "~/component/MathML";
-export { Svg } from "~/component/Svg";
+export { Button, type ButtonProps } from "~/component/Button";
+export { Input, type InputProps } from "~/component/Input";
+export { MathML, type MathMLProps } from "~/component/MathML";
+export { Select, type SelectProps } from "~/component/Select";
+export { Svg, type SvgProps } from "~/component/Svg";
+export { Textarea, type TextareaProps } from "~/component/Textarea";
 
 export { AriaExtension } from "~/extension/AriaExtension";
+export { AttributeExtension } from "~/extension/AttributeExtension";
 export { ClassListExtension } from "~/extension/ClassListExtension";
 export { CssStyleExtension } from "~/extension/CssStyleExtension";
 export { CssVariableExtension } from "~/extension/CssVariableExtension";

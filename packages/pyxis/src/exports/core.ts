@@ -20,7 +20,7 @@ export { assign, atomsOf, text, updates, writes, type AtomsOf, type ValueType } 
 export type { ElementsType, ElemName, Flatten, Nil, NodeType, PropsType, S_ELEM_NAME, S_NODE_TYPE } from "~/support/types";
 
 export { ext, extension, type Adapter, type Extension, type ExtensionPropMapping, type ExtensionsType } from "~/Adapter";
-export { component, type Component, type DataTemplate, type JsxChildren, type JsxChildrenProp, type JsxDevSourceInfo, type JsxObject, type JsxProps, type JsxResult, type JsxText, type PropsOf, type WithChildren } from "~/Component";
+export { component, type Component, type ComponentHandler, type DataTemplate, type JsxChildren, type JsxChildrenProp, type JsxDevSourceInfo, type JsxObject, type JsxProps, type JsxResult, type JsxText, type PropsOf, type WithChildren } from "~/Component";
 export { jsx, jsxs } from "~/jsx";
 export { destroy, flush, fork, insert, mount, mountJsx, track, unmount, untrack, willMount, type ElementsOf, type HNode, type MountingGroup, type Renderer } from "~/Renderer";
 export { renderer, type RendererBuilder } from "~/RendererBuilder";

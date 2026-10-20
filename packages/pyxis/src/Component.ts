@@ -199,7 +199,10 @@ export type JsxChildren = JsxResult | readonly JsxChildren[];
  */
 export type WithChildren<T extends PropsType> = T & { children?: JsxChildren };
 
-/** @internal */
+/**
+ * A handler function rendering a specific Component type. This is the real shape of Pyxis
+ * components used internally by the framework.
+ */
 export interface ComponentHandler {
 	<TNode>(
 		jsx: JsxObject,

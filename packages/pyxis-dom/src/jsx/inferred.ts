@@ -200,10 +200,7 @@ export type HTMLBRElementProps = HTMLPropsNoChildren<HTMLBRElement, "br", {
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLButtonElementProps = HTMLProps<HTMLButtonElement, "button", {
-	commandFor: string;
-	popoverTarget: string;
-}>;
+export type HTMLButtonElementProps = HTMLProps<HTMLButtonElement, "button">;
 
 /**
  * @bake
@@ -386,8 +383,6 @@ export type HTMLImageElementProps = HTMLPropsNoChildren<HTMLImageElement, "img",
  * @extends HTMLCommonProps
  */
 export type HTMLInputElementProps = HTMLPropsNoChildren<HTMLInputElement, "input", {
-	popoverTarget: string;
-
 	// deprecated props:
 	align: never;
 	useMap: never;

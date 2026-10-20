@@ -166,7 +166,6 @@ function teardownEffect(effect: Effect<ReturnType<EffectBlock>>) {
  * @internal
  */
 export function resolve<TEffect extends Effect<any>>(effect: TEffect): TEffect extends Effect<infer T> ? T : unknown {
-	effect.$deps ??= new WeakMap();
 	effect.$rc = 0;
 
 	const cycle = (effect.$cycle += 1);
@@ -235,7 +234,7 @@ export function reportAccess(atom: DependencyList) {
 		return;
 	}
 
-	let dep = currentEffect.$deps!.get(atom);
+	let dep = currentEffect.$deps?.get(atom);
 	if (dep) {
 		// refresh dependency to the current cycle number
 		dep.$a1 = currentEffect.$cycle;
@@ -252,7 +251,7 @@ export function reportAccess(atom: DependencyList) {
 			$a1: currentEffect.$cycle,
 		});
 
-		currentEffect.$deps!.set(atom, dep);
+		(currentEffect.$deps ??= new WeakMap()).set(atom, dep);
 		currentEffect.$rc! += 1;
 
 		// add the dependency to the Effect's list

@@ -1,11 +1,13 @@
-import { Native, S_COMPONENT, S_TAG_NAME, fork, mount, type HNode, type JsxObject, type JsxResult, type MountingGroup } from "@calmdown/pyxis/core";
+import { Native, S_COMPONENT, S_TAG_NAME, fork, mount, type ComponentHandler, type HNode, type JsxObject, type JsxResult, type MountingGroup } from "@calmdown/pyxis/core";
 
 import { MathMLAdapter } from "~/adapter/MathMLAdapter";
 
 import type { Mutable } from "./types";
 
+export type MathMLProps = JSX.IntrinsicElements["MathML"];
+
 // @ts-expect-error fake overload to allow use with JSX
-export function MathML(props: JSX.IntrinsicElements["MathML"]): JsxResult;
+export function MathML(props: MathMLProps): JsxResult;
 
 export function MathML(
 	jsx: Mutable<JsxObject>,
@@ -24,6 +26,6 @@ export function MathML(
 		mount(jsx, group, nUsedParent, nRealParent, nBefore, isBatch);
 	}
 	finally {
-		jsx[S_COMPONENT] = MathML;
+		jsx[S_COMPONENT] = MathML as ComponentHandler;
 	}
 }

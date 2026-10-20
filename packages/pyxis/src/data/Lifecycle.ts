@@ -44,7 +44,7 @@ export interface UnmountBlock {
  */
 export function mounted(block: MountBlock, lifecycle?: Lifecycle) {
 	if (__DEV__ && lifecycle === undefined) {
-		__DEV__assertIsDirectComponentCode("mounted");
+		__DEV__assertIsDirectComponentCode(mounted.name);
 	}
 
 	lifecycle ??= getLifecycle();
@@ -83,7 +83,7 @@ export function invokeMountedCallback(lifecycle: Lifecycle, block: (arg: any) =>
  */
 export function unmounted(block: UnmountBlock, lifecycle?: Lifecycle) {
 	if (__DEV__ && lifecycle === undefined) {
-		__DEV__assertIsDirectComponentCode("unmounted");
+		__DEV__assertIsDirectComponentCode(unmounted.name);
 	}
 
 	onUnmounted(lifecycle ?? getLifecycle(), { $fn: block });
