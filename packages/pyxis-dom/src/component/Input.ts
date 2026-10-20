@@ -1,4 +1,4 @@
-import { effect, read, type Component, type MaybeAtom, type Nil } from "@calmdown/pyxis/core";
+import { effect, read, type Component, type MaybeAtom, type Nil } from "@calmdown/pyxis";
 
 import { control, setControlProps } from "./common";
 

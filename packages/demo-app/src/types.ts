@@ -1,3 +1,3 @@
-export type ExtendedProps<TTagName extends keyof JSX.IntrinsicElements, TProps> =
-	& Omit<JSX.IntrinsicElements[TTagName], keyof TProps>
+export type ExtendedProps<TSource, TProps> =
+	& Omit<TSource extends keyof JSX.IntrinsicElements ? JSX.IntrinsicElements[TSource] : TSource, keyof TProps>
 	& TProps;

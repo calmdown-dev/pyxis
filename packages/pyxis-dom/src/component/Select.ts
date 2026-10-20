@@ -1,4 +1,4 @@
-import { effect, unmounted, type Component } from "@calmdown/pyxis/core";
+import { effect, unmounted, type Component } from "@calmdown/pyxis";
 
 import { control, setControlProps } from "./common";
 

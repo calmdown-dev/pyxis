@@ -1,4 +1,4 @@
-import type { Component, MaybeAtom, Nil } from "@calmdown/pyxis/core";
+import type { Component, MaybeAtom, Nil } from "@calmdown/pyxis";
 
 import { control } from "./common";
 
