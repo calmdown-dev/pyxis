@@ -1,4 +1,4 @@
-import type { MaybeAtom, Nil } from "@calmdown/pyxis/core";
+import type { Component, MaybeAtom, Nil } from "@calmdown/pyxis/core";
 
 import { control } from "./common";
 
@@ -7,7 +7,7 @@ export type ButtonProps = JSX.IntrinsicElements["button"] & {
 	readonly popoverTarget?: MaybeAtom<Nil<string>>;
 };
 
-export const Button = /*@__PURE__*/ control<ButtonProps>(
+export const Button: Component<ButtonProps> = /*@__PURE__*/ control(
 	/* tagName = */ "button",
 	/* deferredPropNames = */ [],
 	/* attributeMapping = */ {

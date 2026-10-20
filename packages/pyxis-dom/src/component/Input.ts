@@ -1,4 +1,4 @@
-import { effect, read, type MaybeAtom, type Nil } from "@calmdown/pyxis/core";
+import { effect, read, type Component, type MaybeAtom, type Nil } from "@calmdown/pyxis/core";
 
 import { control, setControlProps } from "./common";
 
@@ -8,6 +8,10 @@ export type InputProps = JSX.IntrinsicElements["input"] & {
 
 const CONTROL_PROPS = [
 	"type",
+	"files",
+	"min",
+	"max",
+	"step",
 	"defaultValue",
 	"value",
 	"valueAsNumber",
@@ -16,7 +20,7 @@ const CONTROL_PROPS = [
 	"checked",
 ];
 
-export const Input = /*@__PURE__*/ control<InputProps>(
+export const Input: Component<InputProps> = /*@__PURE__*/ control(
 	/* tagName = */ "input",
 	/* deferredPropNames = */ [ ...CONTROL_PROPS, "name" ],
 	/* attributeMapping = */ {

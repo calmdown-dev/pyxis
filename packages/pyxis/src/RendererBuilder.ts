@@ -17,7 +17,7 @@ export interface RendererBuilder<TNode, TElements extends ElementsType, TUsedPre
 }
 
 type ExtendedElements<TNode, TElements extends ElementsType, TExtension extends Extension<TNode>, TPrefix extends string> = (
-	TExtension extends { readonly $mapping?: infer TMapping extends ExtensionPropMapping<TNode> }
+	TExtension extends { readonly $mapping?: infer TMapping extends ExtensionPropMapping<unknown> }
 		? {
 			[TElementName in keyof TElements]: (
 				(TMapping & { node: NodeType<TElements[TElementName]>; name: TElementName; })["extension"] extends (infer TExtensionProps extends PropsType)

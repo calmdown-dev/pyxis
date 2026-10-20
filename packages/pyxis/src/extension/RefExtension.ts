@@ -2,7 +2,7 @@ import { isAtom, write, type WriteAtom } from "~/data/Atom";
 import { invokeMountedCallback, onMounted, onUnmounted } from "~/data/Lifecycle";
 import { extension, type ExtensionPropMapping } from "~/Adapter";
 
-interface RefPropMapping extends ExtensionPropMapping<any> {
+interface RefPropMapping extends ExtensionPropMapping<unknown> {
 	extension: RefProps<this["node"]>;
 }
 

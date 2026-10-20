@@ -122,6 +122,12 @@ interface Hierarchy<TNode> {
 	 * @internal
 	 */
 	$hn?: Nil<HNode<TNode>>;
+
+	/**
+	 * tracks whether unmounting is in progress for this node, guarding against duplicate or cyclic
+	 * unmount attempts
+	 */
+	$isUnmounting?: boolean;
 }
 
 export type HNode<TNode> =
@@ -163,8 +169,7 @@ export function createRenderer<TNode, TIntrinsicElements extends ElementsType>(
 				return hGroup;
 			}
 			catch (ex) {
-				destroy(hGroup);
-				throw ex;
+				destroy(hGroup, [ ex ]);
 			}
 		},
 	};
@@ -178,15 +183,20 @@ export function createRenderer<TNode, TIntrinsicElements extends ElementsType>(
  * user code throws during unmount. Also clears refs to its original parent node. Destroyed groups
  * cannot be reused.
  */
-export function destroy<TNode>(hGroup: MountingGroup<TNode>) {
-	if (!deferUnmount(hGroup, true)) {
-		const errors: unknown[] = [];
+export function destroy<TNode>(hGroup: MountingGroup<TNode>): void;
+
+/** @internal */
+export function destroy<TNode>(hGroup: MountingGroup<TNode>, errors: [ unknown, ...unknown[] ]): never;
+
+export function destroy<TNode>(hGroup: MountingGroup<TNode>, errors?: unknown[]) {
+	if (!hGroup.$isUnmounting && !deferUnmount(hGroup, true)) {
+		errors ??= [];
 		doUnmount(hGroup, errors);
 		untrack(hGroup);
 		hGroup.$ph = null;
-
-		rethrow(errors);
 	}
+
+	rethrow(errors);
 }
 
 /**
@@ -630,6 +640,12 @@ function doUnmount<TNode>(hGroup: MountingGroup<TNode>, errors: unknown[]) {
 }
 
 function unmountNode<TNode>(hNode: HNode<TNode>, errors: unknown[], top: boolean) {
+	if (hNode.$isUnmounting) {
+		return;
+	}
+
+	hNode.$isUnmounting = true;
+
 	if (hNode.$isGroup) {
 		// regardless of mounted state, always run teardown callbacks when there are any
 		if (hNode.$onUnmount?.length) {
@@ -648,9 +664,9 @@ function unmountNode<TNode>(hNode: HNode<TNode>, errors: unknown[], top: boolean
 			}
 		}
 
+		teardown(hNode); // also clears mount and unmount callback arrays
 		hNode.mounted = false;
 		hNode.$canMount = false;
-		teardown(hNode); // also clears mount and unmount callback arrays
 	}
 
 	const { adapter } = hNode.$ng;
@@ -681,6 +697,7 @@ function unmountNode<TNode>(hNode: HNode<TNode>, errors: unknown[], top: boolean
 
 	hNode.$hh = null;
 	hNode.$ht = null;
+	hNode.$isUnmounting = false;
 }
 
 /**

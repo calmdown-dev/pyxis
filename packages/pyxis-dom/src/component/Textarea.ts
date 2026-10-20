@@ -1,15 +1,15 @@
-import { effect } from "@calmdown/pyxis/core";
+import { effect, type Component } from "@calmdown/pyxis/core";
 
 import { control, setControlProps } from "./common";
 
-export type TextareaProps = JSX.IntrinsicElements["textarea"];
+export type TextAreaProps = JSX.IntrinsicElements["textarea"];
 
 const DEFERRED_PROPS = [
 	"defaultValue",
 	"value",
 ];
 
-export const Textarea = /*@__PURE__*/ control<TextareaProps>(
+export const TextArea: Component<TextAreaProps> = /*@__PURE__*/ control(
 	/* tagName = */ "textarea",
 	/* deferredPropNames = */ DEFERRED_PROPS,
 	/* attributeMapping = */ {},

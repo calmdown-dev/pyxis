@@ -78,7 +78,7 @@ export interface Adapter<TNode, TElements extends ElementsType = ElementsType> {
 
 export type ExtensionsType<TNode> = { [_ in string]?: Extension<TNode> };
 
-export interface Extension<TNode, TPropMapping extends ExtensionPropMapping<TNode> = ExtensionPropMapping<TNode>> {
+export interface Extension<TNode, TPropMapping extends ExtensionPropMapping<unknown> = ExtensionPropMapping<unknown>> {
 	/**
 	 * Unique prop prefix of this Extension used for props set by reference (via the {@link ext}
 	 * utility).

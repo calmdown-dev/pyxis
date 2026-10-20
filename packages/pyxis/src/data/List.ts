@@ -3,7 +3,7 @@ import { runtime } from "~/Runtime";
 
 import { link, notify, type DependencyList } from "./Dependency";
 import { reportAccess } from "./Effect";
-import { getLifecycle, type Lifecycle } from "./Lifecycle";
+import { getLifecycle, withLifecycle, type Lifecycle } from "./Lifecycle";
 import { itemChanged, itemInserted, itemRemoved, listCleared, listSynced, type Equals, type ListDelta, type PendingListDelta } from "./ListDelta";
 import { scheduleTick, type UpdateCallback } from "./Scheduler";
 
@@ -268,7 +268,8 @@ function delta<T>(this: List<T>, block: (delta: ListDelta<T>) => void, lifecycle
 	link(lifecycle, this, {
 		$fn: invokeDeltaBlock<T>,
 		$a0: this,
-		$a1: block,
+		$a1: lifecycle,
+		$a2: block,
 	});
 }
 
@@ -467,6 +468,6 @@ function notifyListObservers(list: List<any>) {
 	}
 }
 
-function invokeDeltaBlock<T>(list: List<T>, block: (delta: ListDelta<T>) => void) {
-	block(list.$committedDelta!);
+function invokeDeltaBlock<T>(list: List<T>, lifecycle: Lifecycle, block: (delta: ListDelta<T>) => void) {
+	withLifecycle(lifecycle, block, list.$committedDelta!);
 }

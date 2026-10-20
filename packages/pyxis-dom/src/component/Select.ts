@@ -1,4 +1,4 @@
-import { effect, unmounted } from "@calmdown/pyxis/core";
+import { effect, unmounted, type Component } from "@calmdown/pyxis/core";
 
 import { control, setControlProps } from "./common";
 
@@ -10,7 +10,7 @@ const DEFERRED_PROPS = [
 	"selectedIndex",
 ];
 
-export const Select = /*@__PURE__*/ control<SelectProps>(
+export const Select: Component<SelectProps> = /*@__PURE__*/ control(
 	/* tagName = */ "select",
 	/* deferredPropNames = */ DEFERRED_PROPS,
 	/* attributeMapping = */ {},

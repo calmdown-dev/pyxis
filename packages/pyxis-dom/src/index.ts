@@ -3,7 +3,7 @@ export { Input, type InputProps } from "~/component/Input";
 export { MathML, type MathMLProps } from "~/component/MathML";
 export { Select, type SelectProps } from "~/component/Select";
 export { Svg, type SvgProps } from "~/component/Svg";
-export { Textarea, type TextareaProps } from "~/component/Textarea";
+export { TextArea, type TextAreaProps } from "~/component/TextArea";
 
 export { AriaExtension } from "~/extension/AriaExtension";
 export { AttributeExtension } from "~/extension/AttributeExtension";
