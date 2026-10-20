@@ -136,12 +136,13 @@ function teardownEffect(effect: Effect<ReturnType<EffectBlock>>) {
 
 	const prevLifecycle = runtime.l;
 	runtime.l = effect.$lifecycle;
+	effect.$dispose = null;
+
 	try {
 		fn();
 	}
 	finally {
 		runtime.l = prevLifecycle;
-		effect.$dispose = null;
 	}
 }
 

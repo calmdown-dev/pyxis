@@ -135,6 +135,9 @@ export type HTMLCommonProps = Finalize<HTMLRawProps<HTMLElement, {}>>;
 export type HTMLAnchorElementProps = HTMLProps<HTMLAnchorElement, "a", {
 	relList: string;
 
+	// not supported as a prop, use children:
+	text: never;
+
 	// deprecated props:
 	charset: never;
 	coords: never;
@@ -477,13 +480,16 @@ export type HTMLOptGroupElementProps = HTMLProps<HTMLOptGroupElement, "optgroup"
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLOptionElementProps = HTMLProps<HTMLOptionElement, "option">;
+export type HTMLOptionElementProps = HTMLProps<HTMLOptionElement, "option", {
+	// not supported as a prop, use children:
+	text: never;
+}>;
 
 /**
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLOutputElementProps = HTMLProps<HTMLOutputElement, "output">;
+export type HTMLOutputElementProps = HTMLPropsNoChildren<HTMLOutputElement, "output">;
 
 /**
  * @bake
@@ -907,13 +913,16 @@ export type SVGVectorEffect = "none" | "non-scaling-stroke" | "non-scaling-size"
 export type SVGVisibility = "visible" | "hidden" | "collapse";
 
 /** @preserve */
-export type SVGWhiteSpace = "normal" | "pre" | "nowrap" | "pre-wrap" | "break-space" | "pre-line";
+export type SVGWhiteSpace = "normal" | "pre" | "nowrap" | "pre-wrap" | "break-spaces" | "pre-line";
 
 /** @preserve */
 export type SVGWritingMode = "horizontal-tb" | "vertical-rl" | "vertical-lr";
 
 /** @preserve */
 export type SVGColorChannel = "R" | "G" | "B" | "A";
+
+/** @preserve */
+export type SVGTextOverflow = "clip" | "ellipsis";
 
 /**
  * @bake
@@ -2010,7 +2019,7 @@ export type SVGTextElementProps = SVGProps<SVGTextElement, "text", {
 	systemLanguage: string;
 	"text-anchor": SVGTextAnchor;
 	"text-decoration": string;
-	"text-overflow": "clip" | "ellipses";
+	"text-overflow": SVGTextOverflow;
 	"text-rendering": "auto" | "optimizeSpeed" | "optimizeLegibility" | "geometricPrecision";
 	textLength: number | string;
 	"unicode-bidi": SVGUnicodeBidi;
@@ -2063,7 +2072,7 @@ export type SVGTextPathElementProps = SVGProps<SVGTextPathElement, "textPath", {
 	systemLanguage: string;
 	"text-anchor": SVGTextAnchor;
 	"text-decoration": string;
-	"text-overflow": "clip" | "ellipses";
+	"text-overflow": SVGTextOverflow;
 	textLength: number | string;
 	"unicode-bidi": SVGUnicodeBidi;
 	"vector-effect": SVGVectorEffect;
@@ -2116,7 +2125,7 @@ export type SVGTSpanElementProps = SVGProps<SVGTSpanElement, "tspan", {
 	systemLanguage: string;
 	"text-anchor": SVGTextAnchor;
 	"text-decoration": string;
-	"text-overflow": "clip" | "ellipses";
+	"text-overflow": SVGTextOverflow;
 	textLength: number | string;
 	"unicode-bidi": SVGUnicodeBidi;
 	"vector-effect": SVGVectorEffect;

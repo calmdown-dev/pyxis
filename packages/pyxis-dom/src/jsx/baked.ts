@@ -552,7 +552,6 @@ export interface HTMLAnchorElementProps extends HTMLCommonProps {
 	readonly rel?: MaybeAtom<string>;
 	readonly relList?: MaybeAtom<string>;
 	readonly target?: MaybeAtom<string>;
-	readonly text?: MaybeAtom<string>;
 	readonly type?: MaybeAtom<string>;
 	readonly hash?: MaybeAtom<string>;
 	readonly host?: MaybeAtom<string>;
@@ -935,7 +934,6 @@ export interface HTMLOptionElementProps extends HTMLCommonProps {
 	readonly [S_NODE_TYPE]?: HTMLOptionElement;
 	readonly [S_ELEM_NAME]?: "option";
 	readonly children?: JsxChildren;
-	readonly text?: MaybeAtom<string>;
 	readonly disabled?: MaybeAtom<boolean>;
 	readonly value?: MaybeAtom<string>;
 	readonly label?: MaybeAtom<string>;
@@ -946,7 +944,7 @@ export interface HTMLOptionElementProps extends HTMLCommonProps {
 export interface HTMLOutputElementProps extends HTMLCommonProps {
 	readonly [S_NODE_TYPE]?: HTMLOutputElement;
 	readonly [S_ELEM_NAME]?: "output";
-	readonly children?: JsxChildren;
+	readonly children?: never;
 	readonly for?: MaybeAtom<DOMTokenList>;
 	readonly name?: MaybeAtom<string>;
 	readonly value?: MaybeAtom<string>;
@@ -1329,11 +1327,13 @@ export type SVGVectorEffect = "none" | "non-scaling-stroke" | "non-scaling-size"
 
 export type SVGVisibility = "visible" | "hidden" | "collapse";
 
-export type SVGWhiteSpace = "normal" | "pre" | "nowrap" | "pre-wrap" | "break-space" | "pre-line";
+export type SVGWhiteSpace = "normal" | "pre" | "nowrap" | "pre-wrap" | "break-spaces" | "pre-line";
 
 export type SVGWritingMode = "horizontal-tb" | "vertical-rl" | "vertical-lr";
 
 export type SVGColorChannel = "R" | "G" | "B" | "A";
+
+export type SVGTextOverflow = "clip" | "ellipsis";
 
 export interface SVGAElementProps extends SVGCommonProps {
 	readonly [S_NODE_TYPE]?: SVGAElement;
@@ -2342,7 +2342,7 @@ export interface SVGTextElementProps extends SVGCommonProps {
 	readonly systemLanguage?: MaybeAtom<string>;
 	readonly "text-anchor"?: MaybeAtom<SVGTextAnchor>;
 	readonly "text-decoration"?: MaybeAtom<string>;
-	readonly "text-overflow"?: MaybeAtom<"clip" | "ellipses">;
+	readonly "text-overflow"?: MaybeAtom<SVGTextOverflow>;
 	readonly "text-rendering"?: MaybeAtom<"auto" | "optimizeSpeed" | "geometricPrecision" | "optimizeLegibility">;
 	readonly textLength?: MaybeAtom<string | number>;
 	readonly "unicode-bidi"?: MaybeAtom<SVGUnicodeBidi>;
@@ -2394,7 +2394,7 @@ export interface SVGTextPathElementProps extends SVGCommonProps {
 	readonly systemLanguage?: MaybeAtom<string>;
 	readonly "text-anchor"?: MaybeAtom<SVGTextAnchor>;
 	readonly "text-decoration"?: MaybeAtom<string>;
-	readonly "text-overflow"?: MaybeAtom<"clip" | "ellipses">;
+	readonly "text-overflow"?: MaybeAtom<SVGTextOverflow>;
 	readonly textLength?: MaybeAtom<string | number>;
 	readonly "unicode-bidi"?: MaybeAtom<SVGUnicodeBidi>;
 	readonly "vector-effect"?: MaybeAtom<SVGVectorEffect>;
@@ -2446,7 +2446,7 @@ export interface SVGTSpanElementProps extends SVGCommonProps {
 	readonly systemLanguage?: MaybeAtom<string>;
 	readonly "text-anchor"?: MaybeAtom<SVGTextAnchor>;
 	readonly "text-decoration"?: MaybeAtom<string>;
-	readonly "text-overflow"?: MaybeAtom<"clip" | "ellipses">;
+	readonly "text-overflow"?: MaybeAtom<SVGTextOverflow>;
 	readonly textLength?: MaybeAtom<string | number>;
 	readonly "unicode-bidi"?: MaybeAtom<SVGUnicodeBidi>;
 	readonly "vector-effect"?: MaybeAtom<SVGVectorEffect>;

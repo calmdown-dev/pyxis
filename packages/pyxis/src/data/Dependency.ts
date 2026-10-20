@@ -1,4 +1,4 @@
-import { invoke } from "~/support/common";
+import { invoke, rethrow } from "~/support/common";
 import type { ArgsMax3, Callback, Nil } from "~/support/types";
 
 import type { Lifecycle } from "./Lifecycle";
@@ -290,19 +290,26 @@ export function notify(list: DependencyList) {
 	// push cursor stack
 	list.$ct = cursor;
 
-	try {
-		let current;
-		while ((current = cursor.$dn)) {
-			// the callback may run arbitrary user code, which could lead to mutations of the linked
-			// list we're iterating -> we advance the cursor first; the link, unlink, unlinkAll
-			// functions check and adjust it when necessary; this loop will then advance to the
-			// correct next dependency
-			cursor.$dn = current.$an;
+	// invoke all observer callbacks, catching any errors
+	let errors: unknown[] | null = null;
+	let current;
+	while ((current = cursor.$dn)) {
+		// the callback may run arbitrary user code, which could lead to mutations of the linked
+		// list we're iterating -> we advance the cursor first; the link, unlink, unlinkAll
+		// functions check and adjust it when necessary; this loop will then advance to the correct
+		// next dependency
+		cursor.$dn = current.$an;
+		try {
 			invoke(current);
 		}
+		catch (ex) {
+			(errors ??= []).push(ex);
+		}
 	}
-	finally {
-		// pop cursor stack
-		list.$ct = cursor.$cp;
-	}
+
+	// pop cursor stack
+	list.$ct = cursor.$cp;
+
+	// fail, if there were any errors
+	rethrow(errors);
 }

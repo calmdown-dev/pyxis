@@ -140,7 +140,7 @@ export function atomsOf(
 
 		for (; index < length; index += 1) {
 			key = keys[index];
-			result[key] = atomOf(peek(data[key]), lifecycle);
+			result[key] = atomOf(data[key], lifecycle);
 		}
 
 		for (key in data) {
@@ -152,7 +152,7 @@ export function atomsOf(
 	else {
 		let key;
 		for (key in data) {
-			result[key] = atomOf(peek(data[key]), lifecycle);
+			result[key] = atomOf(data[key], lifecycle);
 		}
 	}
 
@@ -223,13 +223,13 @@ export function assign(
 				write(atom, peek(data[key]));
 			}
 			else {
-				store[key] = atomOf(peek(data[key]), lifecycle ??= getLifecycle());
+				store[key] = atomOf(data[key], lifecycle ??= getLifecycle());
 			}
 		}
 
 		for (key in data) {
 			if (!Object.hasOwn(store, key)) {
-				store[key] = atomOf(peek(data[key]), lifecycle ??= getLifecycle());
+				store[key] = atomOf(data[key], lifecycle ??= getLifecycle());
 			}
 		}
 	}

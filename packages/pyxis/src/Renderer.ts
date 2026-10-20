@@ -317,9 +317,11 @@ export function mount<TNode>(
 
 	const prevLifecycle = runtime.l;
 	const prevContext = runtime.c;
+	const prevContextNew = runtime.n;
 	const prevEffect = runtime.e;
 	runtime.l = hGroup;
 	runtime.c = hGroup.$context;
+	runtime.n = false;
 	runtime.e = null;
 	try {
 		mountJsx(jsx, hGroup, nUsedParent, nRealParent, nBefore, isBatch);
@@ -327,6 +329,7 @@ export function mount<TNode>(
 	finally {
 		runtime.l = prevLifecycle;
 		runtime.c = prevContext;
+		runtime.n = prevContextNew;
 		runtime.e = prevEffect;
 	}
 

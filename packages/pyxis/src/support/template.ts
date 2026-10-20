@@ -16,7 +16,7 @@ function Template<TNode>(
 	nBefore: TNode | null,
 	isBatch: boolean,
 ) {
-	mountJsx(jsx.t!(jsx.d), hParent, nUsedParent, nRealParent, nBefore, isBatch);
+	mountJsx(jsx.t?.(jsx.d), hParent, nUsedParent, nRealParent, nBefore, isBatch);
 }
 
 const REUSED_JSX = {

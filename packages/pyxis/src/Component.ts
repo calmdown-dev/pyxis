@@ -44,6 +44,7 @@ export function component(
 
 	return (props, hParent, nUsedParent, nRealParent, nBefore, isBatch) => {
 		const capturedContext = runtime.c;
+		const capturedContextNew = runtime.n;
 		try {
 			if (__DEV__) {
 				if (!import.meta.hot || !devId) {
@@ -86,6 +87,7 @@ export function component(
 		finally {
 			// reset back to this Component's container, prevents leakage of branched off child contexts
 			runtime.c = capturedContext;
+			runtime.n = capturedContextNew;
 		}
 	};
 }
