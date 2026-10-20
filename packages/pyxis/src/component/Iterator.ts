@@ -1,6 +1,6 @@
 import { link } from "~/data/Dependency";
 import type { ReadonlyList } from "~/data/List";
-import { LC_CHANGE, LC_CLEAR, LC_INSERT, LC_REMOVE, type ListDelta } from "~/data/ListDelta";
+import { LC_CHANGE, LC_CLEAR, LC_INSERT, LC_REMOVE, type ListDelta, type ListItemInserted } from "~/data/ListDelta";
 import { createProxy, updateProxy, type Proxied } from "~/data/ProxyAtom";
 import { rethrow } from "~/support/common";
 import { mountTemplate } from "~/support/template";
@@ -22,11 +22,6 @@ export interface ProxyIteratorProps<T, P extends readonly (keyof T)[]> {
 interface IteratorItemGroup<TNode> extends MountingGroup<TNode> {
 	$marker: Extract<HNode<TNode>, { $isNative: true }>;
 	$data?: any;
-}
-
-interface PendingItem<T> {
-	readonly $index: number;
-	readonly $item: T;
 }
 
 /**
@@ -105,12 +100,7 @@ export function Iterator<TNode, T>(
 		// commit batch if it's local
 		if (isLocalBatch) {
 			adapter.insert(nBatchParent, nInitParent, nInitBefore);
-			try {
-				flush(hGroup);
-			}
-			catch (ex) {
-				(errors ??= []).push(ex);
-			}
+			errors = flushItems(renderedItems, 0, renderedItems.length, errors);
 		}
 
 		rethrow(errors);
@@ -127,9 +117,9 @@ export function Iterator<TNode, T>(
 		const { changes, relSize } = delta;
 		const cMax = changes.length;
 		const iMax = renderedItems.length + relSize;
-		const newItems = new Array<IteratorItemGroup<TNode>>(iMax);
+		let newItems = renderedItems;
 		let errors: unknown[] | null = null;
-		let pending: PendingItem<T>[] | null = null;
+		let pending: number[] | null = null;
 		let recycled: IteratorItemGroup<TNode>[] | null = null;
 		let item: IteratorItemGroup<TNode>;
 		let inserted = 0;
@@ -142,11 +132,23 @@ export function Iterator<TNode, T>(
 
 		// batching
 		let isLocalBatch = false;
+		let batchStart = 0;
 		let nBatchParent = nRealParent;
 		let nBatchBefore: TNode | null = null;
 
 		for (; ci < cMax; ci += 1) {
 			change = changes[ci];
+
+			// reuse item array until the first structural edit; LC_CHANGE alone doesn't restructure
+			if (newItems === renderedItems) {
+				if (change.kind === LC_CHANGE) {
+					oi = ni = change.index;
+				}
+				else {
+					newItems = new Array<IteratorItemGroup<TNode>>(iMax);
+					oi = ni = 0;
+				}
+			}
 
 			// copy unchanged items
 			while (ni < change.index) {
@@ -197,6 +199,7 @@ export function Iterator<TNode, T>(
 						if (!isLocalBatch) {
 							if (shouldBatch) {
 								isLocalBatch = true;
+								batchStart = ni;
 								nBatchParent = adapter.batch!();
 								nBatchBefore = null;
 							}
@@ -238,23 +241,15 @@ export function Iterator<TNode, T>(
 							tmp.index !== ni			// next insert is not consecutive
 						)) {
 							adapter.insert(nBatchParent, nRealParent, ref);
-							try {
-								flush(hGroup);
-							}
-							catch (ex) {
-								(errors ??= []).push(ex);
-							}
-
+							errors = flushItems(newItems, batchStart, ni, errors);
 							nBatchParent = nRealParent;
 							isLocalBatch = false;
 						}
 					}
 					else {
 						// we know enough items will be removed -> add a pending item
-						(pending ??= []).push({
-							$index: ni++,
-							$item: change.newItem,
-						});
+						(pending ??= []).push(ci);
+						ni += 1;
 					}
 
 					break;
@@ -302,19 +297,21 @@ export function Iterator<TNode, T>(
 		}
 
 		// copy remaining unchanged
-		while (ni < iMax) {
-			newItems[ni++] = renderedItems[oi++];
+		if (newItems !== renderedItems) {
+			while (ni < iMax) {
+				newItems[ni++] = renderedItems[oi++];
+			}
 		}
 
 		// fulfill pending items with recycled ones
 		let pi = pending ? pending.length - 1 : -1; // pending items index
 		let ri = recycled ? recycled.length - 1 : -1; // recycled items index
 		while (pi >= 0) {
-			tmp = pending![pi--];
-			item = (newItems[tmp.$index] = recycled![ri--]);
-			updateProxy(item.$data, tmp.$item, proxyKeys!);
+			tmp = changes[pending![pi--]] as ListItemInserted<T>;
+			item = (newItems[tmp.index] = recycled![ri--]);
+			updateProxy(item.$data, tmp.newItem, proxyKeys!);
 
-			ref = newItems[tmp.$index + 1];
+			ref = newItems[tmp.index + 1];
 			track(item.$marker, hGroup, ref?.$marker ?? hListEndMarker);
 			track(item, hGroup, ref?.$marker ?? hListEndMarker);
 
@@ -356,7 +353,28 @@ export function Iterator<TNode, T>(
 	mount(null, hGroup, nUsedParent, nRealParent, nBefore, isBatch);
 }
 
-/** Creates an adjacent marker/content pair in both the native and tracking hierarchies. */
+/**
+ * Flushes a range of items delimited by start (inclusive) and end (exclusive). Errors are caught
+ * and collected, the errors array (if any) is returned.
+ */
+function flushItems<TNode>(items: IteratorItemGroup<TNode>[], start: number, end: number, errors: unknown[] | null) {
+	let index = start;
+	for (; index < end; index += 1) {
+		try {
+			flush(items[index]);
+		}
+		catch (ex) {
+			(errors ??= []).push(ex);
+		}
+	}
+
+	return errors;
+}
+
+/**
+ * Creates a h-group for an iterator item with a position marker inserted into the master
+ * iterator-wide h-group, holding the position of the item within the node tree.
+ */
 function createItem<TNode>(
 	hGroup: MountingGroup<TNode>,
 	data: unknown,
@@ -373,10 +391,12 @@ function createItem<TNode>(
 		$ph: hGroup,
 	};
 
-	// Keep the position marker outside the remountable contents, including failed mounts.
+	// track position markers under the master group, rather than individual per-item groups
+	// doing so simplifies handling of failed item renders
 	track(marker, hGroup, hBefore);
 	adapter.insert(marker.$nn, nParent, nBefore);
 
+	// prepare per-item group for the actual content of the item
 	const item = fork(hGroup, hBefore, hGroup.$context) as IteratorItemGroup<TNode>;
 	item.$marker = marker;
 	item.$data = proxyKeys !== undefined
@@ -386,11 +406,17 @@ function createItem<TNode>(
 	return item;
 }
 
+/**
+ * Removes an iterator item as well as its position marker from the tracking hierarchy.
+ */
 function untrackItem<TNode>(item: IteratorItemGroup<TNode>) {
 	untrack(item.$marker);
 	untrack(item);
 }
 
+/**
+ * Destroys an iterator item that is no longer needed. Also destroys its position marker.
+ */
 function destroyItem<TNode>(item: IteratorItemGroup<TNode>) {
 	try {
 		destroy(item);

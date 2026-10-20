@@ -190,8 +190,7 @@ export function destroy<TNode>(hGroup: MountingGroup<TNode>, errors: [ unknown, 
 
 export function destroy<TNode>(hGroup: MountingGroup<TNode>, errors?: unknown[]) {
 	if (!hGroup.$isUnmounting && !deferUnmount(hGroup, true)) {
-		errors ??= [];
-		doUnmount(hGroup, errors);
+		errors = doUnmount(hGroup, errors);
 		untrack(hGroup);
 		hGroup.$ph = null;
 	}
@@ -330,17 +329,17 @@ export function willMount<TNode>(
 	block: (...args: ArgsMax3) => any,
 ) {
 	return (a0?: any, a1?: any, a2?: any) => {
-		const errors: unknown[] = [];
 		const mounts = runtime.$mounts ??= [];
 		if (++hGroup.$depth === 1) {
 			mounts.push(hGroup);
 		}
 
+		let errors: unknown[] | undefined;
 		try {
 			return block(a0, a1, a2);
 		}
 		catch (ex) {
-			errors.push(ex);
+			(errors ??= []).push(ex);
 		}
 		finally {
 			if (--hGroup.$depth === 0) {
@@ -368,7 +367,6 @@ export function mount<TNode>(
 		return;
 	}
 
-	const errors: unknown[] = [];
 	const mounts = runtime.$mounts ??= [];
 	if (++hGroup.$depth === 1) {
 		mounts.push(hGroup);
@@ -383,6 +381,7 @@ export function mount<TNode>(
 	runtime.$currentContextNew = false;
 	runtime.$currentEffect = null;
 
+	let errors: unknown[] | undefined;
 	try {
 		mountJsx(jsx, hGroup, nUsedParent, nRealParent, nBefore, isBatch);
 
@@ -392,7 +391,7 @@ export function mount<TNode>(
 		}
 	}
 	catch (ex) {
-		errors.push(ex);
+		(errors ??= []).push(ex);
 	}
 
 	runtime.$currentLifecycle = prevLifecycle;
@@ -403,8 +402,8 @@ export function mount<TNode>(
 		mounts.pop();
 	}
 
-	if (errors.length && !deferUnmount(hGroup)) {
-		doUnmount(hGroup, errors);
+	if (errors?.length && !deferUnmount(hGroup)) {
+		errors = doUnmount(hGroup, errors);
 	}
 
 	finishMount(errors);
@@ -414,7 +413,7 @@ export function mount<TNode>(
  * Processes deferred unmount requests once the outermost render finishes. Throws collected errors,
  * if any.
  */
-function finishMount(errors: unknown[]) {
+function finishMount(errors: unknown[] | undefined) {
 	if (!runtime.$mounts!.length) {
 		// nested renders get a separate queue while this one is being drained
 		const pending = runtime.$unmounts;
@@ -433,7 +432,7 @@ function finishMount(errors: unknown[]) {
 					continue;
 				}
 
-				doUnmount(request.$group, errors);
+				errors = doUnmount(request.$group, errors);
 				if (request.$destroy) {
 					untrack(request.$group);
 					request.$group.$ph = null;
@@ -525,13 +524,12 @@ export function flush<TNode>(hGroup: MountingGroup<TNode>) {
 		const prevEffect = runtime.$currentEffect;
 		runtime.$currentEffect = null;
 
-		const errors: unknown[] = [];
 		const mounts = runtime.$mounts ??= [];
 		if (++hGroup.$depth === 1) {
 			mounts.push(hGroup);
 		}
 
-		doFlush(hGroup, errors);
+		const errors = doFlush(hGroup, undefined);
 
 		runtime.$currentLifecycle = prevLifecycle;
 		runtime.$currentEffect = prevEffect;
@@ -548,10 +546,10 @@ export function flush<TNode>(hGroup: MountingGroup<TNode>) {
  * @see {@link mount}
  * @internal
  */
-function doFlush<TNode>(hNode: HNode<TNode>, errors: unknown[]) {
+function doFlush<TNode>(hNode: HNode<TNode>, errors: unknown[] | undefined): unknown[] | undefined {
 	let current = hNode.$hh;
 	while (current) {
-		doFlush(current, errors);
+		errors = doFlush(current, errors);
 		current = current.$hn;
 	}
 
@@ -569,13 +567,15 @@ function doFlush<TNode>(hNode: HNode<TNode>, errors: unknown[]) {
 					invoke(callbacks[index]);
 				}
 				catch (ex) {
-					errors.push(ex);
+					(errors ??= []).push(ex);
 				}
 			}
 
 			callbacks.length = 0;
 		}
 	}
+
+	return errors;
 }
 
 /**
@@ -624,24 +624,25 @@ export function unmount<TNode>(hGroup: MountingGroup<TNode>, errors?: unknown[])
 		return;
 	}
 
-	errors ??= [];
-	doUnmount(hGroup, errors);
+	errors = doUnmount(hGroup, errors);
 	rethrow(errors);
 }
 
-function doUnmount<TNode>(hGroup: MountingGroup<TNode>, errors: unknown[]) {
+function doUnmount<TNode>(hGroup: MountingGroup<TNode>, errors: unknown[] | undefined) {
 	const prevLifecycle = runtime.$currentLifecycle;
 	const prevEffect = runtime.$currentEffect;
 	runtime.$currentEffect = null;
 
-	unmountNode(hGroup, errors, true);
+	errors = unmountNode(hGroup, errors, true);
 	runtime.$currentLifecycle = prevLifecycle;
 	runtime.$currentEffect = prevEffect;
+
+	return errors;
 }
 
-function unmountNode<TNode>(hNode: HNode<TNode>, errors: unknown[], top: boolean) {
+function unmountNode<TNode>(hNode: HNode<TNode>, errors: unknown[] | undefined, top: boolean): unknown[] | undefined {
 	if (hNode.$isUnmounting) {
-		return;
+		return errors;
 	}
 
 	hNode.$isUnmounting = true;
@@ -659,7 +660,7 @@ function unmountNode<TNode>(hNode: HNode<TNode>, errors: unknown[], top: boolean
 					invoke(callbacks[index]);
 				}
 				catch (ex) {
-					errors.push(ex);
+					(errors ??= []).push(ex);
 				}
 			}
 		}
@@ -679,13 +680,13 @@ function unmountNode<TNode>(hNode: HNode<TNode>, errors: unknown[], top: boolean
 				adapter.remove(current.$nn);
 			}
 			catch (ex) {
-				errors.push(ex);
+				(errors ??= []).push(ex);
 			}
 
-			unmountNode(current, errors, false);
+			errors = unmountNode(current, errors, false);
 		}
 		else {
-			unmountNode(current, errors, top);
+			errors = unmountNode(current, errors, top);
 		}
 
 		next = current.$hn;
@@ -698,6 +699,8 @@ function unmountNode<TNode>(hNode: HNode<TNode>, errors: unknown[], top: boolean
 	hNode.$hh = null;
 	hNode.$ht = null;
 	hNode.$isUnmounting = false;
+
+	return errors;
 }
 
 /**

@@ -106,6 +106,7 @@ export function Show<TNode>(
 
 	// re-mounts may be necessary -> create a sub-group
 	const hGroup = fork(hParent);
+	const dispose = () => unmount(hGroup);
 
 	// (re-)render effect
 	let nMarker: TNode | null = nBefore;
@@ -142,7 +143,7 @@ export function Show<TNode>(
 			}
 		}
 
-		return () => unmount(hGroup);
+		return dispose;
 	}), hParent.$ng);
 
 	// insert marker to preserve position in the document

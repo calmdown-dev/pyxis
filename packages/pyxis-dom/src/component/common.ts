@@ -1,6 +1,5 @@
 import {
 	ext,
-	extension,
 	getLifecycle,
 	Native,
 	read,
@@ -8,7 +7,6 @@ import {
 	type Component,
 	type ComponentHandler,
 	type ElemName,
-	type ExtensionPropMapping,
 	type JsxObject,
 	type Lifecycle,
 	type NodeType,
@@ -18,20 +16,6 @@ import {
 import { AttributeExtension } from "~/extension/AttributeExtension";
 
 import type { Mutable } from "./types";
-
-interface CapturedNode {
-	node: Node | null;
-}
-
-interface CapturePropMapping extends ExtensionPropMapping<Node> {
-	extension: {
-		capture: CapturedNode;
-	};
-}
-
-const CaptureExtension = /*@__PURE__*/ extension<Node, CapturePropMapping>((node, _prop, value: CapturedNode) => {
-	value.node = node;
-});
 
 export function control<TProps extends PropsType>(
 	tagName: ElemName<TProps>,
@@ -83,16 +67,12 @@ export function control<TProps extends PropsType>(
 			}
 		}
 
-		// apply capture extension
-		const capture: CapturedNode = { node: null };
-		ext(CaptureExtension, { capture }, props);
-
 		// run the native handler to render the actual element
 		props[S_TAG_NAME] = tagName;
-		Native(props, hParent, nUsedParent, nRealParent, nBefore, isBatch);
+		const node = Native(props, hParent, nUsedParent, nRealParent, nBefore, isBatch) as Element;
 
 		// run custom init logic, if defined
-		initialize?.(capture.node!, jsx, getLifecycle());
+		initialize?.(node, jsx, getLifecycle());
 	};
 }
 

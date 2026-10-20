@@ -59,4 +59,5 @@ export function Native<TNode>(
 	}
 
 	insert(nNode, jsx.children, hParent, nUsedParent, nBefore, isBatch);
+	return nNode;
 }
