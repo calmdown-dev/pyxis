@@ -71,8 +71,10 @@ interface NoChildrenProp {
 
 // #region CSS
 
+type OmitVendorPrefixed<T> = Pick<T, { [K in keyof T]: K extends `webkit${string}` ? never : K }[keyof T]>;
+
 /** @bake */
-export type CSSStyleDeclarationProps = Finalize<WrapProps<ApplyOverrides<OmitFunctions<OmitReadonly<OmitIndex<CSSStyleDeclaration>>>, CSSPropOverrides>>>;
+export type CSSStyleDeclarationProps = Finalize<WrapProps<ApplyOverrides<OmitVendorPrefixed<OmitFunctions<OmitReadonly<OmitIndex<CSSStyleDeclaration>>>>, CSSPropOverrides>>>;
 
 interface CSSPropOverrides {
 	anchorName: string;
@@ -92,73 +94,6 @@ interface CSSPropOverrides {
 	pageBreakBefore: never;
 	pageBreakInside: never;
 	wordWrap: never;
-
-	// non-standard rules:
-	webkitAlignContent: never;
-	webkitAlignItems: never;
-	webkitAlignSelf: never;
-	webkitAnimation: never;
-	webkitAnimationDelay: never;
-	webkitAnimationDirection: never;
-	webkitAnimationDuration: never;
-	webkitAnimationFillMode: never;
-	webkitAnimationIterationCount: never;
-	webkitAnimationName: never;
-	webkitAnimationPlayState: never;
-	webkitAnimationTimingFunction: never;
-	webkitAppearance: never;
-	webkitBackfaceVisibility: never;
-	webkitBackgroundClip: never;
-	webkitBackgroundOrigin: never;
-	webkitBackgroundSize: never;
-	webkitBorderBottomLeftRadius: never;
-	webkitBorderBottomRightRadius: never;
-	webkitBorderRadius: never;
-	webkitBorderTopLeftRadius: never;
-	webkitBorderTopRightRadius: never;
-	webkitBoxAlign: never;
-	webkitBoxFlex: never;
-	webkitBoxOrdinalGroup: never;
-	webkitBoxOrient: never;
-	webkitBoxPack: never;
-	webkitBoxShadow: never;
-	webkitBoxSizing: never;
-	webkitFilter: never;
-	webkitFlex: never;
-	webkitFlexBasis: never;
-	webkitFlexDirection: never;
-	webkitFlexFlow: never;
-	webkitFlexGrow: never;
-	webkitFlexShrink: never;
-	webkitFlexWrap: never;
-	webkitJustifyContent: never;
-	webkitMask: never;
-	webkitMaskBoxImage: never;
-	webkitMaskBoxImageOutset: never;
-	webkitMaskBoxImageRepeat: never;
-	webkitMaskBoxImageSlice: never;
-	webkitMaskBoxImageSource: never;
-	webkitMaskBoxImageWidth: never;
-	webkitMaskClip: never;
-	webkitMaskComposite: never;
-	webkitMaskImage: never;
-	webkitMaskOrigin: never;
-	webkitMaskPosition: never;
-	webkitMaskRepeat: never;
-	webkitMaskSize: never;
-	webkitOrder: never;
-	webkitPerspective: never;
-	webkitPerspectiveOrigin: never;
-	webkitTextSizeAdjust: never;
-	webkitTransform: never;
-	webkitTransformOrigin: never;
-	webkitTransformStyle: never;
-	webkitTransition: never;
-	webkitTransitionDelay: never;
-	webkitTransitionDuration: never;
-	webkitTransitionProperty: never;
-	webkitTransitionTimingFunction: never;
-	webkitUserSelect: never;
 }
 
 // #endregion
@@ -2304,10 +2239,12 @@ export interface SVGIntrinsicElements {
 export type MathMLCommonProps = Finalize<WrapProps<{
 	dir: "ltr" | "rtl";
 	displaystyle: boolean;
-	mathbackground: string;
-	mathcolor: string;
-	mathsize: string;
 	scriptlevel: string;
+
+	// superseded by CSS equivalents:
+	// mathbackground: string;
+	// mathcolor: string;
+	// mathsize: string;
 }>>;
 
 type MathMLProps<T, N extends string, P = {}> = Finalize<NodeTypeProp<T> & ElemNameProp<N> & ChildrenProp & WrapProps<P>>;

@@ -441,11 +441,6 @@ export interface CSSStyleDeclarationProps {
 	readonly viewTransitionClass?: MaybeAtom<string>;
 	readonly viewTransitionName?: MaybeAtom<string>;
 	readonly visibility?: MaybeAtom<string>;
-	readonly webkitLineClamp?: MaybeAtom<string>;
-	readonly webkitTextFillColor?: MaybeAtom<string>;
-	readonly webkitTextStroke?: MaybeAtom<string>;
-	readonly webkitTextStrokeColor?: MaybeAtom<string>;
-	readonly webkitTextStrokeWidth?: MaybeAtom<string>;
 	readonly whiteSpace?: MaybeAtom<string>;
 	readonly whiteSpaceCollapse?: MaybeAtom<string>;
 	readonly widows?: MaybeAtom<string>;
@@ -2563,9 +2558,6 @@ export interface SVGIntrinsicElements {
 export interface MathMLCommonProps {
 	readonly dir?: MaybeAtom<"rtl" | "ltr">;
 	readonly displaystyle?: MaybeAtom<boolean>;
-	readonly mathbackground?: MaybeAtom<string>;
-	readonly mathcolor?: MaybeAtom<string>;
-	readonly mathsize?: MaybeAtom<string>;
 	readonly scriptlevel?: MaybeAtom<string>;
 }
 
