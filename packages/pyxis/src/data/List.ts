@@ -225,7 +225,11 @@ export function sync<T>(list: List<T>, source: Iterable<T>, eq: Equals<T> = Obje
 	const newItems = Array.from(source);
 	list.$items = newItems;
 
-	if (!list.$dh) {
+	if (__DEV__) {
+		__DEV__preserveState(list);
+	}
+
+	if (!list.$dh && !list.$xa) {
 		// skip emitting deltas when there are no observers
 		return;
 	}
@@ -234,7 +238,7 @@ export function sync<T>(list: List<T>, source: Iterable<T>, eq: Equals<T> = Obje
 	const delta = initDelta(list);
 	if (listSynced(delta, oldItems, newItems, eq)) {
 		list.$pendingDelta = delta;
-		listMutated(list);
+		scheduleListNotification(list);
 	}
 }
 
@@ -308,10 +312,14 @@ function set<T>(this: List<T>, index: number, newItem: T) {
 	copyOnWrite(this);
 	this.$items[index] = newItem;
 
+	if (__DEV__) {
+		__DEV__preserveState(this);
+	}
+
 	// only emit deltas when there are observers
-	if (this.$dh) {
+	if (this.$dh || this.$xa) {
 		itemChanged(this.$pendingDelta = initDelta(this), index, oldItem, newItem);
-		listMutated(this);
+		scheduleListNotification(this);
 	}
 }
 
@@ -325,10 +333,14 @@ function clear(this: List<any>) {
 		this.$items.length = 0;
 	}
 
+	if (__DEV__) {
+		__DEV__preserveState(this);
+	}
+
 	// only emit deltas when there are observers
-	if (this.$dh) {
+	if (this.$dh || this.$xa) {
 		listCleared(this.$pendingDelta = initDelta(this), count);
-		listMutated(this);
+		scheduleListNotification(this);
 	}
 }
 
@@ -343,10 +355,14 @@ function insertAt<T>(this: List<T>, index: number, item: T) {
 		this.$items.splice(index, 0, item);
 	}
 
+	if (__DEV__) {
+		__DEV__preserveState(this);
+	}
+
 	// only emit deltas when there are observers
-	if (this.$dh) {
+	if (this.$dh || this.$xa) {
 		itemInserted(this.$pendingDelta = initDelta(this), index, item);
-		listMutated(this);
+		scheduleListNotification(this);
 	}
 }
 
@@ -373,10 +389,14 @@ function removeAt<T>(this: List<T>, index: number) {
 	copyOnWrite(this);
 	const item = this.$items.splice(index, 1)[0];
 
+	if (__DEV__) {
+		__DEV__preserveState(this);
+	}
+
 	// only emit deltas when there are observers
-	if (this.$dh) {
+	if (this.$dh || this.$xa) {
 		itemRemoved(this.$pendingDelta = initDelta(this), index, item);
-		listMutated(this);
+		scheduleListNotification(this);
 	}
 
 	return item;
@@ -433,11 +453,7 @@ function copyOnWrite(list: List<any>) {
 	}
 }
 
-function listMutated(list: List<any>) {
-	if (__DEV__) {
-		runtime.$hmrState!.preserve(list.$lifecycle, list.$devId, list.$items);
-	}
-
+function scheduleListNotification(list: List<any>) {
 	scheduleTick(list.$lifecycle, list.$notify ??= {
 		$fn: notifyListObservers,
 		$a0: list,
@@ -470,4 +486,8 @@ function notifyListObservers(list: List<any>) {
 
 function invokeDeltaBlock<T>(list: List<T>, lifecycle: Lifecycle, block: (delta: ListDelta<T>) => void) {
 	withLifecycle(lifecycle, block, list.$committedDelta!);
+}
+
+function __DEV__preserveState(list: List<any>) {
+	runtime.$hmrState!.preserve(list.$lifecycle, list.$devId, list.$items);
 }

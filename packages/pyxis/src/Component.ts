@@ -213,3 +213,13 @@ export interface ComponentHandler {
 		isBatch: boolean,
 	): void;
 }
+
+// Required base typings for JSX; Element and IntrinsicElements are supplied by adapter libraries
+// or user code when using prefixed extensions
+declare global {
+	namespace JSX {
+		interface ElementChildrenAttribute {
+			children: {};
+		}
+	}
+}
