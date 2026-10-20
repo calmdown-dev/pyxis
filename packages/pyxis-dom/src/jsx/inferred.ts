@@ -224,7 +224,20 @@ export type HTMLTableCaptionElementProps = HTMLProps<HTMLTableCaptionElement, "c
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLTableColElementProps<N extends "col" | "colgroup"> = HTMLPropsNoChildren<HTMLTableColElement, N, {
+export type HTMLTableColElementProps = HTMLPropsNoChildren<HTMLTableColElement, "col", {
+	// deprecated props:
+	align: never;
+	ch: never;
+	chOff: never;
+	vAlign: never;
+	width: never;
+}>;
+
+/**
+ * @bake
+ * @extends HTMLCommonProps
+ */
+export type HTMLTableColGroupElementProps = HTMLProps<HTMLTableColElement, "colgroup", {
 	// deprecated props:
 	align: never;
 	ch: never;
@@ -531,7 +544,10 @@ export type HTMLProgressElementProps = HTMLProps<HTMLProgressElement, "progress"
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLSelectElementProps = HTMLProps<HTMLSelectElement, "select">;
+export type HTMLSelectElementProps = HTMLProps<HTMLSelectElement, "select", {
+	// not supported as a prop:
+	length: never;
+}>;
 
 /**
  * @bake
@@ -562,6 +578,11 @@ export type HTMLSpanElementProps = HTMLProps<HTMLSpanElement, "span">;
  * @extends HTMLCommonProps
  */
 export type HTMLTableElementProps = HTMLProps<HTMLTableElement, "table", {
+	// not supported as a prop:
+	caption: never;
+	tHead: never;
+	tFoot: never;
+
 	// deprecated props:
 	align: never;
 	bgColor: never;
@@ -714,8 +735,8 @@ export interface HTMLIntrinsicElements {
 	caption: HTMLTableCaptionElementProps;
 	cite: HTMLElementProps<"cite">;
 	code: HTMLElementProps<"code">;
-	col: HTMLTableColElementProps<"col">;
-	colgroup: HTMLTableColElementProps<"colgroup">;
+	col: HTMLTableColElementProps;
+	colgroup: HTMLTableColGroupElementProps;
 	data: HTMLDataElementProps;
 	datalist: HTMLDataListElementProps;
 	dd: HTMLElementProps<"dd">;
@@ -832,7 +853,6 @@ export type SVGCommonProps = Finalize<WrapProps<{
 }>>;
 
 type SVGProps<T, N extends string, P = {}> = Finalize<NodeTypeProp<T> & ElemNameProp<N> & ChildrenProp & WrapProps<P>>;
-type SVGPropsNoChildren<T, N extends string, P = {}> = Finalize<NodeTypeProp<T> & ElemNameProp<N> & NoChildrenProp & WrapProps<P>>;
 
 /** @preserve */
 export type SVGAccumulate = "none" | "sum";
@@ -1039,7 +1059,7 @@ export type SVGAnimateTransformElementProps = SVGProps<SVGAnimateTransformElemen
  * @bake
  * @extends SVGCommonProps
  */
-export type SVGCircleElementProps = SVGPropsNoChildren<SVGCircleElement, "circle", {
+export type SVGCircleElementProps = SVGProps<SVGCircleElement, "circle", {
 	"clip-path": string;
 	"clip-rule": SVGClipRule;
 	cursor: string;
@@ -1102,7 +1122,7 @@ export type SVGDescElementProps = SVGProps<SVGDescElement, "desc">;
  * @bake
  * @extends SVGCommonProps
  */
-export type SVGEllipseElementProps = SVGPropsNoChildren<SVGEllipseElement, "ellipse", {
+export type SVGEllipseElementProps = SVGProps<SVGEllipseElement, "ellipse", {
 	"clip-path": string;
 	"clip-rule": SVGClipRule;
 	cursor: string;
@@ -1569,7 +1589,7 @@ export type SVGGElementProps = SVGProps<SVGGElement, "g", {
  * @bake
  * @extends SVGCommonProps
  */
-export type SVGImageElementProps = SVGPropsNoChildren<SVGImageElement, "image", {
+export type SVGImageElementProps = SVGProps<SVGImageElement, "image", {
 	"clip-path": string;
 	"clip-rule": SVGClipRule;
 	crossorigin: SVGCrossOrigin;
@@ -1596,7 +1616,7 @@ export type SVGImageElementProps = SVGPropsNoChildren<SVGImageElement, "image", 
  * @bake
  * @extends SVGCommonProps
  */
-export type SVGLineElementProps = SVGPropsNoChildren<SVGLineElement, "line", {
+export type SVGLineElementProps = SVGProps<SVGLineElement, "line", {
 	"clip-path": string;
 	"clip-rule": SVGClipRule;
 	cursor: string;
@@ -1699,7 +1719,7 @@ export type SVGMPathElementProps = SVGProps<SVGMPathElement, "mpath", {
  * @bake
  * @extends SVGCommonProps
  */
-export type SVGPathElementProps = SVGPropsNoChildren<SVGPathElement, "path", {
+export type SVGPathElementProps = SVGProps<SVGPathElement, "path", {
 	"clip-path": string;
 	"clip-rule": SVGClipRule;
 	cursor: string;
@@ -1758,7 +1778,7 @@ export type SVGPatternElementProps = SVGProps<SVGPatternElement, "pattern", {
  * @bake
  * @extends SVGCommonProps
  */
-export type SVGPolygonElementProps = SVGPropsNoChildren<SVGPolygonElement, "polygon", {
+export type SVGPolygonElementProps = SVGProps<SVGPolygonElement, "polygon", {
 	"clip-path": string;
 	"clip-rule": SVGClipRule;
 	cursor: string;
@@ -1792,7 +1812,7 @@ export type SVGPolygonElementProps = SVGPropsNoChildren<SVGPolygonElement, "poly
  * @bake
  * @extends SVGCommonProps
  */
-export type SVGPolylineElementProps = SVGPropsNoChildren<SVGPolylineElement, "polyline", {
+export type SVGPolylineElementProps = SVGProps<SVGPolylineElement, "polyline", {
 	"clip-path": string;
 	"clip-rule": SVGClipRule;
 	cursor: string;
@@ -1844,7 +1864,7 @@ export type SVGRadialGradientElementProps = SVGProps<SVGRadialGradientElement, "
  * @bake
  * @extends SVGCommonProps
  */
-export type SVGRectElementProps = SVGPropsNoChildren<SVGRectElement, "rect", {
+export type SVGRectElementProps = SVGProps<SVGRectElement, "rect", {
 	"clip-path": string;
 	"clip-rule": SVGClipRule;
 	cursor: string;
@@ -1914,7 +1934,7 @@ export type SVGSetElementProps = SVGProps<SVGSetElement, "set", {
  * @bake
  * @extends SVGCommonProps
  */
-export type SVGStopElementProps = SVGPropsNoChildren<SVGStopElement, "stop", {
+export type SVGStopElementProps = SVGProps<SVGStopElement, "stop", {
 	"stop-color": string;
 	"stop-opacity": number | string;
 }>;
@@ -2141,7 +2161,7 @@ export type SVGTSpanElementProps = SVGProps<SVGTSpanElement, "tspan", {
  * @bake
  * @extends SVGCommonProps
  */
-export type SVGUseElementProps = SVGPropsNoChildren<SVGUseElement, "use", {
+export type SVGUseElementProps = SVGProps<SVGUseElement, "use", {
 	"clip-path": string;
 	"clip-rule": SVGClipRule;
 	cursor: string;

@@ -34,8 +34,8 @@ export function contextOf<T>(devId?: string): Context<T>;
 export function contextOf<T>(): Context<T> {
 	if (__DEV__) {
 		const devId = arguments[0];
-		const $symbol = runtime.hmrState!.restore(contextOf, devId) ?? Symbol();
-		runtime.hmrState!.preserve(contextOf, devId, $symbol);
+		const $symbol = runtime.$hmrState!.restore(contextOf, devId) ?? Symbol();
+		runtime.$hmrState!.preserve(contextOf, devId, $symbol);
 		return { $symbol };
 	}
 	else {
@@ -106,18 +106,18 @@ export function host<T>(context: Context<T>, defaultValue?: T, lifecycle = getLi
 		__DEV__assertIsDirectComponentCode("host");
 	}
 
-	if (!runtime.n || !runtime.c) {
+	if (!runtime.$currentContextNew || !runtime.$currentContext) {
 		// fork context container -> current component becomes a host
-		runtime.n = true;
-		runtime.c = {
-			$parent: runtime.c,
+		runtime.$currentContextNew = true;
+		runtime.$currentContext = {
+			$parent: runtime.$currentContext,
 		};
 	}
 
 	let isUndefined = defaultValue === undefined;
 	if (__DEV__) {
 		const devId = arguments[3];
-		runtime.hmrState!.restore(lifecycle, devId, value => {
+		runtime.$hmrState!.restore(lifecycle, devId, value => {
 			defaultValue = value;
 			isUndefined = false;
 		});
@@ -152,12 +152,12 @@ export function host<T>(context: Context<T>, defaultValue?: T, lifecycle = getLi
 
 	if (__DEV__) {
 		localAtom.$devId = arguments[3];
-		if (Object.hasOwn(runtime.c, context.$symbol)) {
+		if (Object.hasOwn(runtime.$currentContext, context.$symbol)) {
 			throw new Error("Component declares multiple hosts of the same Context.");
 		}
 	}
 
-	runtime.c[context.$symbol] = localAtom;
+	runtime.$currentContext[context.$symbol] = localAtom;
 	return localAtom;
 }
 
@@ -204,7 +204,7 @@ export function contextual<T>(context: Context<T>): Atom<T> {
 
 function lookupUpstream<T>(context: Context<T>): ContextAtom<T> | undefined {
 	const { $symbol } = context;
-	let ptr: Nil<ContextContainer> = runtime.c;
+	let ptr: Nil<ContextContainer> = runtime.$currentContext;
 	let atom;
 	while (ptr && !(atom = ptr[$symbol])) {
 		ptr = ptr.$parent;
@@ -243,7 +243,7 @@ function setHostedValue<T>(this: ContextAtom<T>, value: T) {
 	this.$value = value;
 	if (__DEV__) {
 		this.$defined = true;
-		runtime.hmrState!.preserve(this.$lifecycle, this.$devId, value);
+		runtime.$hmrState!.preserve(this.$lifecycle, this.$devId, value);
 	}
 
 	return didChange;

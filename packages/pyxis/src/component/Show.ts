@@ -134,7 +134,12 @@ export function Show<TNode>(
 
 		if (isLocalBatch) {
 			adapter.insert(nBatchParent, nUsedParent, nMarker);
-			flush(hGroup);
+			try {
+				flush(hGroup);
+			}
+			catch (ex) {
+				unmount(hGroup, [ ex ]);
+			}
 		}
 
 		return () => unmount(hGroup);

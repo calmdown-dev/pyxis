@@ -148,15 +148,15 @@ function teardownEffect(effect: Effect<ReturnType<EffectBlock>>) {
 		return;
 	}
 
-	const prevLifecycle = runtime.l;
-	runtime.l = effect.$lifecycle;
+	const prevLifecycle = runtime.$currentLifecycle;
+	runtime.$currentLifecycle = effect.$lifecycle;
 	effect.$dispose = null;
 
 	try {
 		fn();
 	}
 	finally {
-		runtime.l = prevLifecycle;
+		runtime.$currentLifecycle = prevLifecycle;
 	}
 }
 
@@ -170,17 +170,17 @@ export function resolve<TEffect extends Effect<any>>(effect: TEffect): TEffect e
 	effect.$rc = 0;
 
 	const cycle = (effect.$cycle += 1);
-	const prevLifecycle = runtime.l;
-	const prevEffect = runtime.e;
-	runtime.l = effect.$lifecycle;
-	runtime.e = effect;
+	const prevLifecycle = runtime.$currentLifecycle;
+	const prevEffect = runtime.$currentEffect;
+	runtime.$currentLifecycle = effect.$lifecycle;
+	runtime.$currentEffect = effect;
 
 	try {
 		return effect.$block();
 	}
 	finally {
-		runtime.l = prevLifecycle;
-		runtime.e = prevEffect;
+		runtime.$currentLifecycle = prevLifecycle;
+		runtime.$currentEffect = prevEffect;
 
 		// on re-runs, check if new Atoms were accessed - if so, eagerly cleanup
 		if (cycle > 1 && effect.$rc > 0) {
@@ -230,7 +230,7 @@ export function unlinkEffectDep<TEffect extends Effect<any>>(effect: TEffect, de
  * @internal
  */
 export function reportAccess(atom: DependencyList) {
-	const currentEffect = runtime.e;
+	const currentEffect = runtime.$currentEffect;
 	if (!currentEffect || currentEffect.$life !== currentEffect.$lifecycle.$life) {
 		return;
 	}
@@ -283,13 +283,13 @@ export function noEffect(
 	a1?: any,
 	a2?: any,
 ) {
-	const prevEffect = runtime.e;
-	runtime.e = null;
+	const prevEffect = runtime.$currentEffect;
+	runtime.$currentEffect = null;
 
 	try {
 		return block(a0, a1, a2);
 	}
 	finally {
-		runtime.e = prevEffect;
+		runtime.$currentEffect = prevEffect;
 	}
 }

@@ -1,5 +1,6 @@
 import { invoke, rethrow } from "~/support/common";
 import type { ArgsMax3, Callback } from "~/support/types";
+import { runtime } from "~/Runtime";
 
 import { getLifecycle, type Lifecycle } from "./Lifecycle";
 
@@ -91,6 +92,7 @@ export function createScheduler(tick: TickFn) {
 	};
 
 	const update = () => {
+		const prevLifecycle = runtime.$currentLifecycle;
 		const epoch = scheduler.$epoch;
 		let errors: unknown[] | null = null;
 		let effectIndex = 0;
@@ -107,6 +109,7 @@ export function createScheduler(tick: TickFn) {
 				callback.$se = 0;
 				if (callback.$life === callback.$lifecycle!.$life) {
 					try {
+						runtime.$currentLifecycle = callback.$lifecycle!;
 						invoke(callback);
 					}
 					catch (ex) {
@@ -121,6 +124,7 @@ export function createScheduler(tick: TickFn) {
 				callback.$se = 0;
 				if (callback.$life === callback.$lifecycle!.$life) {
 					try {
+						runtime.$currentLifecycle = callback.$lifecycle!;
 						invoke(callback);
 					}
 					catch (ex) {
@@ -159,6 +163,7 @@ export function createScheduler(tick: TickFn) {
 
 			if (callback.$life === callback.$lifecycle!.$life) {
 				try {
+					runtime.$currentLifecycle = callback.$lifecycle!;
 					invoke(callback);
 				}
 				catch (ex) {
@@ -179,6 +184,9 @@ export function createScheduler(tick: TickFn) {
 		if (ticks.length || tocks.length) {
 			scheduler.$scheduleTick();
 		}
+
+		// restore original lifecycle
+		runtime.$currentLifecycle = prevLifecycle;
 
 		// re-throw errors, if there were any
 		rethrow(errors);

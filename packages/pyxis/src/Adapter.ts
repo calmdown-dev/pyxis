@@ -141,7 +141,7 @@ export function extension<TNode, TPropMapping extends ExtensionPropMapping<TNode
 	propSetter: Extension<TNode>["set"],
 ): Extension<TNode, TPropMapping> {
 	return {
-		$prefix: `:${(++runtime.i).toString(16)}:`,
+		$prefix: `:${(++runtime.$extIndex).toString(16)}:`,
 		set: propSetter,
 	};
 }

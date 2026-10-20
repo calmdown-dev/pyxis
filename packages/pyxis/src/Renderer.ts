@@ -170,7 +170,7 @@ export function createRenderer<TNode, TIntrinsicElements extends ElementsType>(
  * groups cannot be reused.
  * @internal
  */
-function destroy<TNode>(hGroup: MountingGroup<TNode>) {
+export function destroy<TNode>(hGroup: MountingGroup<TNode>) {
 	try {
 		unmount(hGroup);
 	}
@@ -199,7 +199,7 @@ export function fork<TNode>(
 export function fork<TNode>(
 	hParent: HNode<TNode>,
 	hBefore: HNode<TNode> | null = null,
-	context: ContextContainer | null = runtime.c,
+	context: ContextContainer | null = runtime.$currentContext,
 ): MountingGroup<TNode> {
 	const ng = hParent.$ng;
 	const hGroup: Mutable<MountingGroup<TNode>> = {
@@ -311,31 +311,34 @@ export function mount<TNode>(
 	nBefore: TNode | null,
 	isBatch: boolean,
 ) {
-	if (__DEV__ && hGroup.mounted) {
-		throw new Error("cannot mount a group that has already been mounted");
+	if (hGroup.mounted) {
+		return;
 	}
 
-	const prevLifecycle = runtime.l;
-	const prevContext = runtime.c;
-	const prevContextNew = runtime.n;
-	const prevEffect = runtime.e;
-	runtime.l = hGroup;
-	runtime.c = hGroup.$context;
-	runtime.n = false;
-	runtime.e = null;
+	const prevLifecycle = runtime.$currentLifecycle;
+	const prevEffect = runtime.$currentEffect;
+	const prevContext = runtime.$currentContext;
+	const prevContextNew = runtime.$currentContextNew;
+	runtime.$currentLifecycle = hGroup;
+	runtime.$currentContext = hGroup.$context;
+	runtime.$currentContextNew = false;
+	runtime.$currentEffect = null;
 	try {
 		mountJsx(jsx, hGroup, nUsedParent, nRealParent, nBefore, isBatch);
+
+		hGroup.$canMount = true;
+		if (!isBatch) {
+			flush(hGroup);
+		}
+	}
+	catch (ex) {
+		unmount(hGroup, [ ex ]);
 	}
 	finally {
-		runtime.l = prevLifecycle;
-		runtime.c = prevContext;
-		runtime.n = prevContextNew;
-		runtime.e = prevEffect;
-	}
-
-	hGroup.$canMount = true;
-	if (!isBatch) {
-		flush(hGroup);
+		runtime.$currentLifecycle = prevLifecycle;
+		runtime.$currentEffect = prevEffect;
+		runtime.$currentContext = prevContext;
+		runtime.$currentContextNew = prevContextNew;
 	}
 }
 
@@ -347,42 +350,58 @@ export function mount<TNode>(
  * flush manually when rendering into a batch. Batch owners are responsible for calling this
  * function once the batch has been committed.
  */
-export function flush<TNode>(hGroup: MountingGroup<TNode>) {
+export function flush<TNode>(hGroup: MountingGroup<TNode>): void;
+
+/** @internal */
+export function flush<TNode>(hGroup: MountingGroup<TNode>, errors: unknown[]): void;
+
+export function flush<TNode>(hGroup: MountingGroup<TNode>, errors: unknown[] = []) {
 	// only dispatch mount notifications when the parent group is already mounted, or if this is the
 	// top-level group - otherwise, mount notification will arrive once the parent mounts
 	if (hGroup.$ph?.$ng.mounted !== false) {
-		notifyMounted(hGroup);
+		const prevLifecycle = runtime.$currentLifecycle;
+		const prevEffect = runtime.$currentEffect;
+
+		runtime.$currentEffect = null;
+		doFlush(hGroup, errors);
+		runtime.$currentLifecycle = prevLifecycle;
+		runtime.$currentEffect = prevEffect;
+
+		rethrow(errors);
 	}
 }
 
 /**
- * Only used by `mount`, do not call directly.
- *
  * Recursively (dept-first) runs components' `mounted` callbacks.
  * @see {@link mount}
  * @internal
  */
-function notifyMounted<TNode>(hNode: HNode<TNode>) {
+function doFlush<TNode>(hNode: HNode<TNode>, errors: unknown[]) {
 	let current = hNode.$hh;
 	while (current) {
-		notifyMounted(current);
+		doFlush(current, errors);
 		current = current.$hn;
 	}
 
 	if (hNode.$isGroup && hNode.$canMount && !hNode.mounted) {
 		hNode.mounted = true;
 
-		let callbacks;
-		if ((callbacks = hNode.$onMount)?.length) {
-			const prevLifecycle = runtime.l;
-			runtime.l = hNode;
-			try {
-				callbacks.forEach(invoke);
+		if (hNode.$onMount?.length) {
+			// the callbacks array may change when a callback causes a nested unmount run
+			const callbacks = hNode.$onMount;
+			let index = 0;
+
+			runtime.$currentLifecycle = hNode;
+			for (; index < callbacks.length; index += 1) {
+				try {
+					invoke(callbacks[index]);
+				}
+				catch (ex) {
+					errors.push(ex);
+				}
 			}
-			finally {
-				callbacks.length = 0;
-				runtime.l = prevLifecycle;
-			}
+
+			callbacks.length = 0;
 		}
 	}
 }
@@ -419,12 +438,19 @@ export function reinsertNodes<TNode>(hGroup: MountingGroup<TNode>, nParent: TNod
  * Unmounts the contents of a MountingGroup from the node tree. The group itself, though empty,
  * remains usable and can be remounted later.
  */
-export function unmount<TNode>(group: MountingGroup<TNode>): void {
-	const prevLifecycle = runtime.l;
-	const errors: unknown[] = [];
+export function unmount<TNode>(hGroup: MountingGroup<TNode>): void;
 
-	doUnmount(group, errors, true);
-	runtime.l = prevLifecycle;
+/** @internal */
+export function unmount<TNode>(hGroup: MountingGroup<TNode>, errors: unknown[]): void;
+
+export function unmount<TNode>(hGroup: MountingGroup<TNode>, errors: unknown[] = []) {
+	const prevLifecycle = runtime.$currentLifecycle;
+	const prevEffect = runtime.$currentEffect;
+
+	runtime.$currentEffect = null;
+	doUnmount(hGroup, errors, true);
+	runtime.$currentLifecycle = prevLifecycle;
+	runtime.$currentEffect = prevEffect;
 
 	rethrow(errors);
 }
@@ -433,12 +459,12 @@ function doUnmount<TNode>(hNode: HNode<TNode>, errors: unknown[], top: boolean) 
 	if (hNode.$isGroup) {
 		// regardless of mounted state, always run teardown callbacks when there are any
 		if (hNode.$onUnmount?.length) {
+			// the callbacks array may change when a callback causes a nested unmount run
 			const callbacks = hNode.$onUnmount;
-			const { length } = callbacks;
 			let index = 0;
 
-			runtime.l = hNode;
-			for (; index < length; index += 1) {
+			runtime.$currentLifecycle = hNode;
+			for (; index < callbacks.length; index += 1) {
 				try {
 					invoke(callbacks[index]);
 				}
@@ -450,7 +476,7 @@ function doUnmount<TNode>(hNode: HNode<TNode>, errors: unknown[], top: boolean) 
 
 		hNode.mounted = false;
 		hNode.$canMount = false;
-		teardown(hNode);
+		teardown(hNode); // also clears mount and unmount callback arrays
 	}
 
 	const { adapter } = hNode.$ng;

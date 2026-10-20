@@ -33,6 +33,10 @@ export class ComponentRegistry {
 			throw new Error(`no component was registered under "${id}"`);
 		}
 
+		// initial run - if it throws, subscription won't get registered
+		fn(entry.component);
+
+		// register subscription
 		const listener: HotComponentListener = { fn, entry };
 		if (entry.lt) {
 			entry.lt.ln = listener;
@@ -43,7 +47,6 @@ export class ComponentRegistry {
 		}
 
 		entry.lt = listener;
-		fn(entry.component);
 
 		return listener;
 	}

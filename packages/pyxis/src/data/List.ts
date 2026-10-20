@@ -173,7 +173,7 @@ export function listOf<T>(source: Iterable<T>, lifecycle?: Lifecycle, devId?: st
 export function listOf<T>(source?: Nil<Iterable<T>>, lifecycle = getLifecycle()): List<T> {
 	if (__DEV__) {
 		const devId = arguments[2];
-		runtime.hmrState!.restore(lifecycle, devId, value => {
+		runtime.$hmrState!.restore(lifecycle, devId, value => {
 			if (Array.isArray(value)) {
 				source = value;
 			}
@@ -390,6 +390,15 @@ function removeLast<T>(this: List<T>) {
 
 
 function assertIndex(list: List<any>, index: number) {
+	if (!Number.isInteger(index)) {
+		if (__DEV__) {
+			throw new TypeError("list index must be an integer");
+		}
+		else {
+			throw new TypeError();
+		}
+	}
+
 	if (index >= list.$items.length || index < 0) {
 		if (__DEV__) {
 			throw new RangeError("list index out of bounds");
@@ -423,7 +432,7 @@ function copyOnWrite(list: List<any>) {
 
 function listMutated(list: List<any>) {
 	if (__DEV__) {
-		runtime.hmrState!.preserve(list.$lifecycle, list.$devId, list.$items);
+		runtime.$hmrState!.preserve(list.$lifecycle, list.$devId, list.$items);
 	}
 
 	scheduleTick(list.$lifecycle, list.$notify ??= {

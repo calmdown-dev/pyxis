@@ -673,10 +673,17 @@ export interface HTMLTableCaptionElementProps extends HTMLCommonProps {
 	readonly children?: JsxChildren;
 }
 
-export interface HTMLTableColElementProps<N extends "col" | "colgroup"> extends HTMLCommonProps {
+export interface HTMLTableColElementProps extends HTMLCommonProps {
 	readonly [S_NODE_TYPE]?: HTMLTableColElement;
-	readonly [S_ELEM_NAME]?: N;
+	readonly [S_ELEM_NAME]?: "col";
 	readonly children?: never;
+	readonly span?: MaybeAtom<number>;
+}
+
+export interface HTMLTableColGroupElementProps extends HTMLCommonProps {
+	readonly [S_NODE_TYPE]?: HTMLTableColElement;
+	readonly [S_ELEM_NAME]?: "colgroup";
+	readonly children?: JsxChildren;
 	readonly span?: MaybeAtom<number>;
 }
 
@@ -981,7 +988,6 @@ export interface HTMLSelectElementProps extends HTMLCommonProps {
 	readonly [S_NODE_TYPE]?: HTMLSelectElement;
 	readonly [S_ELEM_NAME]?: "select";
 	readonly children?: JsxChildren;
-	readonly length?: MaybeAtom<number>;
 	readonly name?: MaybeAtom<string>;
 	readonly disabled?: MaybeAtom<boolean>;
 	readonly value?: MaybeAtom<string>;
@@ -1022,9 +1028,6 @@ export interface HTMLTableElementProps extends HTMLCommonProps {
 	readonly [S_NODE_TYPE]?: HTMLTableElement;
 	readonly [S_ELEM_NAME]?: "table";
 	readonly children?: JsxChildren;
-	readonly caption?: MaybeAtom<HTMLTableCaptionElement | null>;
-	readonly tFoot?: MaybeAtom<HTMLTableSectionElement | null>;
-	readonly tHead?: MaybeAtom<HTMLTableSectionElement | null>;
 }
 
 export interface HTMLTableSectionElementProps<N extends "tbody" | "tfoot" | "thead"> extends HTMLCommonProps {
@@ -1166,8 +1169,8 @@ export interface HTMLIntrinsicElements {
 	caption: HTMLTableCaptionElementProps;
 	cite: HTMLElementProps<"cite">;
 	code: HTMLElementProps<"code">;
-	col: HTMLTableColElementProps<"col">;
-	colgroup: HTMLTableColElementProps<"colgroup">;
+	col: HTMLTableColElementProps;
+	colgroup: HTMLTableColGroupElementProps;
 	data: HTMLDataElementProps;
 	datalist: HTMLDataListElementProps;
 	dd: HTMLElementProps<"dd">;
@@ -1445,7 +1448,7 @@ export interface SVGAnimateTransformElementProps extends SVGCommonProps {
 export interface SVGCircleElementProps extends SVGCommonProps {
 	readonly [S_NODE_TYPE]?: SVGCircleElement;
 	readonly [S_ELEM_NAME]?: "circle";
-	readonly children?: never;
+	readonly children?: JsxChildren;
 	readonly "clip-path"?: MaybeAtom<string>;
 	readonly "clip-rule"?: MaybeAtom<SVGClipRule>;
 	readonly cursor?: MaybeAtom<string>;
@@ -1505,7 +1508,7 @@ export interface SVGDescElementProps extends SVGCommonProps {
 export interface SVGEllipseElementProps extends SVGCommonProps {
 	readonly [S_NODE_TYPE]?: SVGEllipseElement;
 	readonly [S_ELEM_NAME]?: "ellipse";
-	readonly children?: never;
+	readonly children?: JsxChildren;
 	readonly "clip-path"?: MaybeAtom<string>;
 	readonly "clip-rule"?: MaybeAtom<SVGClipRule>;
 	readonly cursor?: MaybeAtom<string>;
@@ -1928,7 +1931,7 @@ export interface SVGGElementProps extends SVGCommonProps {
 export interface SVGImageElementProps extends SVGCommonProps {
 	readonly [S_NODE_TYPE]?: SVGImageElement;
 	readonly [S_ELEM_NAME]?: "image";
-	readonly children?: never;
+	readonly children?: JsxChildren;
 	readonly "clip-path"?: MaybeAtom<string>;
 	readonly "clip-rule"?: MaybeAtom<SVGClipRule>;
 	readonly crossorigin?: MaybeAtom<SVGCrossOrigin>;
@@ -1954,7 +1957,7 @@ export interface SVGImageElementProps extends SVGCommonProps {
 export interface SVGLineElementProps extends SVGCommonProps {
 	readonly [S_NODE_TYPE]?: SVGLineElement;
 	readonly [S_ELEM_NAME]?: "line";
-	readonly children?: never;
+	readonly children?: JsxChildren;
 	readonly "clip-path"?: MaybeAtom<string>;
 	readonly "clip-rule"?: MaybeAtom<SVGClipRule>;
 	readonly cursor?: MaybeAtom<string>;
@@ -2052,7 +2055,7 @@ export interface SVGMPathElementProps extends SVGCommonProps {
 export interface SVGPathElementProps extends SVGCommonProps {
 	readonly [S_NODE_TYPE]?: SVGPathElement;
 	readonly [S_ELEM_NAME]?: "path";
-	readonly children?: never;
+	readonly children?: JsxChildren;
 	readonly "clip-path"?: MaybeAtom<string>;
 	readonly "clip-rule"?: MaybeAtom<SVGClipRule>;
 	readonly cursor?: MaybeAtom<string>;
@@ -2109,7 +2112,7 @@ export interface SVGPatternElementProps extends SVGCommonProps {
 export interface SVGPolygonElementProps extends SVGCommonProps {
 	readonly [S_NODE_TYPE]?: SVGPolygonElement;
 	readonly [S_ELEM_NAME]?: "polygon";
-	readonly children?: never;
+	readonly children?: JsxChildren;
 	readonly "clip-path"?: MaybeAtom<string>;
 	readonly "clip-rule"?: MaybeAtom<SVGClipRule>;
 	readonly cursor?: MaybeAtom<string>;
@@ -2142,7 +2145,7 @@ export interface SVGPolygonElementProps extends SVGCommonProps {
 export interface SVGPolylineElementProps extends SVGCommonProps {
 	readonly [S_NODE_TYPE]?: SVGPolylineElement;
 	readonly [S_ELEM_NAME]?: "polyline";
-	readonly children?: never;
+	readonly children?: JsxChildren;
 	readonly "clip-path"?: MaybeAtom<string>;
 	readonly "clip-rule"?: MaybeAtom<SVGClipRule>;
 	readonly cursor?: MaybeAtom<string>;
@@ -2192,7 +2195,7 @@ export interface SVGRadialGradientElementProps extends SVGCommonProps {
 export interface SVGRectElementProps extends SVGCommonProps {
 	readonly [S_NODE_TYPE]?: SVGRectElement;
 	readonly [S_ELEM_NAME]?: "rect";
-	readonly children?: never;
+	readonly children?: JsxChildren;
 	readonly "clip-path"?: MaybeAtom<string>;
 	readonly "clip-rule"?: MaybeAtom<SVGClipRule>;
 	readonly cursor?: MaybeAtom<string>;
@@ -2250,7 +2253,7 @@ export interface SVGSetElementProps extends SVGCommonProps {
 export interface SVGStopElementProps extends SVGCommonProps {
 	readonly [S_NODE_TYPE]?: SVGStopElement;
 	readonly [S_ELEM_NAME]?: "stop";
-	readonly children?: never;
+	readonly children?: JsxChildren;
 	readonly "stop-color"?: MaybeAtom<string>;
 	readonly "stop-opacity"?: MaybeAtom<string | number>;
 }
@@ -2461,7 +2464,7 @@ export interface SVGTSpanElementProps extends SVGCommonProps {
 export interface SVGUseElementProps extends SVGCommonProps {
 	readonly [S_NODE_TYPE]?: SVGUseElement;
 	readonly [S_ELEM_NAME]?: "use";
-	readonly children?: never;
+	readonly children?: JsxChildren;
 	readonly "clip-path"?: MaybeAtom<string>;
 	readonly "clip-rule"?: MaybeAtom<SVGClipRule>;
 	readonly cursor?: MaybeAtom<string>;

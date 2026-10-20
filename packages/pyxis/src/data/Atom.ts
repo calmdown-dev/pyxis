@@ -130,7 +130,7 @@ export function atomOf<T>(initialValue?: MaybeAtom<T>, lifecycle = getLifecycle(
 	if (__DEV__) {
 		const devId = arguments[2];
 		atom.$devId = devId;
-		runtime.hmrState!.restore(lifecycle, devId, value => {
+		runtime.$hmrState!.restore(lifecycle, devId, value => {
 			atom.$value = value;
 			atom.$lastValue = value;
 		});
@@ -150,7 +150,7 @@ function setValue<T>(this: DirectAtom<T>, value: T) {
 
 	this.$value = value;
 	if (__DEV__) {
-		runtime.hmrState!.preserve(this.$lifecycle, this.$devId, value);
+		runtime.$hmrState!.preserve(this.$lifecycle, this.$devId, value);
 	}
 
 	return true;

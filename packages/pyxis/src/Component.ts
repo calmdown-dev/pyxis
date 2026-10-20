@@ -39,12 +39,12 @@ export function component(
 	let devId: string | undefined; // gets removed by bundler in production
 	if (__DEV__) {
 		devId = arguments[1];
-		devId && runtime.hmrComponent!.upsert(devId, block);
+		devId && runtime.$hmrComponent!.upsert(devId, block);
 	}
 
 	return (props, hParent, nUsedParent, nRealParent, nBefore, isBatch) => {
-		const capturedContext = runtime.c;
-		const capturedContextNew = runtime.n;
+		const capturedContext = runtime.$currentContext;
+		const capturedContextNew = runtime.$currentContextNew;
 		try {
 			if (__DEV__) {
 				if (!import.meta.hot || !devId) {
@@ -56,7 +56,7 @@ export function component(
 				const nMarker = hGroup.adapter.marker(`/${devId}`);
 				insert(nMarker, null, hParent, nUsedParent, nBefore, isBatch);
 
-				const unsubscribe = runtime.hmrComponent!.subscribe(devId, impl => {
+				const unsubscribe = runtime.$hmrComponent!.subscribe(devId, impl => {
 					unmount(hGroup);
 					mount(
 						/* jsx = */ {
@@ -80,39 +80,39 @@ export function component(
 				isBatch = false;
 			}
 			else {
-				runtime.n = false; // reset context container
+				runtime.$currentContextNew = false; // reset context container
 				mountJsx(block(props), hParent, nUsedParent, nRealParent, nBefore, isBatch);
 			}
 		}
 		finally {
 			// reset back to this Component's container, prevents leakage of branched off child contexts
-			runtime.c = capturedContext;
-			runtime.n = capturedContextNew;
+			runtime.$currentContext = capturedContext;
+			runtime.$currentContextNew = capturedContextNew;
 		}
 	};
 }
 
 function __DEV__evalComponent(block: ComponentBlock, props: JsxObject) {
-	const prevLifecycle = runtime.componentEvalLifecycle ?? null;
-	const prevEffect = runtime.componentEvalEffect ?? null;
-	runtime.componentEvalLifecycle = runtime.l;
-	runtime.componentEvalEffect = runtime.e;
-	runtime.n = false; // reset context container
+	const prevLifecycle = runtime.$componentEvalLifecycle ?? null;
+	const prevEffect = runtime.$componentEvalEffect ?? null;
+	runtime.$componentEvalLifecycle = runtime.$currentLifecycle;
+	runtime.$componentEvalEffect = runtime.$currentEffect;
+	runtime.$currentContextNew = false; // reset context container
 	try {
 		return block(props);
 	}
 	finally {
-		runtime.componentEvalLifecycle = prevLifecycle;
-		runtime.componentEvalEffect = prevEffect;
+		runtime.$componentEvalLifecycle = prevLifecycle;
+		runtime.$componentEvalEffect = prevEffect;
 	}
 }
 
 export function __DEV__assertIsDirectComponentCode(fn: string) {
-	if (!runtime.componentEvalLifecycle || runtime.componentEvalLifecycle !== runtime.l) {
+	if (!runtime.$componentEvalLifecycle || runtime.$componentEvalLifecycle !== runtime.$currentLifecycle) {
 		throw new Error(`"${fn}" can only be used directly within components.`);
 	}
 
-	if (runtime.componentEvalEffect !== runtime.e) {
+	if (runtime.$componentEvalEffect !== runtime.$currentEffect) {
 		throw new Error(`"${fn}" cannot be used within effects or derivations.`);
 	}
 }

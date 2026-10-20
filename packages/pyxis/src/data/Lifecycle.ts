@@ -99,11 +99,11 @@ export function onUnmounted(lifecycle: Lifecycle, callback: Callback) {
  * Gets the Lifecycle of the calling component.
  */
 export function getLifecycle(): Lifecycle {
-	if (__DEV__ && !runtime.l) {
+	if (__DEV__ && !runtime.$currentLifecycle) {
 		throw new Error("Cannot get current lifecycle. Are you creating an Atom outside of a Component?");
 	}
 
-	return runtime.l!;
+	return runtime.$currentLifecycle!;
 }
 
 /**
@@ -124,13 +124,13 @@ export function withLifecycle(
 	a1?: any,
 	a2?: any,
 ) {
-	const prevLifecycle = runtime.l;
-	runtime.l = lifecycle;
+	const prevLifecycle = runtime.$currentLifecycle;
+	runtime.$currentLifecycle = lifecycle;
 
 	try {
 		return block(a0, a1, a2);
 	}
 	finally {
-		runtime.l = prevLifecycle;
+		runtime.$currentLifecycle = prevLifecycle;
 	}
 }
