@@ -121,7 +121,7 @@ export class ComponentRegistry {
 	}
 
 	private readonly update = () => {
-		let errors: unknown[] | null = null;
+		let errors: unknown[] | undefined;
 
 		this.isPendingUpdate = false;
 		this.components.forEach(entry => {

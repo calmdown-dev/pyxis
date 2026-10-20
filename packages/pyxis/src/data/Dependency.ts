@@ -264,7 +264,7 @@ export function notify(list: DependencyList) {
 	list.$xn = list.$dh;
 
 	// invoke all observer callbacks, catching any errors
-	let errors: unknown[] | null = null;
+	let errors: unknown[] | undefined;
 	let current;
 	while ((current = list.$xn)) {
 		// the callback may run arbitrary user code, which could lead to mutations of the linked

@@ -46,19 +46,17 @@ export function Iterator<TNode, T>(
 	const isProxy = proxyKeys !== undefined;
 	const template = jsx.children[0] as DataTemplate<T>;
 
-	// create master group
+	// create master group and marker
 	const hGroup = fork(hParent) as MountingGroup<TNode>;
-
 	const { adapter } = hGroup;
 	const shouldBatch = !!adapter.batch;
 	const nListEndMarker = __DEV__ ? adapter.marker("/Iterator") : adapter.marker();
 
 	// declare rendering routines
-	let renderedItems: IteratorItemGroup<TNode>[] | null = null;
+	let renderedItems: IteratorItemGroup<TNode>[] | undefined;
 	let hListEndMarker: HNode<TNode> | null = null;
 
 	const renderInitialItems = (initItems: readonly T[], nInitParent: TNode, nInitBefore: TNode | null, initIsBatch: boolean) => {
-		let errors: unknown[] | null = null;
 		let nBatchParent = nInitParent;
 		let nBatchBefore = nInitBefore;
 
@@ -69,6 +67,7 @@ export function Iterator<TNode, T>(
 			nBatchBefore = null;
 		}
 
+		let errors: unknown[] | undefined;
 		renderedItems = initItems.map((data) => {
 			const item = createItem(
 				/* hGroup = */ hGroup,
@@ -118,9 +117,9 @@ export function Iterator<TNode, T>(
 		const cMax = changes.length;
 		const iMax = renderedItems.length + relSize;
 		let newItems = renderedItems;
-		let errors: unknown[] | null = null;
-		let pending: number[] | null = null;
-		let recycled: IteratorItemGroup<TNode>[] | null = null;
+		let errors: unknown[] | undefined;
+		let pending: number[] | undefined;
+		let recycled: IteratorItemGroup<TNode>[] | undefined;
 		let item: IteratorItemGroup<TNode>;
 		let inserted = 0;
 		let ci = 0; // change index
@@ -345,7 +344,7 @@ export function Iterator<TNode, T>(
 		});
 	}
 
-	// insert position marker
+	// insert master position marker
 	insert(nListEndMarker, null, hGroup, nUsedParent, nBefore, isBatch);
 	hListEndMarker = hGroup.$ht!;
 
@@ -357,7 +356,7 @@ export function Iterator<TNode, T>(
  * Flushes a range of items delimited by start (inclusive) and end (exclusive). Errors are caught
  * and collected, the errors array (if any) is returned.
  */
-function flushItems<TNode>(items: IteratorItemGroup<TNode>[], start: number, end: number, errors: unknown[] | null) {
+function flushItems<TNode>(items: IteratorItemGroup<TNode>[], start: number, end: number, errors: unknown[] | undefined) {
 	let index = start;
 	for (; index < end; index += 1) {
 		try {

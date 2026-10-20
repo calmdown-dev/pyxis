@@ -94,7 +94,7 @@ export function createScheduler(tick: TickFn) {
 	const update = () => {
 		const prevLifecycle = runtime.$currentLifecycle;
 		const epoch = scheduler.$epoch;
-		let errors: unknown[] | null = null;
+		let errors: unknown[] | undefined;
 		let effectIndex = 0;
 		let tickIndex = 0;
 		let callback;
