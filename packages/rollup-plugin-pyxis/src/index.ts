@@ -5,6 +5,8 @@ import { resolveOptions, type PyxisPluginOptions } from "./options";
 import { PyxisLoader } from "./PyxisLoader";
 import { pyxisTranspileTsx } from "./transpiler";
 
+import { transpileComponentCalls } from "./dce/transpileComponentCalls";
+
 import { pyxisDev } from "./hmr/pyxisDev";
 import { transpileExportedSymbols } from "./hmr/transpileExportedSymbols";
 import { transpileFactoryCalls } from "./hmr/transpileFactoryCalls";
@@ -46,11 +48,15 @@ export default function pyxis(pluginOptions?: PyxisPluginOptions) {
 		}));
 	}
 
-	if (options.hmr || options.cssModules) {
+	if (options.dce || options.hmr || options.cssModules) {
 		plugins.push(pyxisTranspileTsx({
 			loader,
 			tag: tsxTag,
 			async transpile(call) {
+				if (options.dce) {
+					await transpileComponentCalls({ ...call, loader });
+				}
+
 				if (options.hmr) {
 					await transpileExportedSymbols(call);
 					await transpileFactoryCalls({ ...call, loader });

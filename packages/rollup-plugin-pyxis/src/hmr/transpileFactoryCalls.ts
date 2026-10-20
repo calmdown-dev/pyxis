@@ -137,7 +137,8 @@ export async function transpileFactoryCalls({
 					break;
 
 				case "MemberExpression":
-					if (node.callee.property.type === "Identifier" &&
+					if (
+						node.callee.property.type === "Identifier" &&
 						(kind = factoryKindMap[node.callee.property.name]) &&
 						node.callee.object.type === "Identifier" &&
 						(tmp = imported[node.callee.object.name]) &&
