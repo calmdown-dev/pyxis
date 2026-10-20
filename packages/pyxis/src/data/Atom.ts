@@ -21,6 +21,18 @@ export interface Atom<out T> extends DependencyList {
 	/** @internal */
 	readonly $lifecycle: Lifecycle;
 
+	/** @internal */
+	$tracksValue?: boolean;
+
+	/** @internal */
+	$lastValue?: T;
+
+	/**
+	 * The ID of this Atom, only present in development mode with transpiler.
+	 * @internal
+	 */
+	$devId?: string;
+
 	/**
 	 * Gets the value of this Atom. Only use this method when the target is guaranteed to be an
 	 * Atom, otherwise it is recommended to use the `read` or `peek` functions.
@@ -54,18 +66,6 @@ export interface WriteAtom<T = unknown> extends Atom<T> {
 	 * @see {@link update}
 	 */
 	set: (value: T) => boolean;
-
-	/** @internal */
-	$tracksValue?: boolean;
-
-	/** @internal */
-	$lastValue?: T;
-
-	/**
-	 * The ID of this Atom, only present in development mode with transpiler.
-	 * @internal
-	 */
-	$devId?: string;
 }
 
 interface DirectAtom<T> extends WriteAtom<any> {
@@ -232,10 +232,7 @@ export function write<T>(input: MaybeWriteAtom<T>, value: T, force = false): T {
 	if (input.set(value) || force) {
 		if (input.$dh) {
 			input.$force ||= force;
-			scheduleTick(input.$lifecycle, input.$notify ??= {
-				$fn: notifyAtomObservers,
-				$a0: input,
-			});
+			scheduleAtomNotification(input);
 		}
 		else if (input.$tracksValue) {
 			return (input.$lastValue = input.get());
@@ -273,10 +270,7 @@ export function update<T>(input: MaybeWriteAtom<T>, transform: (value: T) => T, 
 	if (input.set(value) || force) {
 		if (input.$dh) {
 			input.$force ||= force;
-			scheduleTick(input.$lifecycle, input.$notify ??= {
-				$fn: notifyAtomObservers,
-				$a0: input,
-			});
+			scheduleAtomNotification(input);
 		}
 		else if (input.$tracksValue) {
 			return (input.$lastValue = input.get());
@@ -287,23 +281,34 @@ export function update<T>(input: MaybeWriteAtom<T>, transform: (value: T) => T, 
 }
 
 /**
+ * Schedules a notification to be emitted for the given Atom.
+ * @internal
+ */
+export function scheduleAtomNotification<T>(atom: Atom<T>) {
+	scheduleTick(atom.$lifecycle, atom.$notify ??= {
+		$fn: notifyAtomObservers,
+		$a0: atom,
+	});
+}
+
+/**
  * Notifies the dependencies of an Atom.
  * @internal
  */
-export function notifyAtomObservers<T>(input: WriteAtom<T>) {
+export function notifyAtomObservers<T>(atom: Atom<T>) {
 	// optimization: when Atom changes multiple times within a single update and ends up with the
 	// same value it started with, the notification can be skipped, unless forced - this flag is set
 	// either by users via the `write` or `update` functions, or by the framework when a new
 	// observer joins while a notification is already pending and might've seen an outdated value
-	if (input.$tracksValue) {
-		const newValue = input.get();
-		if (!input.$force && Object.is(input.$lastValue, newValue)) {
+	if (atom.$tracksValue) {
+		const newValue = atom.get();
+		if (!atom.$force && Object.is(atom.$lastValue, newValue)) {
 			return;
 		}
 
-		input.$lastValue = newValue;
+		atom.$lastValue = newValue;
 	}
 
-	input.$force = false;
-	notify(input);
+	atom.$force = false;
+	notify(atom);
 }

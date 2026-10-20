@@ -2,15 +2,15 @@ import { UNIQUE_VALUE } from "~/support/common";
 import type { Nil } from "~/support/types";
 import { S_ATOM } from "~/symbols";
 
-import { isAtom, notifyAtomObservers, type MaybeAtom, type WriteAtom } from "./Atom";
+import { isAtom, scheduleAtomNotification, type MaybeAtom, type WriteAtom } from "./Atom";
 import { link, unlink, type Dependency } from "./Dependency";
 import { getLifecycle, type Lifecycle } from "./Lifecycle";
-import { scheduleTick } from "./Scheduler";
 
 export interface ProxyAtom<T> extends WriteAtom<T> {
 	/**
 	 * Binds this ProxyAtom to a new value. If it is an Atom, the proxy will mirror it, otherwise it
 	 * will be a read-only atom with a static value until rebound.
+	 * Binding a proxy to itself throws in development and is ignored in production.
 	 */
 	use(value: MaybeAtom<T>): void;
 
@@ -44,6 +44,14 @@ export function proxyOf<T>(initialValue: MaybeAtom<T>, lifecycle = getLifecycle(
 }
 
 function use<T>(this: ProxyAtom<T>, value: MaybeAtom<T>, isInit: boolean = false) {
+	if (value === this) {
+		if (__DEV__) {
+			throw new Error("ProxyAtom cannot proxy itself");
+		}
+
+		return;
+	}
+
 	const upstream = this.$upstream;
 	if (upstream && upstream === value) {
 		// value is an Atom and we're already forwarding it, nothing to do
@@ -68,7 +76,7 @@ function use<T>(this: ProxyAtom<T>, value: MaybeAtom<T>, isInit: boolean = false
 		// all Atoms actually implement the WriteAtom interface
 		this.$upstream = value as WriteAtom<T>;
 		link(this.$lifecycle, value, this.$dep ??= {
-			$fn: notifyAtomObservers<T>,
+			$fn: scheduleAtomNotification,
 			$a0: this,
 		});
 	}
@@ -95,10 +103,7 @@ function use<T>(this: ProxyAtom<T>, value: MaybeAtom<T>, isInit: boolean = false
 
 	if (this.$dh) {
 		if (shouldNotify) {
-			scheduleTick(this.$lifecycle, this.$notify ??= {
-				$fn: notifyAtomObservers,
-				$a0: this,
-			});
+			scheduleAtomNotification(this);
 		}
 	}
 	else if (this.$tracksValue) {
@@ -118,10 +123,7 @@ function setUpstreamValue<T>(this: ProxyAtom<T>, value: T) {
 	// `write`, skipping parts we don't need here
 	const atom = this.$upstream!;
 	if (atom.set(value) && atom.$dh) {
-		scheduleTick(atom.$lifecycle, atom.$notify ??= {
-			$fn: notifyAtomObservers,
-			$a0: atom,
-		});
+		scheduleAtomNotification(atom);
 	}
 
 	// Always return false, even if the upstream changed. This way, `write` and `update` functions

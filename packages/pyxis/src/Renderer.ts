@@ -4,7 +4,7 @@ import { bind, teardown } from "~/data/Dependency";
 import type { Lifecycle } from "~/data/Lifecycle";
 import { createScheduler } from "~/data/Scheduler";
 import { invoke, rethrow } from "~/support/common";
-import type { ElementsType, Mutable, Nil } from "~/support/types";
+import type { ArgsMax3, ElementsType, Mutable, Nil } from "~/support/types";
 
 import type { Adapter, ExtensionsType } from "./Adapter";
 import type { ComponentHandler, JsxResult } from "./Component";
@@ -310,8 +310,16 @@ export function untrack<TNode>(hNode: HNode<TNode>) {
  *
  * Deferred teardown errors are reported by the outermost render, after all requests are processed.
  */
-export function willMount<TNode, TResult>(hGroup: MountingGroup<TNode>, block: () => TResult){
-	return (() => {
+export function willMount<TNode, TArgs extends ArgsMax3, TResult>(
+	hGroup: MountingGroup<TNode>,
+	block: (...args: TArgs) => TResult,
+): (...args: TArgs) => TResult;
+
+export function willMount<TNode>(
+	hGroup: MountingGroup<TNode>,
+	block: (...args: ArgsMax3) => any,
+) {
+	return (a0?: any, a1?: any, a2?: any) => {
 		const errors: unknown[] = [];
 		const mounts = runtime.$mounts ??= [];
 		if (++hGroup.$depth === 1) {
@@ -319,7 +327,7 @@ export function willMount<TNode, TResult>(hGroup: MountingGroup<TNode>, block: (
 		}
 
 		try {
-			return block();
+			return block(a0, a1, a2);
 		}
 		catch (ex) {
 			errors.push(ex);
@@ -331,7 +339,7 @@ export function willMount<TNode, TResult>(hGroup: MountingGroup<TNode>, block: (
 
 			finishMount(errors);
 		}
-	}) as (() => TResult);
+	};
 }
 
 /**

@@ -53,10 +53,16 @@ export interface DependencyList<TArgs extends ArgsMax3 = ArgsMax3> {
 	$dt?: Nil<Dependency<TArgs>>;
 
 	/**
-	 * The tail of the NotifyCursor stack.
+	 * Tracks whether notifications are currently being dispatched.
 	 * @internal
 	 */
-	$ct?: Nil<NotifyCursor>;
+	$xa?: boolean;
+
+	/**
+	 * During notification dispatch, tracks the next dependency to be notified.
+	 * @internal
+	 */
+	$xn?: Nil<Dependency>;
 
 	/**
 	 * The notify callback of this DependencyList.
@@ -76,19 +82,6 @@ export interface DependencyList<TArgs extends ArgsMax3 = ArgsMax3> {
 	 * @internal
 	 */
 	$force?: boolean;
-}
-
-/** @internal */
-interface NotifyCursor {
-	/**
-	 * Previous in-progress NotifyCursor in the stack.
-	 */
-	$cp?: Nil<NotifyCursor>;
-
-	/**
-	 * The next Dependency the notification dispatch using this NotifyCursor should proceed to.
-	 */
-	$dn?: Nil<Dependency>;
 }
 
 export function bind(lifecycle: Lifecycle, target: DependencyList, block: () => void) {
@@ -126,14 +119,9 @@ export function link(lifecycle: Lifecycle, target: DependencyList, dep: Dependen
 	dep.$lifecycle = lifecycle;
 	lifecycle.$dt = dep;
 
-	// advance cursors, in case any notification dispatch is currently active
-	let cursor = target.$ct;
-	while (cursor) {
-		if (!cursor.$dn) {
-			cursor.$dn = dep;
-		}
-
-		cursor = cursor.$cp;
+	// advance cursor when dispatch is currently active
+	if (target.$xa && !target.$xn) {
+		target.$xn = dep;
 	}
 
 	// if there is already a pending update notification, ensure it is delivered regardless of any
@@ -161,14 +149,9 @@ export function unlink(dep: Dependency) {
 		return; // already unlinked?
 	}
 
-	// advance cursors, in case any notification dispatch is currently active
-	let cursor = target.$ct;
-	while (cursor) {
-		if (cursor.$dn === dep) {
-			cursor.$dn = dep.$an;
-		}
-
-		cursor = cursor.$cp;
+	// advance cursor when dispatch is currently active
+	if (target.$xa && target.$xn === dep) {
+		target.$xn = dep.$an;
 	}
 
 	// unlink from target (atom)
@@ -218,20 +201,14 @@ export function unlink(dep: Dependency) {
 export function teardown(lifecycle: Lifecycle) {
 	let dep = lifecycle.$dh;
 	let target;
-	let cursor;
 	let next;
 
 	while (dep) {
 		target = dep.$target!;
 
-		// advance cursors, in case any notification dispatch is currently active
-		cursor = target.$ct;
-		while (cursor) {
-			if (cursor.$dn === dep) {
-				cursor.$dn = dep.$an;
-			}
-
-			cursor = cursor.$cp;
+		// advance cursor when dispatch is currently active
+		if (target.$xa && target.$xn === dep) {
+			target.$xn = dep.$an;
 		}
 
 		// unlink from target (atom)
@@ -282,23 +259,19 @@ export function teardown(lifecycle: Lifecycle) {
  * @internal
  */
 export function notify(list: DependencyList) {
-	const cursor: NotifyCursor = {
-		$cp: list.$ct,
-		$dn: list.$dh,
-	};
-
-	// push cursor stack
-	list.$ct = cursor;
+	// init cursor
+	list.$xa = true;
+	list.$xn = list.$dh;
 
 	// invoke all observer callbacks, catching any errors
 	let errors: unknown[] | null = null;
 	let current;
-	while ((current = cursor.$dn)) {
+	while ((current = list.$xn)) {
 		// the callback may run arbitrary user code, which could lead to mutations of the linked
 		// list we're iterating -> we advance the cursor first; the link, unlink, unlinkAll
 		// functions check and adjust it when necessary; this loop will then advance to the correct
 		// next dependency
-		cursor.$dn = current.$an;
+		list.$xn = current.$an;
 		try {
 			invoke(current);
 		}
@@ -307,8 +280,9 @@ export function notify(list: DependencyList) {
 		}
 	}
 
-	// pop cursor stack
-	list.$ct = cursor.$cp;
+	// clear cursor
+	list.$xa = false;
+	list.$xn = null;
 
 	// fail, if there were any errors
 	rethrow(errors);

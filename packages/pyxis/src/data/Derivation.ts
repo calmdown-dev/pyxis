@@ -1,9 +1,8 @@
 import { S_ATOM } from "~/symbols";
 
-import { notifyAtomObservers, type Atom, type WriteAtom } from "./Atom";
-import { getLifecycle } from "./Lifecycle";
+import { scheduleAtomNotification, type Atom, type WriteAtom } from "./Atom";
 import { resolve, unlinkEffectDep, type Effect, type EffectDependency } from "./Effect";
-import { scheduleTick } from "./Scheduler";
+import { getLifecycle } from "./Lifecycle";
 
 /**
  * Holds a value derived from values of other Atoms, managing reactions to their changes.
@@ -66,10 +65,7 @@ function scheduleReaction(this: EffectDependency, derivation: DerivationInternal
 	// being "scheduled" - this also gives priority to already queued updates and coalesces
 	// additional notifications while the first one is still pending.
 	derivation.$dirty = true;
-	scheduleTick(derivation.$lifecycle, derivation.$notify ??= {
-		$fn: notifyAtomObservers,
-		$a0: derivation,
-	});
+	scheduleAtomNotification(derivation);
 }
 
 function getValue<T>(this: DerivationInternal<T>): T {

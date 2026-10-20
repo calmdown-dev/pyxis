@@ -26,17 +26,6 @@ export interface Adapter<TNode, TElements extends ElementsType = ElementsType> {
 	) => TNode;
 
 	/**
-	 * Called after an element has been created, its props have been set and its children inserted.
-	 * Allows adapters to apply custom post-creation logic as necessary.
-	 *
-	 * Adapters may omit this function when no post-creation logic is needed.
-	 */
-	readonly finalize?: (
-		node: TNode,
-		props: JsxObject,
-	) => void;
-
-	/**
 	 * Creates or updates a text node. In both cases the node is returned.
 	 */
 	readonly text: (

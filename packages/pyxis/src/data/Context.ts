@@ -4,7 +4,7 @@ import { __DEV__assertIsDirectComponentCode } from "~/Component";
 import { runtime } from "~/Runtime";
 import { S_ATOM } from "~/symbols";
 
-import { notifyAtomObservers, type WriteAtom, type Atom } from "./Atom";
+import { scheduleAtomNotification, type Atom, type WriteAtom } from "./Atom";
 import { link, unlink, type Dependency } from "./Dependency";
 import { getLifecycle, type Lifecycle } from "./Lifecycle";
 
@@ -137,7 +137,7 @@ export function host<T>(context: Context<T>, defaultValue?: T, lifecycle = getLi
 		localAtom.get = getUpstreamValue;
 		localAtom.$upstream = upstream;
 		link(lifecycle, upstream, localAtom.$dep = {
-			$fn: notifyAtomObservers<T>,
+			$fn: scheduleAtomNotification,
 			$a0: localAtom,
 		});
 	}
@@ -191,7 +191,7 @@ export function contextual<T>(context: Context<T>): Atom<T> {
 			};
 
 			link(atom.$lifecycle, atom, {
-				$fn: notifyAtomObservers<T>,
+				$fn: scheduleAtomNotification,
 				$a0: consumer,
 			});
 		}

@@ -1,6 +1,6 @@
 import { link } from "~/data/Dependency";
 import type { ReadonlyList } from "~/data/List";
-import { LC_CHANGE, LC_CLEAR, LC_INSERT, LC_REMOVE } from "~/data/ListDelta";
+import { LC_CHANGE, LC_CLEAR, LC_INSERT, LC_REMOVE, type ListDelta } from "~/data/ListDelta";
 import { createProxy, updateProxy, type Proxied } from "~/data/ProxyAtom";
 import { rethrow } from "~/support/common";
 import { mountTemplate } from "~/support/template";
@@ -116,12 +116,9 @@ export function Iterator<TNode, T>(
 		rethrow(errors);
 	};
 
-	const renderIncomingDelta = willMount(hGroup, () => {
-		const delta = source.delta();
-		if (!delta) {
-			return;
-		}
-
+	// subscribe to list updates - done first so that any mutations of the list occurring as a side
+	// effect of rendering don't get dropped if the list has no (other) subscribers
+	source.delta(willMount(hGroup, (delta: ListDelta<T>) => {
 		if (!renderedItems) {
 			renderInitialItems(delta.snapshot, nRealParent, nListEndMarker, false);
 			return;
@@ -342,11 +339,7 @@ export function Iterator<TNode, T>(
 
 		renderedItems = newItems;
 		rethrow(errors);
-	});
-
-	// subscribe to list updates - done first so that any mutations of the list occurring as a side
-	// effect of rendering don't get dropped if the list has no (other) subscribers
-	link(hGroup, source, { $fn: renderIncomingDelta });
+	}), hGroup);
 
 	// render current stable state, or wait for incoming delta if already dirty
 	if (!source.dirty()) {

@@ -1,11 +1,11 @@
 import type { Nil } from "~/support/types";
 import { runtime } from "~/Runtime";
 
-import { notify, type DependencyList } from "./Dependency";
+import { link, notify, type DependencyList } from "./Dependency";
 import { reportAccess } from "./Effect";
 import { getLifecycle, type Lifecycle } from "./Lifecycle";
 import { itemChanged, itemInserted, itemRemoved, listCleared, listSynced, type Equals, type ListDelta, type PendingListDelta } from "./ListDelta";
-import { scheduleTick, scheduleTock, type UpdateCallback } from "./Scheduler";
+import { scheduleTick, type UpdateCallback } from "./Scheduler";
 
 export interface ReadonlyList<T> extends Iterable<T>, DependencyList {
 	/**
@@ -31,13 +31,12 @@ export interface ReadonlyList<T> extends Iterable<T>, DependencyList {
 	dirty(): boolean;
 
 	/**
-	 * When called within an effect observing this List, gets a ListDelta object describing the
-	 * latest changes. May return `null` when no changes were made to this List and the effect ran
-	 * for other reasons.
+	 * Registers a callback to run whenever one or more changes are made to this List. The callback
+	 * receives a ListDelta object describing all changes made since the last notification.
 	 *
-	 * Reactive in effects and derivations.
+	 * Non-reactive in effects and derivations.
 	 */
-	delta(): ListDelta<T> | null;
+	delta(block: (delta: ListDelta<T>) => void, lifecycle?: Lifecycle): void;
 
 	/**
 	 * Gets the underlying array of items of this List. The array is read-only, but may change when
@@ -82,7 +81,7 @@ export interface ReadonlyList<T> extends Iterable<T>, DependencyList {
 	$afterNotify?: Nil<UpdateCallback<[ self: List<T> ]>>;
 
 	/** @internal */
-	$itemsLock: number;
+	$lock: number;
 
 	/**
 	 * The ID of this List, only used in dev builds.
@@ -186,7 +185,7 @@ export function listOf<T>(source?: Nil<Iterable<T>>, lifecycle = getLifecycle())
 		$lifecycle: lifecycle,
 		$committedDelta: null,
 		$pendingDelta: null,
-		$itemsLock: 0,
+		$lock: 0,
 		[Symbol.iterator]: getIterator,
 		size,
 		get,
@@ -250,7 +249,7 @@ function get(this: List<any>, index: number) {
 }
 
 function dirty(this: List<any>) {
-	if (this.$ct) {
+	if (this.$xa) {
 		// currently notifying observers
 		return true;
 	}
@@ -265,9 +264,12 @@ function dirty(this: List<any>) {
 	return (!pending || pending.$life === pending.$lifecycle!.$life) && delta.changes.length > 0;
 }
 
-function delta<T>(this: List<T>) {
-	reportAccess(this);
-	return this.$committedDelta;
+function delta<T>(this: List<T>, block: (delta: ListDelta<T>) => void, lifecycle: Lifecycle = getLifecycle()) {
+	link(lifecycle, this, {
+		$fn: invokeDeltaBlock<T>,
+		$a0: this,
+		$a1: block,
+	});
 }
 
 function raw<T>(this: List<T>): readonly T[] {
@@ -281,11 +283,11 @@ function forEach<T>(this: List<T>, callback: (item: T, index: number) => void) {
 
 function stable<T, R>(this: List<T>, block: (snapshot: readonly T[]) => R) {
 	try {
-		this.$itemsLock += 1;
+		this.$lock += 1;
 		return block(this.$items);
 	}
 	finally {
-		this.$itemsLock = Math.max(this.$itemsLock - 1, 0);
+		this.$lock = Math.max(this.$lock - 1, 0);
 	}
 }
 
@@ -314,9 +316,9 @@ function set<T>(this: List<T>, index: number, newItem: T) {
 
 function clear(this: List<any>) {
 	const count = this.$items.length;
-	if (this.$itemsLock > 0) {
+	if (this.$lock > 0) {
 		this.$items = [];
-		this.$itemsLock = 0;
+		this.$lock = 0;
 	}
 	else {
 		this.$items.length = 0;
@@ -424,9 +426,9 @@ function initDelta<T>(list: List<T>): PendingListDelta<T> {
 }
 
 function copyOnWrite(list: List<any>) {
-	if (list.$itemsLock > 0) {
+	if (list.$lock > 0) {
 		list.$items = list.$items.slice();
-		list.$itemsLock = 0
+		list.$lock = 0;
 	}
 }
 
@@ -437,11 +439,6 @@ function listMutated(list: List<any>) {
 
 	scheduleTick(list.$lifecycle, list.$notify ??= {
 		$fn: notifyListObservers,
-		$a0: list,
-	});
-
-	scheduleTock(list.$lifecycle, list.$afterNotify ??= {
-		$fn: afterNotifyListObservers,
 		$a0: list,
 	});
 }
@@ -457,14 +454,19 @@ function notifyListObservers(list: List<any>) {
 	if (list.$force || delta.changes.length > 0) {
 		delta.snapshot = list.$items;
 		list.$committedDelta = delta as ListDelta<any>;
-		list.$itemsLock += 1; // protect the snapshot
+		list.$lock += 1; // protect the snapshot
 		list.$force = false;
 
-		notify(list);
+		try {
+			notify(list);
+		}
+		finally {
+			list.$committedDelta = null;
+			list.$lock = Math.max(list.$lock - 1, 0);
+		}
 	}
 }
 
-function afterNotifyListObservers(list: List<any>) {
-	list.$committedDelta = null;
-	list.$itemsLock = Math.max(list.$itemsLock - 1, 0); // release snapshot
+function invokeDeltaBlock<T>(list: List<T>, block: (delta: ListDelta<T>) => void) {
+	block(list.$committedDelta!);
 }
