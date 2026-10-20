@@ -22,6 +22,6 @@ export type { ElementsType, ElemName, Flatten, Nil, NodeType, PropsType, S_ELEM_
 export { ext, extension, type Adapter, type Extension, type ExtensionPropMapping, type ExtensionsType } from "~/Adapter";
 export { component, type Component, type DataTemplate, type JsxChildren, type JsxChildrenProp, type JsxDevSourceInfo, type JsxObject, type JsxProps, type JsxResult, type JsxText, type PropsOf, type WithChildren } from "~/Component";
 export { jsx, jsxs } from "~/jsx";
-export { insert, mount, mountJsx, flush, fork, track, unmount, untrack, type ElementsOf, type HNode, type MountingGroup, type Renderer } from "~/Renderer";
+export { destroy, flush, fork, insert, mount, mountJsx, track, unmount, untrack, willMount, type ElementsOf, type HNode, type MountingGroup, type Renderer } from "~/Renderer";
 export { renderer, type RendererBuilder } from "~/RendererBuilder";
 export { S_ATOM, S_COMPONENT, S_TAG_NAME } from "~/symbols";

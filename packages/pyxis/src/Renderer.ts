@@ -50,6 +50,12 @@ export interface MountingGroup<TNode> extends Lifecycle, Hierarchy<TNode> {
 	mounted: boolean;
 
 	/**
+	 * active render nesting depth - only the outermost invocation occupies the mount stack
+	 * @internal
+	 */
+	$depth: number;
+
+	/**
 	 * tracks whether all mounting work has been completed and that this Lifecycle can be
 	 * "officially" mounted
 	 * @internal
@@ -136,6 +142,7 @@ export function createRenderer<TNode, TIntrinsicElements extends ElementsType>(
 		$scheduler: createScheduler(adapter.tick),
 		$extensions: extensions,
 		$context: null,
+		$depth: 0,
 		$life: 1,
 		$ng: null!,
 		$ph: null,
@@ -143,13 +150,15 @@ export function createRenderer<TNode, TIntrinsicElements extends ElementsType>(
 		mount: (nRoot, jsx) => {
 			const hGroup = fork(hRoot, null, null);
 			try {
-				const isBatch = !!adapter.batch;
-				const nParent = isBatch ? adapter.batch!() : nRoot;
-				mount(jsx, hGroup, nParent, nRoot, null, isBatch);
-				if (isBatch) {
-					adapter.insert(nParent, nRoot, null);
-					flush(hGroup);
-				}
+				willMount(hGroup, () => {
+					const isBatch = !!adapter.batch;
+					const nParent = isBatch ? adapter.batch!() : nRoot;
+					mount(jsx, hGroup, nParent, nRoot, null, isBatch);
+					if (isBatch) {
+						adapter.insert(nParent, nRoot, null);
+						flush(hGroup);
+					}
+				})();
 
 				return hGroup;
 			}
@@ -166,17 +175,17 @@ export function createRenderer<TNode, TIntrinsicElements extends ElementsType>(
 
 /**
  * Unmounts a MountingGroup and removes it from the hierarchy. The removal is guaranteed even if
- * user code throws during unmount. Also clears the `$ph` ref to its original parent node. Destroyed
- * groups cannot be reused.
- * @internal
+ * user code throws during unmount. Also clears refs to its original parent node. Destroyed groups
+ * cannot be reused.
  */
 export function destroy<TNode>(hGroup: MountingGroup<TNode>) {
-	try {
-		unmount(hGroup);
-	}
-	finally {
+	if (!deferUnmount(hGroup, true)) {
+		const errors: unknown[] = [];
+		doUnmount(hGroup, errors);
 		untrack(hGroup);
 		hGroup.$ph = null;
+
+		rethrow(errors);
 	}
 }
 
@@ -209,6 +218,7 @@ export function fork<TNode>(
 		$scheduler: ng.$scheduler,
 		$extensions: ng.$extensions,
 		$context: context,
+		$depth: 0,
 		$life: 1,
 		$ng: null!,
 		$ph: hParent,
@@ -294,14 +304,39 @@ export function untrack<TNode>(hNode: HNode<TNode>) {
 }
 
 /**
- * Mounts a MountingGroup to the specified location in the node tree. If the group is already
- * mounted (i.e. its native nodes are already rendered somewhere), it is moved to the new location
- * without re-mounting Pyxis components.
+ * Creates a reusable callback for a complete render operation, including reactive reads, nested
+ * mounts and batch commits. Each invocation defers conflicting unmounts until the outermost render
+ * finishes, preserves the caller's reactive tracking, and returns the block's result unchanged.
  *
- * Note that for successfully moving a group within the tree, you should first `untrack` the group,
- * then re-`track` it to the new location and only then call `mount` to commit the move.
- * @see {@link track}
- * @see {@link untrack}
+ * Deferred teardown errors are reported by the outermost render, after all requests are processed.
+ */
+export function willMount<TNode, TResult>(hGroup: MountingGroup<TNode>, block: () => TResult){
+	return (() => {
+		const errors: unknown[] = [];
+		const mounts = runtime.$mounts ??= [];
+		if (++hGroup.$depth === 1) {
+			mounts.push(hGroup);
+		}
+
+		try {
+			return block();
+		}
+		catch (ex) {
+			errors.push(ex);
+		}
+		finally {
+			if (--hGroup.$depth === 0) {
+				mounts.pop();
+			}
+
+			finishMount(errors);
+		}
+	}) as (() => TResult);
+}
+
+/**
+ * Mounts JSX into a group that is not already mounted. When rendering into an externally owned
+ * batch, enclose the complete operation (including the commit and `flush`) in {@link willMount}.
  */
 export function mount<TNode>(
 	jsx: any,
@@ -315,6 +350,12 @@ export function mount<TNode>(
 		return;
 	}
 
+	const errors: unknown[] = [];
+	const mounts = runtime.$mounts ??= [];
+	if (++hGroup.$depth === 1) {
+		mounts.push(hGroup);
+	}
+
 	const prevLifecycle = runtime.$currentLifecycle;
 	const prevEffect = runtime.$currentEffect;
 	const prevContext = runtime.$currentContext;
@@ -323,6 +364,7 @@ export function mount<TNode>(
 	runtime.$currentContext = hGroup.$context;
 	runtime.$currentContextNew = false;
 	runtime.$currentEffect = null;
+
 	try {
 		mountJsx(jsx, hGroup, nUsedParent, nRealParent, nBefore, isBatch);
 
@@ -332,14 +374,121 @@ export function mount<TNode>(
 		}
 	}
 	catch (ex) {
-		unmount(hGroup, [ ex ]);
+		errors.push(ex);
 	}
-	finally {
-		runtime.$currentLifecycle = prevLifecycle;
-		runtime.$currentEffect = prevEffect;
-		runtime.$currentContext = prevContext;
-		runtime.$currentContextNew = prevContextNew;
+
+	runtime.$currentLifecycle = prevLifecycle;
+	runtime.$currentEffect = prevEffect;
+	runtime.$currentContext = prevContext;
+	runtime.$currentContextNew = prevContextNew;
+	if (--hGroup.$depth === 0) {
+		mounts.pop();
 	}
+
+	if (errors.length && !deferUnmount(hGroup)) {
+		doUnmount(hGroup, errors);
+	}
+
+	finishMount(errors);
+}
+
+/**
+ * Processes deferred unmount requests once the outermost render finishes. Throws collected errors,
+ * if any.
+ */
+function finishMount(errors: unknown[]) {
+	if (!runtime.$mounts!.length) {
+		// nested renders get a separate queue while this one is being drained
+		const pending = runtime.$unmounts;
+		runtime.$unmounts = null;
+
+		if (pending) {
+			const { length } = pending;
+			let index = 0;
+			let request;
+
+			for (; index < length; index += 1) {
+				request = pending[index];
+
+				// an earlier ancestor teardown may have already ended this generation
+				if (request.$life !== request.$group.$life) {
+					continue;
+				}
+
+				doUnmount(request.$group, errors);
+				if (request.$destroy) {
+					untrack(request.$group);
+					request.$group.$ph = null;
+				}
+			}
+		}
+	}
+
+	rethrow(errors);
+}
+
+/** Queues only teardown requests that would interrupt an active render. */
+function deferUnmount<TNode>(hGroup: MountingGroup<TNode>, isDestroy = false) {
+	const mounts = runtime.$mounts;
+	if (!mounts?.length) {
+		return false;
+	}
+
+	const lifecycle = runtime.$currentLifecycle as MountingGroup<TNode> | null;
+	const { length } = mounts;
+	let index = 0;
+	let active;
+
+	for (; index < length; index += 1) {
+		active = mounts[index];
+		// mount callbacks can run on a descendant of the mount's own group
+		if (
+			ancestorContainsNode(hGroup, active) || (
+				lifecycle?.$isGroup &&
+				ancestorContainsNode(active, lifecycle) &&
+				ancestorContainsNode(hGroup, lifecycle)
+			)
+		) {
+			break;
+		}
+	}
+
+	if (index === length) {
+		return false;
+	}
+
+	const pending = runtime.$unmounts ??= [];
+	const pendingLength = pending.length;
+	let pendingIndex = 0;
+	let request;
+
+	for (; pendingIndex < pendingLength; pendingIndex += 1) {
+		request = pending[pendingIndex];
+		if (request.$group === hGroup && request.$life === hGroup.$life) {
+			request.$destroy ||= isDestroy;
+			return true;
+		}
+	}
+
+	pending.push({
+		$group: hGroup,
+		$life: hGroup.$life,
+		$destroy: isDestroy,
+	});
+
+	return true;
+}
+
+function ancestorContainsNode<TNode>(hAncestor: HNode<TNode>, hNode: HNode<TNode> | null) {
+	while (hNode) {
+		if (hNode === hAncestor) {
+			return true;
+		}
+
+		hNode = hNode.$ph;
+	}
+
+	return false;
 }
 
 /**
@@ -350,24 +499,29 @@ export function mount<TNode>(
  * flush manually when rendering into a batch. Batch owners are responsible for calling this
  * function once the batch has been committed.
  */
-export function flush<TNode>(hGroup: MountingGroup<TNode>): void;
-
-/** @internal */
-export function flush<TNode>(hGroup: MountingGroup<TNode>, errors: unknown[]): void;
-
-export function flush<TNode>(hGroup: MountingGroup<TNode>, errors: unknown[] = []) {
+export function flush<TNode>(hGroup: MountingGroup<TNode>) {
 	// only dispatch mount notifications when the parent group is already mounted, or if this is the
 	// top-level group - otherwise, mount notification will arrive once the parent mounts
 	if (hGroup.$ph?.$ng.mounted !== false) {
 		const prevLifecycle = runtime.$currentLifecycle;
 		const prevEffect = runtime.$currentEffect;
-
 		runtime.$currentEffect = null;
+
+		const errors: unknown[] = [];
+		const mounts = runtime.$mounts ??= [];
+		if (++hGroup.$depth === 1) {
+			mounts.push(hGroup);
+		}
+
 		doFlush(hGroup, errors);
+
 		runtime.$currentLifecycle = prevLifecycle;
 		runtime.$currentEffect = prevEffect;
+		if (--hGroup.$depth === 0) {
+			mounts.pop();
+		}
 
-		rethrow(errors);
+		finishMount(errors);
 	}
 }
 
@@ -437,25 +591,37 @@ export function reinsertNodes<TNode>(hGroup: MountingGroup<TNode>, nParent: TNod
 /**
  * Unmounts the contents of a MountingGroup from the node tree. The group itself, though empty,
  * remains usable and can be remounted later.
+ *
+ * If teardown would interrupt an active render, it is deferred until the outermost render
+ * operation finishes. Any teardown errors are then reported by that operation.
  */
 export function unmount<TNode>(hGroup: MountingGroup<TNode>): void;
 
 /** @internal */
-export function unmount<TNode>(hGroup: MountingGroup<TNode>, errors: unknown[]): void;
+export function unmount<TNode>(hGroup: MountingGroup<TNode>, errors?: unknown[]): void;
 
-export function unmount<TNode>(hGroup: MountingGroup<TNode>, errors: unknown[] = []) {
-	const prevLifecycle = runtime.$currentLifecycle;
-	const prevEffect = runtime.$currentEffect;
+export function unmount<TNode>(hGroup: MountingGroup<TNode>, errors?: unknown[]) {
+	if (deferUnmount(hGroup)) {
+		rethrow(errors);
+		return;
+	}
 
-	runtime.$currentEffect = null;
-	doUnmount(hGroup, errors, true);
-	runtime.$currentLifecycle = prevLifecycle;
-	runtime.$currentEffect = prevEffect;
-
+	errors ??= [];
+	doUnmount(hGroup, errors);
 	rethrow(errors);
 }
 
-function doUnmount<TNode>(hNode: HNode<TNode>, errors: unknown[], top: boolean) {
+function doUnmount<TNode>(hGroup: MountingGroup<TNode>, errors: unknown[]) {
+	const prevLifecycle = runtime.$currentLifecycle;
+	const prevEffect = runtime.$currentEffect;
+	runtime.$currentEffect = null;
+
+	unmountNode(hGroup, errors, true);
+	runtime.$currentLifecycle = prevLifecycle;
+	runtime.$currentEffect = prevEffect;
+}
+
+function unmountNode<TNode>(hNode: HNode<TNode>, errors: unknown[], top: boolean) {
 	if (hNode.$isGroup) {
 		// regardless of mounted state, always run teardown callbacks when there are any
 		if (hNode.$onUnmount?.length) {
@@ -485,11 +651,17 @@ function doUnmount<TNode>(hNode: HNode<TNode>, errors: unknown[], top: boolean) 
 
 	while (current) {
 		if (current.$isNative && top) {
-			adapter.remove(current.$nn);
-			doUnmount(current, errors, false);
+			try {
+				adapter.remove(current.$nn);
+			}
+			catch (ex) {
+				errors.push(ex);
+			}
+
+			unmountNode(current, errors, false);
 		}
 		else {
-			doUnmount(current, errors, top);
+			unmountNode(current, errors, top);
 		}
 
 		next = current.$hn;
@@ -604,6 +776,9 @@ function mountJsxArray<TNode>(
 	return text;
 }
 
+/**
+ * Mounts a text node with static content to the specified location in the node tree.
+ */
 function mountStaticText<TNode>(
 	text: string,
 	hParent: HNode<TNode>,
@@ -615,6 +790,10 @@ function mountStaticText<TNode>(
 	insert(node, null, hParent, nUsedParent, nBefore, isBatch);
 }
 
+/**
+ * Mounts a text node with dynamic content to the specified location in the node tree. An observer
+ * is setup to drive reactions, updating the rendered text as needed.
+ */
 function mountDynamicText<TNode>(
 	atom: Atom<Nil<string | number | bigint | boolean>>,
 	hParent: HNode<TNode>,

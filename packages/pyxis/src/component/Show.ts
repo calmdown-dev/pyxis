@@ -5,7 +5,7 @@ import { createProxy, updateProxy, type Proxied, type ProxyObject } from "~/data
 import { mountTemplate } from "~/support/template";
 import type { Nil } from "~/support/types";
 import type { DataTemplate, JsxChildren, JsxObject, JsxProps, JsxResult } from "~/Component";
-import { flush, fork, insert, mountJsx, unmount, type HNode } from "~/Renderer";
+import { flush, fork, insert, mountJsx, unmount, willMount, type HNode } from "~/Renderer";
 
 export interface ShowProps {
 	when?: MaybeAtom<boolean>;
@@ -109,7 +109,7 @@ export function Show<TNode>(
 
 	// (re-)render effect
 	let nMarker: TNode | null = nBefore;
-	effect(() => {
+	effect(willMount(hGroup, () => {
 		if (read(when) === false) {
 			return undefined;
 		}
@@ -143,7 +143,7 @@ export function Show<TNode>(
 		}
 
 		return () => unmount(hGroup);
-	}, hParent.$ng);
+	}), hParent.$ng);
 
 	// insert marker to preserve position in the document
 	nMarker = __DEV__ ? adapter.marker("/Show") : adapter.marker();

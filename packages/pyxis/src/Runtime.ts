@@ -3,6 +3,7 @@ import type { Effect } from "./data/Effect";
 import type { Lifecycle } from "./data/Lifecycle";
 import type { ComponentRegistry } from "./dev/ComponentRegistry";
 import type { StateRegistry } from "./dev/StateRegistry";
+import type { MountingGroup } from "./Renderer";
 import type { Extension } from "./Adapter";
 import { S_RUNTIME } from "./symbols";
 
@@ -27,6 +28,12 @@ export interface Runtime {
 	 * current component
 	 */
 	$currentContextNew: boolean;
+
+	/** Active render operations; reused between mounts. */
+	$mounts?: MountingGroup<any>[];
+
+	/** Teardowns deferred until the outermost render finishes. Allocated only when needed. */
+	$unmounts?: { $group: MountingGroup<any>; $life: number; $destroy: boolean }[] | null;
 
 	/** hot module reload registry for components, only used in dev builds */
 	$hmrComponent?: ComponentRegistry;

@@ -5,7 +5,7 @@ import { createProxy, updateProxy, type Proxied } from "~/data/ProxyAtom";
 import { rethrow } from "~/support/common";
 import { mountTemplate } from "~/support/template";
 import type { DataTemplate, JsxObject, JsxProps, JsxResult } from "~/Component";
-import { destroy, flush, fork, insert, mount, reinsertNodes, track, unmount, untrack, type HNode, type MountingGroup } from "~/Renderer";
+import { destroy, flush, fork, insert, mount, reinsertNodes, track, unmount, untrack, willMount, type HNode, type MountingGroup } from "~/Renderer";
 
 export interface RemountIteratorProps<T> {
 	source: ReadonlyList<T>;
@@ -116,7 +116,7 @@ export function Iterator<TNode, T>(
 		rethrow(errors);
 	};
 
-	const renderIncomingDelta = () => {
+	const renderIncomingDelta = willMount(hGroup, () => {
 		const delta = source.delta();
 		if (!delta) {
 			return;
@@ -342,7 +342,7 @@ export function Iterator<TNode, T>(
 
 		renderedItems = newItems;
 		rethrow(errors);
-	};
+	});
 
 	// subscribe to list updates - done first so that any mutations of the list occurring as a side
 	// effect of rendering don't get dropped if the list has no (other) subscribers
