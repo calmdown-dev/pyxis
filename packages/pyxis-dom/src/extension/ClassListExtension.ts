@@ -33,7 +33,10 @@ export const ClassListExtension = /*@__PURE__*/ extension<Node, ClassListPropMap
 			(node as Element).classList.toggle(prop, value.get());
 		});
 	}
-	else if (value) {
-		(node as Element).classList.add(prop);
+	else if (value !== undefined) {
+		// if somehow the class existed on the node before this setter ran, toggle will remove it
+		// in case the prop was set as `cl:xyz={false}`, making it consistent with the dynamic
+		// setter above (when an Atom is given)
+		(node as Element).classList.toggle(prop, value);
 	}
 });

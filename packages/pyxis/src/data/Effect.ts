@@ -111,17 +111,31 @@ function scheduleReaction(this: EffectDependency, effect: Effect<ReturnType<Effe
 }
 
 function runEffect(effect: Effect<ReturnType<EffectBlock>>) {
+	const lifecycle = effect.$lifecycle;
+
 	// effect was scheduled in a previous life and is now stale
-	if (effect.$life !== effect.$lifecycle.$life) {
+	if (effect.$life !== lifecycle.$life) {
 		return;
 	}
 
 	teardownEffect(effect);
+
+	// the teardown may have unmounted the owner lifecycle
+	if (effect.$life !== lifecycle.$life) {
+		return;
+	}
+
 	effect.$dispose = resolve(effect) as Nil<() => void>;
+
+	// the effect body also may cause the owner to unmount... if so, dispose immediately
+	if (effect.$life !== lifecycle.$life) {
+		teardownEffect(effect);
+		return;
+	}
 
 	if (!effect.$tracksUnmount && effect.$dispose) {
 		effect.$tracksUnmount = true;
-		onUnmounted(effect.$lifecycle, {
+		onUnmounted(lifecycle, {
 			$fn: teardownEffect,
 			$a0: effect,
 		});
