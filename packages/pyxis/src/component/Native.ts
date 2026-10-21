@@ -1,5 +1,6 @@
-import { isAtom } from "~/data/Atom";
-import { bind } from "~/data/Dependency";
+import { isAtom, type Atom } from "~/data/Atom";
+import { link, type Dependency } from "~/data/Dependency";
+import type { Adapter } from "~/Adapter";
 import type { JsxObject } from "~/Component";
 import { insert, type HNode } from "~/Renderer";
 import { runtime } from "~/Runtime";
@@ -8,15 +9,14 @@ import { S_TAG_NAME } from "~/symbols";
 export function Native<TNode>(
 	jsx: JsxObject,
 	hParent: HNode<TNode>,
+	hBefore: HNode<TNode> | null,
 	nUsedParent: TNode,
 	_nRealParent: TNode,
-	nBefore: TNode | null,
 	isBatch: boolean,
 ) {
 	const hGroup = hParent.$ng;
 	const { adapter, $extensions } = hGroup;
 	const nNode = adapter.element(jsx[S_TAG_NAME]!);
-	const routing = runtime.x;
 
 	let name;
 	let index;
@@ -24,9 +24,9 @@ export function Native<TNode>(
 	let target;
 
 	// for..in doesn't iterate symbol keys, so we don't need to manually exclude internal symbols
-	// (S_COMPONENT, S_TAG_NAME, S_DEV_INFO), just children
+	// (S_COMPONENT, S_TAG_NAME, S_DEV_INFO), just the children prop
 	//
-	// also since props from transpiled JSX are always plain objects, we shouldn't need to run
+	// also, since props from transpiled JSX are always plain objects, we shouldn't need to run
 	// checks to exclude inherited fields
 	for (name in jsx) {
 		index = name.indexOf(":");
@@ -34,7 +34,7 @@ export function Native<TNode>(
 
 		if (index === 0) {
 			// reserved ':' prefix for extension props set by reference via the `ext` utility
-			if ((target = routing[name])) {
+			if ((target = runtime.x[name])) {
 				target.$ext.set(nNode, target.$prop, value, hGroup);
 			}
 			else if (__DEV__) {
@@ -47,17 +47,29 @@ export function Native<TNode>(
 		}
 		else if (name !== "children") {
 			if (isAtom(value)) {
-				const prop = name;
-				const atom = value;
-				bind(hGroup, atom, () => {
-					adapter.set(nNode, prop, atom.get());
+				link(hGroup, value, {
+					fn: setBoundProp,
+					a0: adapter,
+					a1: nNode,
+					a2: name,
 				});
+
+				value = value.get();
 			}
-			else {
-				adapter.set(nNode, name, value);
-			}
+
+			adapter.set(nNode, name, value);
 		}
 	}
 
-	insert(nNode, jsx.children, hParent, nUsedParent, nBefore, isBatch);
+	insert(nNode, jsx.children, hParent, hBefore, nUsedParent, isBatch);
+	return nNode;
+}
+
+function setBoundProp<TNode>(
+	this: Dependency,
+	adapter: Adapter<TNode>,
+	node: TNode,
+	prop: string,
+) {
+	adapter.set(node, prop, (this.$target as Atom).get());
 }

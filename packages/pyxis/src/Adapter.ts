@@ -78,7 +78,7 @@ export interface Adapter<TNode, TElements extends ElementsType = ElementsType> {
 
 export type ExtensionsType<TNode> = { [_ in string]?: Extension<TNode> };
 
-export interface Extension<TNode, TPropMapping extends ExtensionPropMapping<TNode> = ExtensionPropMapping<TNode>> {
+export interface Extension<TNode, TPropMapping extends ExtensionPropMapping<unknown> = ExtensionPropMapping<unknown>> {
 	/**
 	 * Unique prop prefix of this Extension used for props set by reference (via the {@link ext}
 	 * utility).
@@ -87,7 +87,7 @@ export interface Extension<TNode, TPropMapping extends ExtensionPropMapping<TNod
 	readonly $prefix: string;
 
 	/**
-	 * Carries information about the props this extension adds to native elements.
+	 * Carries a mapping type used to infer the props this extension adds to native elements.
 	 * @deprecated **Type only, does not exist at runtime!**
 	 */
 	readonly $mapping?: TPropMapping;
@@ -124,11 +124,12 @@ export interface ExtensionPropMapping<TNode> {
 }
 
 /** Creates an extension with a shared-runtime ID independent of its registered JSX prefix. */
+/*@__NO_SIDE_EFFECTS__*/
 export function extension<TNode, TPropMapping extends ExtensionPropMapping<TNode>>(
 	propSetter: Extension<TNode>["set"],
 ): Extension<TNode, TPropMapping> {
 	return {
-		$prefix: `:${(++runtime.i).toString(16)}:`,
+		$prefix: `:${(++runtime.$extIndex).toString(16)}:`,
 		set: propSetter,
 	};
 }
@@ -144,7 +145,8 @@ export function extension<TNode, TPropMapping extends ExtensionPropMapping<TNode
  */
 export function ext<TMapping extends ExtensionPropMapping<any>, TNodeType, TElemName>(
 	extension: Extension<any, TMapping>,
-	props: (TMapping & { node: TNodeType; name: TElemName; })["extension"],
+	extensionProps: (TMapping & { node: TNodeType; name: TElemName; })["extension"],
+	targetPropsObject: { [_ in string]?: any } = {},
 ): {
 	readonly [S_NODE_TYPE]?: TNodeType;
 	readonly [S_ELEM_NAME]?: TElemName;
@@ -155,8 +157,6 @@ export function ext<TMapping extends ExtensionPropMapping<any>, TNodeType, TElem
 	}
 
 	const routing = runtime.x;
-	const result: Record<string, any> = {};
-	const values = props as Record<string, any>;
 	let prop;
 	let route;
 
@@ -166,15 +166,15 @@ export function ext<TMapping extends ExtensionPropMapping<any>, TNodeType, TElem
 	// uses...
 	//
 	// FUTURE: This would be remedied with a pre-compiler, though... *wink*
-	for (prop in values) {
+	for (prop in extensionProps) {
 		route = prefix + prop;
 		routing[route] ??= {
 			$ext: extension,
 			$prop: prop,
 		};
 
-		result[route] = values[prop];
+		targetPropsObject[route] = (extensionProps as { [_ in string]: any })[prop];
 	}
 
-	return result;
+	return targetPropsObject;
 }

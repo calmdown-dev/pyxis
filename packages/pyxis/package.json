@@ -5,14 +5,10 @@
 	"type": "module",
 	"exports": {
 		".": {
-			"import": "./dist/main.js",
-			"types": "./dist/main.d.ts"
-		},
-		"./core": {
 			"import": "./dist/core.js",
 			"types": "./dist/core.d.ts"
 		},
-		"./core-dev": {
+		"./dev": {
 			"import": "./dist/core-dev.js",
 			"types": "./dist/core-dev.d.ts"
 		},

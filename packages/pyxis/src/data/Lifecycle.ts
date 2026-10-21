@@ -1,12 +1,13 @@
-import type { Callback, Nil } from "~/support/types";
+import type { ArgsMax3, Callback, Nil } from "~/support/types";
 import { runtime } from "~/Runtime";
 
 import type { DependencyList } from "./Dependency";
 import type { Scheduler } from "./Scheduler";
+import { __DEV__assertIsDirectComponentCode } from "~/Component";
 
 export interface Lifecycle extends DependencyList {
-	/** whether this Lifecycle is currently mounted or not */
-	mounted: boolean;
+	/** gets a boolean indicating whether this Lifecycle is currently mounted or not */
+	readonly mounted: boolean;
 
 	/** @internal */
 	readonly $scheduler: Scheduler;
@@ -35,62 +36,84 @@ export interface UnmountBlock {
 
 
 /**
- * Registers a callback to run just after the current Component has mounted.
+ * Registers a block of code to run once the current Component has mounted.
  *
  * If a teardown callback is returned, it will be run just before the Component unmounts (equivalent
  * to adding a separate `unmounted` block).
  * @see {@link unmounted}
  */
-export function mounted(block: MountBlock, lifecycle = getLifecycle()) {
-	onMounted(lifecycle, {
-		$fn: invokeMountedCallback,
-		$a0: lifecycle,
-		$a1: block,
+export function mounted(block: MountBlock, lifecycle?: Lifecycle) {
+	if (__DEV__ && lifecycle === undefined) {
+		__DEV__assertIsDirectComponentCode(mounted.name);
+	}
+
+	lifecycle ??= getLifecycle();
+	onceMounted(lifecycle, {
+		fn: invokeMountedCallback,
+		a0: lifecycle,
+		a1: block,
 	});
 }
 
-/** @internal */
-export function onMounted(lifecycle: Lifecycle, callback: Callback) {
-	(lifecycle.$onMount ??= []).push(callback);
+/**
+ * Similar to {@link mounted}, but instead accepts a {@link Callback} object. Useful in hot paths
+ * where it may be desirable to reuse callback objects, avoid closures, or {@link Lifecycle} needs
+ * to be tightly controlled.
+ * @see {@link mounted}
+ */
+export function onceMounted<TArgs extends ArgsMax3>(lifecycle: Lifecycle, callback: Callback<TArgs>) {
+	(lifecycle.$onMount ??= []).push(callback as Callback);
 }
 
-function invokeMountedCallback(lifecycle: Lifecycle, block: MountBlock) {
-	const dispose = block();
+/** @internal */
+export function invokeMountedCallback(lifecycle: Lifecycle, block: MountBlock): void;
+export function invokeMountedCallback<TArg>(lifecycle: Lifecycle, block: (arg: TArg) => (() => void) | void, arg: TArg): void;
+export function invokeMountedCallback(lifecycle: Lifecycle, block: (arg: any) => (() => void) | void, arg?: any) {
+	const life = lifecycle.$life;
+	const dispose = block(arg);
 	if (dispose) {
-		onUnmounted(lifecycle, { $fn: dispose });
+		if (lifecycle.$life > life) {
+			dispose();
+			return;
+		}
+
+		onceUnmounted(lifecycle, { fn: dispose });
 	}
 }
 
 
 /**
- * Registers a callback to run once the current Component is just about to unmount.
+ * Registers a block of code to run once the current Component is just about to unmount.
  * @see {@link mounted}
  */
-export function unmounted(block: UnmountBlock, lifecycle = getLifecycle()) {
-	onUnmounted(lifecycle, { $fn: block });
+export function unmounted(block: UnmountBlock, lifecycle?: Lifecycle) {
+	if (__DEV__ && lifecycle === undefined) {
+		__DEV__assertIsDirectComponentCode(unmounted.name);
+	}
+
+	onceUnmounted(lifecycle ?? getLifecycle(), { fn: block });
 }
 
-/** @internal */
-export function onUnmounted(lifecycle: Lifecycle, callback: Callback) {
-	(lifecycle.$onUnmount ??= []).push(callback);
+/**
+ * Similar to {@link unmounted}, but instead accepts a {@link Callback} object. Useful in hot paths
+ * where it may be desirable to reuse callback objects, avoid closures, or {@link Lifecycle} needs
+ * to be tightly controlled.
+ * @see {@link unmounted}
+ */
+export function onceUnmounted<TArgs extends ArgsMax3>(lifecycle: Lifecycle, callback: Callback<TArgs>) {
+	(lifecycle.$onUnmount ??= []).push(callback as Callback);
 }
+
 
 /**
  * Gets the Lifecycle of the calling component.
  */
 export function getLifecycle(): Lifecycle {
-	if (__DEV__ && !runtime.l) {
+	if (__DEV__ && !runtime.$currentLifecycle) {
 		throw new Error("Cannot get current lifecycle. Are you creating an Atom outside of a Component?");
 	}
 
-	return runtime.l!;
-}
-
-/** @internal */
-export function setLifecycle(lifecycle: Lifecycle | null): Lifecycle | null {
-	const previous = runtime.l;
-	runtime.l = lifecycle;
-	return previous;
+	return runtime.$currentLifecycle!;
 }
 
 /**
@@ -98,7 +121,7 @@ export function setLifecycle(lifecycle: Lifecycle | null): Lifecycle | null {
  * return the specified object.
  * @see {@link getLifecycle}
  */
-export function withLifecycle<TArgs extends [ arg?: any ], TReturn>(
+export function withLifecycle<TArgs extends ArgsMax3, TReturn>(
 	lifecycle: Lifecycle,
 	block: (...args: TArgs) => TReturn,
 	...args: TArgs
@@ -106,16 +129,18 @@ export function withLifecycle<TArgs extends [ arg?: any ], TReturn>(
 
 export function withLifecycle(
 	lifecycle: Lifecycle,
-	block: (arg: any) => any,
-	arg: any,
+	block: (a0: any, a1: any, a2: any) => any,
+	a0?: any,
+	a1?: any,
+	a2?: any,
 ) {
-	const previousLifecycle = runtime.l;
-	runtime.l = lifecycle;
+	const prevLifecycle = runtime.$currentLifecycle;
+	runtime.$currentLifecycle = lifecycle;
 
 	try {
-		return block(arg);
+		return block(a0, a1, a2);
 	}
 	finally {
-		runtime.l = previousLifecycle;
+		runtime.$currentLifecycle = prevLifecycle;
 	}
 }

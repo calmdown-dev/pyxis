@@ -20,6 +20,13 @@ export interface PyxisPluginOptions {
 	exclude?: RegExp | RegExp[];
 
 	/**
+	 * Whether to annotate component factory calls as pure, allowing bundlers to eliminate unused
+	 * components through dead code elimination (DCE).
+	 * @default true
+	 */
+	dce?: boolean;
+
+	/**
 	 * Whether to apply transformations to enable hot module replacement (HMR) with Vite dev server.
 	 * @default false
 	 */
@@ -79,6 +86,7 @@ export function resolveOptions(options?: PyxisPluginOptions) {
 		pyxisModule: options?.pyxisModule ?? "@calmdown/pyxis",
 		include: toArray(options?.include, /\.[cm]?[jt]sx?$/i),
 		exclude: toArray(options?.exclude),
+		dce: options?.dce ?? true,
 		hmr: options?.hmr ?? false,
 		cssModules: cssModules && {
 			include: toArray(cssModules.include, /\.css$/i),

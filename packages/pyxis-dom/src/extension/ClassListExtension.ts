@@ -1,8 +1,8 @@
-import { bind, extension, isAtom, type ExtensionPropMapping, type MaybeReadAtom } from "@calmdown/pyxis/core";
+import { extension, isAtom, link, type Atom, type ExtensionPropMapping, type MaybeAtom, type Nil } from "@calmdown/pyxis";
 
 interface ClassListPropMapping extends ExtensionPropMapping<Node> {
 	extension: {
-		[TClassName in string]?: MaybeReadAtom<boolean>;
+		[TClassName in string]?: MaybeAtom<Nil<boolean>>;
 	};
 }
 
@@ -24,16 +24,24 @@ interface ClassListPropMapping extends ExtensionPropMapping<Node> {
  * This extension can be used in tandem with the `@calmdown/rollup-plugin-pyxis` plugin to
  * automatically rewrite class names when using CSS modules.
  */
-export const ClassListExtension = extension<Node, ClassListPropMapping>((node, prop, value, group) => {
+export const ClassListExtension = /*@__PURE__*/ extension<Node, ClassListPropMapping>((node, prop, value, group) => {
 	// extensions are only applicable to JSX elements which get rendered via DomAdapter::element
 	// despite the typings, node is actually guaranteed to be an Element here
 
 	if (isAtom(value)) {
-		bind(group, value, () => {
-			(node as Element).classList.toggle(prop, value.get());
+		link(group, value, {
+			fn: setBoundClass,
+			a0: node,
+			a1: prop,
+			a2: value,
 		});
+
+		value = value.get();
 	}
-	else if (value) {
-		(node as Element).classList.add(prop);
-	}
+
+	(node as Element).classList.toggle(prop, value ?? false);
 });
+
+function setBoundClass(node: Node, prop: string, atom: Atom<Nil<boolean>>) {
+	(node as Element).classList.toggle(prop, atom.get() ?? false);
+}

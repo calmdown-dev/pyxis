@@ -1,3 +1,4 @@
+import { rethrow } from "~/support/common";
 import type { ComponentBlock } from "~/Component";
 
 declare global {
@@ -8,6 +9,8 @@ declare global {
 export interface HotComponentEntry {
 	component: ComponentBlock;
 	dirty: boolean;
+	isDispatching: boolean;
+	needsCleanup: boolean;
 	lh?: HotComponentListener | null;
 	lt?: HotComponentListener | null;
 }
@@ -15,6 +18,7 @@ export interface HotComponentEntry {
 export interface HotComponentListener {
 	readonly fn: HotComponentListenerFn;
 	readonly entry: HotComponentEntry;
+	isActive: boolean;
 	lp?: HotComponentListener | null;
 	ln?: HotComponentListener | null;
 }
@@ -33,7 +37,16 @@ export class ComponentRegistry {
 			throw new Error(`no component was registered under "${id}"`);
 		}
 
-		const listener: HotComponentListener = { fn, entry };
+		// initial run - if it throws, subscription won't get registered
+		fn(entry.component);
+
+		// register subscription
+		const listener: HotComponentListener = {
+			fn,
+			entry,
+			isActive: true,
+		};
+
 		if (entry.lt) {
 			entry.lt.ln = listener;
 			listener.lp = entry.lt;
@@ -43,12 +56,25 @@ export class ComponentRegistry {
 		}
 
 		entry.lt = listener;
-		fn(entry.component);
 
 		return listener;
 	}
 
 	public off(listener: HotComponentListener) {
+		if (!listener.isActive) {
+			return;
+		}
+
+		listener.isActive = false;
+		if (listener.entry.isDispatching) {
+			listener.entry.needsCleanup = true;
+			return;
+		}
+
+		this.unlink(listener);
+	}
+
+	private unlink(listener: HotComponentListener) {
 		const { entry } = listener;
 		if (listener.lp) {
 			listener.lp.ln = listener.ln;
@@ -79,6 +105,8 @@ export class ComponentRegistry {
 			this.components.set(id, {
 				component,
 				dirty: false,
+				isDispatching: false,
+				needsCleanup: false,
 			});
 
 			return;
@@ -93,21 +121,59 @@ export class ComponentRegistry {
 	}
 
 	private readonly update = () => {
+		let errors: unknown[] | undefined;
+
 		this.isPendingUpdate = false;
 		this.components.forEach(entry => {
 			if (!entry.dirty) {
 				return;
 			}
 
+			entry.dirty = false;
+			entry.isDispatching = true;
+
+			const component = entry.component;
+			const last = entry.lt;
 			let current = entry.lh;
 			let next;
-			while (current) {
-				next = current.ln;
-				current.fn(entry.component);
-				current = next;
-			}
 
-			entry.dirty = false;
+			try {
+				while (current) {
+					if (current.isActive) {
+						try {
+							current.fn(component);
+						}
+						catch (ex) {
+							(errors ??= []).push(ex);
+						}
+					}
+
+					// new subscribers already receive their initial call through ::on
+					if (current === last) {
+						break;
+					}
+
+					current = current.ln;
+				}
+			}
+			finally {
+				entry.isDispatching = false;
+				if (entry.needsCleanup) {
+					current = entry.lh;
+					while (current) {
+						next = current.ln;
+						if (!current.isActive) {
+							this.unlink(current);
+						}
+
+						current = next;
+					}
+
+					entry.needsCleanup = false;
+				}
+			}
 		});
+
+		rethrow(errors);
 	};
 }

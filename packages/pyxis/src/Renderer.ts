@@ -1,12 +1,14 @@
-import { isAtom, type ReadAtom } from "~/data/Atom";
-import { bind, unlinkAll } from "~/data/Dependency";
-import { setLifecycle, type Lifecycle } from "~/data/Lifecycle";
+import { isAtom, type Atom } from "~/data/Atom";
+import type { ContextContainer } from "~/data/Context";
+import { bind, teardown, type Dependency } from "~/data/Dependency";
+import type { Lifecycle } from "~/data/Lifecycle";
 import { createScheduler } from "~/data/Scheduler";
-import { invoke } from "~/support/common";
-import type { ElementsType, Mutable, Nil } from "~/support/types";
+import { invoke, rethrow } from "~/support/common";
+import type { ArgsMax3, ElementsType, Mutable, Nil } from "~/support/types";
 
 import type { Adapter, ExtensionsType } from "./Adapter";
 import type { ComponentHandler, JsxResult } from "./Component";
+import { runtime } from "./Runtime";
 import { S_COMPONENT } from "./symbols";
 
 export interface Renderer<TNode, TElements extends ElementsType = ElementsType> extends Lifecycle {
@@ -16,8 +18,8 @@ export interface Renderer<TNode, TElements extends ElementsType = ElementsType> 
 	 */
 	readonly $elements?: TElements;
 
-	mount: (root: TNode, jsx: JsxResult) => void;
-	unmount: () => void;
+	mount: (root: TNode, jsx: JsxResult) => MountingGroup<TNode>;
+	unmount: (group: MountingGroup<TNode>) => void;
 }
 
 /** Extracts the typings of intrinsic elements supported by the given Renderer. */
@@ -29,7 +31,10 @@ export type ElementsOf<TRenderer, TFallback extends ElementsType = {}> = (
 
 
 export interface MountingGroup<TNode> extends Lifecycle, Hierarchy<TNode> {
+	/** @internal */
 	readonly $isGroup: true;
+
+	/** @internal */
 	readonly $isNative?: never;
 
 	/** the Adapter rendering this MountingGroup */
@@ -37,15 +42,39 @@ export interface MountingGroup<TNode> extends Lifecycle, Hierarchy<TNode> {
 
 	/** @internal */
 	readonly $extensions: ExtensionsType<TNode>;
+
+	/** @internal */
+	readonly $context: ContextContainer | null;
+
+	/** @internal */
+	mounted: boolean;
+
+	/**
+	 * active render nesting depth - only the outermost invocation occupies the mount stack
+	 * @internal
+	 */
+	$depth: number;
+
+	/**
+	 * tracks whether all mounting work has been completed and that this Lifecycle can be
+	 * "officially" mounted
+	 * @internal
+	 */
+	$canMount?: boolean;
 }
 
-export interface NativeNode<TNode> extends Hierarchy<TNode> {
+interface NativeNode<TNode> extends Hierarchy<TNode> {
+	/** @internal */
 	readonly $isNative: true;
+
+	/** @internal */
 	readonly $isGroup?: never;
+
+	/** @internal */
 	readonly $nn: TNode;
 }
 
-export interface Hierarchy<TNode> {
+interface Hierarchy<TNode> {
 	/** @internal */
 	readonly $isGroup?: true;
 
@@ -59,16 +88,16 @@ export interface Hierarchy<TNode> {
 	readonly $ng: MountingGroup<TNode>;
 
 	/**
-	 * the nearest *ancestor* group this node belongs to
-	 * @internal
-	 */
-	readonly $pg: MountingGroup<TNode> | null;
-
-	/**
 	 * the nearest native node (ancestor or self) - on groups, this is only present in dev mode
 	 * @internal
 	 */
 	readonly $nn?: TNode;
+
+	/**
+	 * the parent h-node of this h-node
+	 * @internal
+	 */
+	$ph: HNode<TNode> | null;
 
 	/**
 	 * the first child of this h-node
@@ -93,6 +122,12 @@ export interface Hierarchy<TNode> {
 	 * @internal
 	 */
 	$hn?: Nil<HNode<TNode>>;
+
+	/**
+	 * tracks whether unmounting is in progress for this node, guarding against duplicate or cyclic
+	 * unmount attempts
+	 */
+	$isUnmounting?: boolean;
 }
 
 export type HNode<TNode> =
@@ -101,36 +136,66 @@ export type HNode<TNode> =
 
 
 /** @internal */
+/*@__NO_SIDE_EFFECTS__*/
 export function createRenderer<TNode, TIntrinsicElements extends ElementsType>(
 	adapter: Adapter<TNode>,
 	extensions: ExtensionsType<TNode>,
 ): Renderer<TNode, TIntrinsicElements> {
-	const hGroup: Mutable<MountingGroup<TNode> & Renderer<TNode, TIntrinsicElements>> = {
+	const hRoot: Mutable<MountingGroup<TNode> & Renderer<TNode, TIntrinsicElements>> = {
 		adapter: adapter,
-		mounted: false,
+		mounted: true,
 		$isGroup: true,
 		$scheduler: createScheduler(adapter.tick),
 		$extensions: extensions,
+		$context: null,
+		$depth: 0,
 		$life: 1,
-		$pg: null,
 		$ng: null!,
-		unmount: () => unmount(hGroup),
+		$ph: null,
+		unmount: destroy,
 		mount: (nRoot, jsx) => {
-			if (__DEV__) {
-				hGroup.$nn = nRoot;
-			}
+			const hGroup = fork(hRoot, null, null);
+			try {
+				willMount(hGroup, () => {
+					const isBatch = !!adapter.batch;
+					const nParent = isBatch ? adapter.batch!() : nRoot;
+					mount(jsx, hGroup, null, nParent, nRoot, isBatch);
+					if (isBatch) {
+						adapter.insert(nParent, nRoot, null);
+						flush(hGroup);
+					}
+				})();
 
-			const isBatch = Boolean(adapter.batch);
-			const nParent = isBatch ? adapter.batch!() : nRoot;
-			mount(jsx, hGroup, nParent, nRoot, null, isBatch);
-			if (isBatch) {
-				adapter.insert(nParent, nRoot, null);
+				return hGroup;
+			}
+			catch (ex) {
+				destroy(hGroup, [ ex ]);
 			}
 		},
 	};
 
-	hGroup.$ng = hGroup;
-	return hGroup;
+	hRoot.$ng = hRoot;
+	return hRoot;
+}
+
+/**
+ * Unmounts a MountingGroup and removes it from the hierarchy. The removal is guaranteed even if
+ * user code throws during unmount. Also clears refs to its original parent node. Destroyed groups
+ * cannot be reused.
+ */
+export function destroy<TNode>(hGroup: MountingGroup<TNode>): void;
+
+/** @internal */
+export function destroy<TNode>(hGroup: MountingGroup<TNode>, errors: [ unknown, ...unknown[] ]): never;
+
+export function destroy<TNode>(hGroup: MountingGroup<TNode>, errors?: unknown[]) {
+	if (!hGroup.$isUnmounting && !deferUnmount(hGroup, true)) {
+		errors = doUnmount(hGroup, errors);
+		untrack(hGroup);
+		hGroup.$ph = null;
+	}
+
+	rethrow(errors);
 }
 
 /**
@@ -139,7 +204,20 @@ export function createRenderer<TNode, TIntrinsicElements extends ElementsType>(
  */
 export function fork<TNode>(
 	hParent: HNode<TNode>,
+	hBefore?: HNode<TNode> | null,
+): MountingGroup<TNode>;
+
+/** @internal */
+export function fork<TNode>(
+	hParent: HNode<TNode>,
+	hBefore: HNode<TNode> | null,
+	context: ContextContainer | null,
+): MountingGroup<TNode>
+
+export function fork<TNode>(
+	hParent: HNode<TNode>,
 	hBefore: HNode<TNode> | null = null,
+	context: ContextContainer | null = runtime.$currentContext,
 ): MountingGroup<TNode> {
 	const ng = hParent.$ng;
 	const hGroup: Mutable<MountingGroup<TNode>> = {
@@ -148,9 +226,11 @@ export function fork<TNode>(
 		$isGroup: true,
 		$scheduler: ng.$scheduler,
 		$extensions: ng.$extensions,
+		$context: context,
+		$depth: 0,
 		$life: 1,
-		$pg: ng,
 		$ng: null!,
+		$ph: hParent,
 	};
 
 	hGroup.$ng = hGroup;
@@ -163,7 +243,9 @@ export function fork<TNode>(
 }
 
 /**
- * Adds a HNode to the hierarchy.
+ * Inserts a HNode to the hierarchy. When reusing nodes, callers must make sure `untrack` has been
+ * previously called on the node to be re-inserted.
+ * @see {@link untrack}
  */
 export function track<TNode>(
 	hNode: HNode<TNode>,
@@ -171,7 +253,7 @@ export function track<TNode>(
 	hBefore: HNode<TNode> | null = null,
 ) {
 	// insert into hierarchy before given sibling
-	if (hBefore?.$pg === hParent) {
+	if (hBefore?.$ph === hParent) {
 		if (hBefore.$hp) {
 			hNode.$hp = hBefore.$hp;
 			hNode.$hn = hBefore;
@@ -202,24 +284,28 @@ export function track<TNode>(
 
 		hParent.$ht = hNode;
 	}
+
+	hNode.$ph = hParent;
 }
 
 /**
- * Removes a HNode from the tracking hierarchy.
+ * Removes a HNode from the tracking hierarchy. Removed nodes may be reused and re-inserted using
+ * the `track` function.
+ * @see {@link track}
  */
 export function untrack<TNode>(hNode: HNode<TNode>) {
 	if (hNode.$hp) {
 		hNode.$hp.$hn = hNode.$hn;
 	}
-	else if (hNode.$pg?.$hh === hNode) {
-		hNode.$pg.$hh = hNode.$hn;
+	else if (hNode.$ph?.$hh === hNode) {
+		hNode.$ph.$hh = hNode.$hn;
 	}
 
 	if (hNode.$hn) {
 		hNode.$hn.$hp = hNode.$hp;
 	}
-	else if (hNode.$pg?.$ht === hNode) {
-		hNode.$pg.$ht = hNode.$hp;
+	else if (hNode.$ph?.$ht === hNode) {
+		hNode.$ph.$ht = hNode.$hp;
 	}
 
 	hNode.$hp = null;
@@ -227,91 +313,294 @@ export function untrack<TNode>(hNode: HNode<TNode>) {
 }
 
 /**
- * Mounts a MountingGroup to the specified location in the node tree. If the group is already
- * mounted (i.e. its native nodes are already rendered somewhere), it is moved to the new location
- * without re-mounting Pyxis components.
+ * Creates a reusable callback for a complete render operation, including reactive reads, nested
+ * mounts and batch commits. Each invocation defers conflicting unmounts until the outermost render
+ * finishes, preserves the caller's reactive tracking, and returns the block's result unchanged.
  *
- * Note that for successfully moving a group within the tree, you should first `untrack` the group,
- * then re-`track` it to the new location and only then call `mount` to commit the move.
- * @see {@link track}
- * @see {@link untrack}
+ * Deferred teardown errors are reported by the outermost render, after all requests are processed.
+ */
+export function willMount<TNode, TArgs extends ArgsMax3, TResult>(
+	hGroup: MountingGroup<TNode>,
+	block: (...args: TArgs) => TResult,
+): (...args: TArgs) => TResult;
+
+export function willMount<TNode>(
+	hGroup: MountingGroup<TNode>,
+	block: (...args: ArgsMax3) => any,
+) {
+	return (a0?: any, a1?: any, a2?: any) => {
+		const mounts = runtime.$mounts ??= [];
+		if (++hGroup.$depth === 1) {
+			mounts.push(hGroup);
+		}
+
+		let errors: unknown[] | undefined;
+		try {
+			return block(a0, a1, a2);
+		}
+		catch (ex) {
+			(errors ??= []).push(ex);
+		}
+		finally {
+			if (--hGroup.$depth === 0) {
+				mounts.pop();
+			}
+
+			finishMount(errors);
+		}
+	};
+}
+
+/**
+ * Mounts JSX into a group that is not already mounted. When rendering into an externally owned
+ * batch, enclose the complete operation (including the commit and `flush`) in {@link willMount}.
  */
 export function mount<TNode>(
 	jsx: any,
-	hGroup: MountingGroup<TNode>,
+	hParent: MountingGroup<TNode>,
+	hBefore: HNode<TNode> | null,
 	nUsedParent: TNode,
 	nRealParent: TNode,
-	nBefore: TNode | null,
 	isBatch: boolean,
 ) {
-	if (hGroup.mounted) {
-		reinsertNodes(hGroup, nUsedParent, nBefore);
+	if (hParent.mounted) {
 		return;
 	}
 
-	const previousLifecycle = setLifecycle(hGroup);
-	try {
-		mountJsx(jsx, hGroup, nUsedParent, nRealParent, nBefore, isBatch);
+	const mounts = runtime.$mounts ??= [];
+	if (++hParent.$depth === 1) {
+		mounts.push(hParent);
 	}
-	finally {
-		setLifecycle(previousLifecycle);
-		hGroup.mounted = true;
 
-		// only dispatch mount notifications when the parent group is already mounted, or if this is the
-		// top-level group - otherwise, mount notification will arrive once the parent mounts
-		if (hGroup.$pg?.mounted !== false) {
-			notifyMounted(hGroup);
+	const prevLifecycle = runtime.$currentLifecycle;
+	const prevEffect = runtime.$currentEffect;
+	const prevContext = runtime.$currentContext;
+	const prevContextNew = runtime.$currentContextNew;
+	runtime.$currentLifecycle = hParent;
+	runtime.$currentContext = hParent.$context;
+	runtime.$currentContextNew = false;
+	runtime.$currentEffect = null;
+
+	let errors: unknown[] | undefined;
+	try {
+		mountJsx(jsx, hParent, hBefore, nUsedParent, nRealParent, isBatch);
+
+		hParent.$canMount = true;
+		if (!isBatch) {
+			flush(hParent);
 		}
+	}
+	catch (ex) {
+		(errors ??= []).push(ex);
+	}
+
+	runtime.$currentLifecycle = prevLifecycle;
+	runtime.$currentEffect = prevEffect;
+	runtime.$currentContext = prevContext;
+	runtime.$currentContextNew = prevContextNew;
+	if (--hParent.$depth === 0) {
+		mounts.pop();
+	}
+
+	if (errors?.length && !deferUnmount(hParent)) {
+		errors = doUnmount(hParent, errors);
+	}
+
+	finishMount(errors);
+}
+
+/**
+ * Processes deferred unmount requests once the outermost render finishes. Throws collected errors,
+ * if any.
+ */
+function finishMount(errors: unknown[] | undefined) {
+	if (!runtime.$mounts!.length) {
+		// nested renders get a separate queue while this one is being drained
+		const pending = runtime.$unmounts;
+		runtime.$unmounts = null;
+
+		if (pending) {
+			const { length } = pending;
+			let index = 0;
+			let request;
+
+			for (; index < length; index += 1) {
+				request = pending[index];
+
+				// an earlier ancestor teardown may have already ended this generation
+				if (request.$life !== request.$group.$life) {
+					continue;
+				}
+
+				errors = doUnmount(request.$group, errors);
+				if (request.$destroy) {
+					untrack(request.$group);
+					request.$group.$ph = null;
+				}
+			}
+		}
+	}
+
+	rethrow(errors);
+}
+
+/** Queues only teardown requests that would interrupt an active render. */
+function deferUnmount<TNode>(hGroup: MountingGroup<TNode>, isDestroy = false) {
+	const mounts = runtime.$mounts;
+	if (!mounts?.length) {
+		return false;
+	}
+
+	const lifecycle = runtime.$currentLifecycle as MountingGroup<TNode> | null;
+	const { length } = mounts;
+	let index = 0;
+	let active;
+
+	for (; index < length; index += 1) {
+		active = mounts[index];
+		// mount callbacks can run on a descendant of the mount's own group
+		if (
+			ancestorContainsNode(hGroup, active) || (
+				lifecycle?.$isGroup &&
+				ancestorContainsNode(active, lifecycle) &&
+				ancestorContainsNode(hGroup, lifecycle)
+			)
+		) {
+			break;
+		}
+	}
+
+	if (index === length) {
+		return false;
+	}
+
+	const pending = runtime.$unmounts ??= [];
+	const pendingLength = pending.length;
+	let pendingIndex = 0;
+	let request;
+
+	for (; pendingIndex < pendingLength; pendingIndex += 1) {
+		request = pending[pendingIndex];
+		if (request.$group === hGroup && request.$life === hGroup.$life) {
+			request.$destroy ||= isDestroy;
+			return true;
+		}
+	}
+
+	pending.push({
+		$group: hGroup,
+		$life: hGroup.$life,
+		$destroy: isDestroy,
+	});
+
+	return true;
+}
+
+function ancestorContainsNode<TNode>(hAncestor: HNode<TNode>, hNode: HNode<TNode> | null) {
+	while (hNode) {
+		if (hNode === hAncestor) {
+			return true;
+		}
+
+		hNode = hNode.$ph;
+	}
+
+	return false;
+}
+
+/**
+ * Marks the provided hGroup and all of its descendants as mounted and dispatches notifications
+ * where appropriate.
+ *
+ * Normally this happens automatically as part of calling {@link mount}, but it is necessary to
+ * flush manually when rendering into a batch. Batch owners are responsible for calling this
+ * function once the batch has been committed.
+ */
+export function flush<TNode>(hGroup: MountingGroup<TNode>) {
+	// only dispatch mount notifications when the parent group is already mounted, or if this is the
+	// top-level group - otherwise, mount notification will arrive once the parent mounts
+	if (hGroup.$ph?.$ng.mounted !== false) {
+		const prevLifecycle = runtime.$currentLifecycle;
+		const prevEffect = runtime.$currentEffect;
+		runtime.$currentEffect = null;
+
+		const mounts = runtime.$mounts ??= [];
+		if (++hGroup.$depth === 1) {
+			mounts.push(hGroup);
+		}
+
+		const errors = doFlush(hGroup, undefined);
+
+		runtime.$currentLifecycle = prevLifecycle;
+		runtime.$currentEffect = prevEffect;
+		if (--hGroup.$depth === 0) {
+			mounts.pop();
+		}
+
+		finishMount(errors);
 	}
 }
 
 /**
- * Only used by `mount`, do not call directly.
- *
  * Recursively (dept-first) runs components' `mounted` callbacks.
  * @see {@link mount}
  * @internal
  */
-function notifyMounted<TNode>(hNode: HNode<TNode>) {
+function doFlush<TNode>(hNode: HNode<TNode>, errors: unknown[] | undefined): unknown[] | undefined {
 	let current = hNode.$hh;
 	while (current) {
-		notifyMounted(current);
+		errors = doFlush(current, errors);
 		current = current.$hn;
 	}
 
-	let callbacks;
-	if (hNode.$isGroup && hNode.mounted && (callbacks = hNode.$onMount)) {
-		const previousLifecycle = setLifecycle(hNode);
-		try {
-			callbacks.forEach(invoke);
-		}
-		finally {
+	if (hNode.$isGroup && hNode.$canMount && !hNode.mounted) {
+		hNode.mounted = true;
+
+		if (hNode.$onMount?.length) {
+			// the callbacks array may change when a callback causes a nested unmount run
+			const callbacks = hNode.$onMount;
+			let index = 0;
+
+			runtime.$currentLifecycle = hNode;
+			for (; index < callbacks.length; index += 1) {
+				try {
+					invoke(callbacks[index]);
+				}
+				catch (ex) {
+					(errors ??= []).push(ex);
+				}
+			}
+
 			callbacks.length = 0;
-			setLifecycle(previousLifecycle);
 		}
 	}
+
+	return errors;
 }
 
 /**
- * Only used by `mount`, do not call directly.
- *
  * Re-inserts native nodes of the given group to the specified location in the native tree. Only
- * moves the uppermost nodes - any children should move implicitly with them.
+ * moves the uppermost nodes - any children are assumed to move implicitly with them.
  * @see {@link mount}
  * @internal
  */
-function reinsertNodes<TNode>(hGroup: MountingGroup<TNode>, nParent: TNode, nBefore: TNode | null) {
-	const { adapter } = hGroup;
+export function reinsertNodes<TNode>(hParent: MountingGroup<TNode>, hBefore: HNode<TNode> | null, nParent: TNode) {
+	if (!hParent.mounted) {
+		return;
+	}
 
-	let current = hGroup.$hh;
+	const { adapter } = hParent;
+	const nAnchor = hBefore?.$nn ?? null;
+	let current = hParent.$hh;
+
 	while (current) {
 		if (current.$isNative) {
-			adapter.insert(current.$nn, nParent, nBefore);
+			adapter.insert(current.$nn, nParent, nAnchor);
 			// no need to recurse, group is already mounted, so any sub-groups within this native
-			// node have been already moved with it
+			// node have already been moved with it
 		}
 		else {
-			reinsertNodes(current, nParent, nBefore);
+			reinsertNodes(current, hBefore, nParent);
 		}
 
 		current = current.$hn;
@@ -321,33 +610,65 @@ function reinsertNodes<TNode>(hGroup: MountingGroup<TNode>, nParent: TNode, nBef
 /**
  * Unmounts the contents of a MountingGroup from the node tree. The group itself, though empty,
  * remains usable and can be remounted later.
+ *
+ * If teardown would interrupt an active render, it is deferred until the outermost render
+ * operation finishes. Any teardown errors are then reported by that operation.
  */
-export function unmount<TNode>(group: MountingGroup<TNode>): void;
+export function unmount<TNode>(hGroup: MountingGroup<TNode>): void;
 
 /** @internal */
-export function unmount<TNode>(hNode: HNode<TNode>, top?: boolean): void;
-export function unmount<TNode>(hNode: HNode<TNode>, top: boolean = true) {
+export function unmount<TNode>(hGroup: MountingGroup<TNode>, errors?: unknown[]): void;
+
+export function unmount<TNode>(hGroup: MountingGroup<TNode>, errors?: unknown[]) {
+	if (deferUnmount(hGroup)) {
+		rethrow(errors);
+		return;
+	}
+
+	errors = doUnmount(hGroup, errors);
+	rethrow(errors);
+}
+
+function doUnmount<TNode>(hGroup: MountingGroup<TNode>, errors: unknown[] | undefined) {
+	const prevLifecycle = runtime.$currentLifecycle;
+	const prevEffect = runtime.$currentEffect;
+	runtime.$currentEffect = null;
+
+	errors = unmountNode(hGroup, errors, true);
+	runtime.$currentLifecycle = prevLifecycle;
+	runtime.$currentEffect = prevEffect;
+
+	return errors;
+}
+
+function unmountNode<TNode>(hNode: HNode<TNode>, errors: unknown[] | undefined, top: boolean): unknown[] | undefined {
+	if (hNode.$isUnmounting) {
+		return errors;
+	}
+
+	hNode.$isUnmounting = true;
+
 	if (hNode.$isGroup) {
-		if (hNode.mounted) {
-			let callbacks;
-			if (callbacks = hNode.$onUnmount) {
-				const previousLifecycle = setLifecycle(hNode);
+		// regardless of mounted state, always run teardown callbacks when there are any
+		if (hNode.$onUnmount?.length) {
+			// the callbacks array may change when a callback causes a nested unmount run
+			const callbacks = hNode.$onUnmount;
+			let index = 0;
+
+			runtime.$currentLifecycle = hNode;
+			for (; index < callbacks.length; index += 1) {
 				try {
-					callbacks.forEach(invoke);
+					invoke(callbacks[index]);
 				}
-				finally {
-					callbacks.length = 0;
-					setLifecycle(previousLifecycle);
+				catch (ex) {
+					(errors ??= []).push(ex);
 				}
 			}
-
-			hNode.mounted = false;
-			hNode.$life += 1;
 		}
 
-		// unmounted groups shouldn't have anything to unlink, but a zombie dependency can have
-		// catastrophic consequences, so...
-		unlinkAll(hNode);
+		teardown(hNode); // also clears mount and unmount callback arrays
+		hNode.mounted = false;
+		hNode.$canMount = false;
 	}
 
 	const { adapter } = hNode.$ng;
@@ -356,21 +677,31 @@ export function unmount<TNode>(hNode: HNode<TNode>, top: boolean = true) {
 
 	while (current) {
 		if (current.$isNative && top) {
-			adapter.remove(current.$nn);
-			unmount(current, false);
+			try {
+				adapter.remove(current.$nn);
+			}
+			catch (ex) {
+				(errors ??= []).push(ex);
+			}
+
+			errors = unmountNode(current, errors, false);
 		}
 		else {
-			unmount(current, top);
+			errors = unmountNode(current, errors, top);
 		}
 
 		next = current.$hn;
 		current.$hp = null;
 		current.$hn = null;
+		current.$ph = null;
 		current = next;
 	}
 
 	hNode.$hh = null;
 	hNode.$ht = null;
+	hNode.$isUnmounting = false;
+
+	return errors;
 }
 
 /**
@@ -379,9 +710,9 @@ export function unmount<TNode>(hNode: HNode<TNode>, top: boolean = true) {
 export function mountJsx<TNode>(
 	jsx: any,
 	hParent: HNode<TNode>,
+	hBefore: HNode<TNode> | null,
 	nUsedParent: TNode,
 	nRealParent: TNode,
-	nBefore: TNode | null,
 	isBatch: boolean,
 ) {
 	switch (typeof jsx) {
@@ -391,19 +722,19 @@ export function mountJsx<TNode>(
 			}
 
 			if (Array.isArray(jsx)) {
-				const text = mountJsxArray(jsx, hParent, nUsedParent, nRealParent, nBefore, isBatch);
+				const text = mountJsxArray(jsx, hParent, hBefore, nUsedParent, nRealParent, isBatch);
 				if (text) {
-					mountStaticText(text, hParent, nUsedParent, nBefore, isBatch);
+					mountStaticText(text, hParent, hBefore, nUsedParent, isBatch);
 				}
 
 				break;
 			}
 
 			if (isAtom(jsx)) {
-				mountDynamicText(jsx, hParent, nUsedParent, nBefore, isBatch);
+				mountDynamicText(jsx, hParent, hBefore, nUsedParent, isBatch);
 			}
 			else {
-				(jsx[S_COMPONENT] as ComponentHandler | undefined)?.(jsx, hParent, nUsedParent, nRealParent, nBefore, isBatch);
+				(jsx[S_COMPONENT] as ComponentHandler | undefined)?.(jsx, hParent, hBefore, nUsedParent, nRealParent, isBatch);
 			}
 
 			break;
@@ -417,7 +748,7 @@ export function mountJsx<TNode>(
 
 		case "number":
 		case "bigint":
-			mountStaticText("" + jsx, hParent, nUsedParent, nBefore, isBatch);
+			mountStaticText("" + jsx, hParent, hBefore, nUsedParent, isBatch);
 			break;
 	}
 }
@@ -429,9 +760,9 @@ export function mountJsx<TNode>(
 function mountJsxArray<TNode>(
 	jsx: readonly any[],
 	hParent: HNode<TNode>,
+	hBefore: HNode<TNode> | null,
 	nUsedParent: TNode,
 	nRealParent: TNode,
-	nBefore: TNode | null,
 	isBatch: boolean,
 	text: string = "",
 ): string {
@@ -457,16 +788,16 @@ function mountJsxArray<TNode>(
 				}
 
 				if (Array.isArray(item)) {
-					text = mountJsxArray(item, hParent, nUsedParent, nRealParent, nBefore, isBatch, text);
+					text = mountJsxArray(item, hParent, hBefore, nUsedParent, nRealParent, isBatch, text);
 					break;
 				}
 
 				if (text) {
-					mountStaticText(text, hParent, nUsedParent, nBefore, isBatch);
+					mountStaticText(text, hParent, hBefore, nUsedParent, isBatch);
 					text = "";
 				}
 
-				mountJsx(item, hParent, nUsedParent, nRealParent, nBefore, isBatch);
+				mountJsx(item, hParent, hBefore, nUsedParent, nRealParent, isBatch);
 				break;
 		}
 	}
@@ -474,74 +805,105 @@ function mountJsxArray<TNode>(
 	return text;
 }
 
+/**
+ * Mounts a text node with static content to the specified location in the node tree.
+ */
 function mountStaticText<TNode>(
 	text: string,
 	hParent: HNode<TNode>,
+	hBefore: HNode<TNode> | null,
 	nUsedParent: TNode,
-	nBefore: TNode | null,
 	isBatch: boolean,
 ) {
 	const node = hParent.$ng.adapter.text(text, null);
-	insert(node, null, hParent, nUsedParent, nBefore, isBatch);
+	insert(node, null, hParent, hBefore, nUsedParent, isBatch);
 }
 
+/**
+ * Mounts a text node with dynamic content to the specified location in the node tree. An observer
+ * is setup to drive reactions, updating the rendered text as needed.
+ */
 function mountDynamicText<TNode>(
-	atom: ReadAtom<Nil<string | number | bigint | boolean>>,
+	atom: Atom<Nil<string | number | bigint | boolean>>,
 	hParent: HNode<TNode>,
+	hBefore: HNode<TNode> | null,
 	nUsedParent: TNode,
-	nBefore: TNode | null,
 	isBatch: boolean,
 ) {
-	const { adapter } = hParent.$ng;
-	let node: TNode | null = null;
-
-	bind(hParent.$ng, atom, () => {
-		const value = atom.get();
-		node = adapter.text(
-			value === null || value === undefined || typeof value === "boolean" ? "" : "" + value,
-			node,
-		);
+	const node = bind(hParent.$ng, atom, {
+		fn: setBoundText<TNode>,
+		a0: hParent.$ng.adapter,
+		a1: null,
 	});
 
-	insert(node!, null, hParent, nUsedParent, nBefore, isBatch);
+	insert(node, null, hParent, hBefore, nUsedParent, isBatch);
+}
+
+function setBoundText<TNode>(
+	this: Dependency<[ Adapter<TNode>, TNode | null ]>,
+	adapter: Adapter<TNode>,
+	node: TNode | null,
+) {
+	const value = (this.$target! as Atom).get();
+	return (
+		// setting `a1` allows us to hold the rendered node as a state of the bound Dependency object
+		this.a1 = adapter.text(
+			value === null || value === undefined || typeof value === "boolean" ? "" : "" + value,
+			node,
+		)
+	);
 }
 
 /**
  * Inserts a native node and adds it to the tracking hierarchy. Necessary to preserve render order.
+ * Returns the newly created tracking node, or null when tracking is skipped. Only a direct child
+ * of hParent is used as a tracking insertion point; an outer anchor means appending within hParent.
+ * Batched native insertions append, while hBefore still determines the tracking position.
  * Should only be called by component handlers!
  */
 export function insert<TNode>(
 	nNode: TNode,
 	children: any,
 	hParent: HNode<TNode>,
+	hBefore: HNode<TNode> | null,
 	nUsedParent: TNode,
-	nBefore: TNode | null,
 	isBatch: boolean,
+	forceTrack: true,
+): NativeNode<TNode>;
+
+export function insert<TNode>(
+	nNode: TNode,
+	children: any,
+	hParent: HNode<TNode>,
+	hBefore: HNode<TNode> | null,
+	nUsedParent: TNode,
+	isBatch: boolean,
+	forceTrack?: boolean,
+): NativeNode<TNode> | null;
+
+export function insert<TNode>(
+	nNode: TNode,
+	children: any,
+	hParent: HNode<TNode>,
+	hBefore: HNode<TNode> | null,
+	nUsedParent: TNode,
+	isBatch: boolean,
+	forceTrack = false,
 ) {
 	let hNative = hParent;
-	if (hNative.$isGroup) {
-		// parent is a group, so this is its top-level node -> find insertion point
-		let hBefore = null;
-		if (nBefore) {
-			let current = hParent.$ht;
-			while (current) {
-				if (current.$isNative && current.$nn === nBefore) {
-					hBefore = current;
-					break;
-				}
-
-				current = current.$hp;
-			}
-		}
-
+	if (hNative.$isGroup || forceTrack) {
+		// Track top-level nodes of groups, or explicitly requested nodes such as markers.
 		track(hNative = {
 			$isNative: true,
-			$pg: hNative,
-			$ng: hNative,
+			$ng: hParent.$ng,
 			$nn: nNode,
+			$ph: hParent,
 		}, hParent, hBefore);
 	}
 
-	mountJsx(children, hNative, nNode, nNode, null, isBatch);
-	hParent.$ng.adapter.insert(nNode, nUsedParent, nBefore);
+	// Children belong to a new native parent; the outer sibling anchor does not apply to them.
+	mountJsx(children, hNative, null, nNode, nNode, isBatch);
+	hParent.$ng.adapter.insert(nNode, nUsedParent, isBatch ? null : hBefore?.$nn ?? null);
+
+	return hNative === hParent ? null : hNative as NativeNode<TNode>;
 }

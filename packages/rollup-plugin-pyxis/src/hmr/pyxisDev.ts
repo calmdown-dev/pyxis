@@ -10,8 +10,10 @@ export interface PyxisDevInit {
 }
 
 export function pyxisDev({ loader, options }: PyxisDevInit): Plugin {
-	const coreProd = `${options.pyxisModule}/core`;
-	const coreDev = `${options.pyxisModule}/core-dev`;
+	const coreProd = options.pyxisModule;
+	const coreDev = `${options.pyxisModule}/dev`;
+
+	const coreProdPattern = new RegExp(`^${RegExp.escape(coreProd)}$`);
 
 	let resolvedCoreDev: ResolvedId | null = null;
 	let isVite = false;
@@ -25,16 +27,19 @@ export function pyxisDev({ loader, options }: PyxisDevInit): Plugin {
 			isVite = true;
 			return {
 				resolve: {
-					alias: {
-						[coreProd]: coreDev,
-					},
+					alias: [
+						{
+							find: coreProdPattern,
+							replacement: coreDev,
+						},
+					],
 				},
 			};
 		},
 		resolveId: {
 			order: "pre",
 			filter: {
-				id: /\/core$/,
+				id: coreProdPattern,
 			},
 			async handler(source, importer, extraOptions) {
 				if (isVite || source !== coreProd) {

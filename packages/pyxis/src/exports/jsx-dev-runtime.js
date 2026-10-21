@@ -1,4 +1,4 @@
-import { Fragment, jsx, jsxs, S_DEV_INFO } from "@calmdown/pyxis/core-dev";
+import { Fragment, jsx, jsxs, S_DEV_INFO } from "@calmdown/pyxis/dev";
 
 function jsxDEV(componentOrTagName, props, key, isStaticChildren, source) {
 	props[S_DEV_INFO] = source;

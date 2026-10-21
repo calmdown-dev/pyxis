@@ -1,25 +1,27 @@
+import { UNIQUE_VALUE } from "~/support/common";
 import type { Nil } from "~/support/types";
+import { __DEV__assertIsDirectComponentCode } from "~/Component";
 import { runtime } from "~/Runtime";
 import { S_ATOM } from "~/symbols";
 
-import { notify, type Atom, type ReadAtom } from "./Atom";
+import { scheduleAtomNotification, type Atom, type WriteAtom } from "./Atom";
 import { link, unlink, type Dependency } from "./Dependency";
-import { getLifecycle } from "./Lifecycle";
+import { getLifecycle, type Lifecycle } from "./Lifecycle";
 
 /**
  * Describes a Context propagating data throughout the Component hierarchy.
  * @see {@link contextOf}
  */
-export interface Context<in T> {
+export interface Context<T> {
 	/** @internal */
 	readonly $symbol: symbol;
 
 	/**
-	 * Carries typings of the data propagated by this Context. Declared as a function type to
-	 * correctly enforce assignability.
+	 * Carries typings of the data propagated by this Context. Typed as a function to enforce
+	 * correct variance of the generic value type.
 	 * @deprecated **Type only, does not exist at runtime!**
 	 */
-	readonly $contract?: (value: T) => void;
+	readonly $contract?: (value: T) => T;
 }
 
 /**
@@ -28,11 +30,12 @@ export interface Context<in T> {
  */
 export function contextOf<T>(devId?: string): Context<T>;
 
+/*@__NO_SIDE_EFFECTS__*/
 export function contextOf<T>(): Context<T> {
 	if (__DEV__) {
 		const devId = arguments[0];
-		const $symbol = runtime.hmrState!.restore(contextOf, devId) ?? Symbol();
-		runtime.hmrState!.preserve(contextOf, devId, $symbol);
+		const $symbol = runtime.$hmrState!.restore(contextOf, devId) ?? Symbol();
+		runtime.$hmrState!.preserve(contextOf, devId, $symbol);
 		return { $symbol };
 	}
 	else {
@@ -48,24 +51,16 @@ export interface ContextContainer {
 }
 
 /** @internal */
-interface ContextAtom<T> extends Atom<T> {
+interface ContextAtom<T> extends WriteAtom<T> {
 	$dep?: Nil<Dependency>;
-	$ancestor?: Nil<Atom<T>>;
+	$upstream?: Nil<WriteAtom<T>>;
 	$value?: T;
+
+	/** tracks whether value has been defined, only used in dev builds */
+	$defined?: boolean;
 
 	/** cached readonly consumer Atom, only used in dev builds */
 	$consumer?: ContextAtom<T>;
-}
-
-/** @internal */
-export function getContextContainer() {
-	return runtime.c;
-}
-
-/** @internal */
-export function setContextContainer(container: ContextContainer | null) {
-	runtime.c = container;
-	runtime.n = false;
 }
 
 
@@ -77,88 +72,109 @@ export function setContextContainer(container: ContextContainer | null) {
  * When a default value is specified, it will immediately be used as the hosted value, overriding
  * any value hosted by ancestors of this Component.
  *
- * Without a default value specified, the context initializes as "transparent" forwarding values
- * hosted by ancestors of this Component, or `undefined` if no host exists. Once the returned Atom
- * is written into for the first time, it breaks this link and begins hosting the new value from
- * that point onwards.
+ * Without a default value specified, the Context initializes as "transparent," forwarding values
+ * hosted by ancestors of this Component. Once the returned Atom is written into for the first time,
+ * it breaks this link and begins hosting the new value from that point onwards. In forwarding mode,
+ * if no ancestor hosts the Context, the value is not well defined and reading the Atom fails until
+ * at least one of the hosts define a value.
  *
  * Descendants of this Component are able to consume the hosted value via `contextual(context)`
  * receiving a readonly Atom.
+ *
+ * Note that due to how JavaScript arguments are handled, `undefined` is always treated as no
+ * default provided, even if it is an allowed value of the Context. To explicitly initialize hosts
+ * to the literal value `undefined`, you need to write the Atom separately, e.g.:
+ *
+ * ```ts
+ * const MyContext = contextOf<number | undefined>();
+ *
+ * // ...then, within a component:
+ * const value = host(MyContext);
+ * write(value, undefined);
+ * ```
  * @see {@link contextual}
  */
 export function host<C>(
 	context: C,
 	defaultValue?: C extends Context<infer T> ? T : never,
+	lifecycle?: Lifecycle,
 	devId?: string,
-): C extends Context<infer T> ? Atom<T> : never;
+): C extends Context<infer T> ? WriteAtom<T> : never;
 
-export function host<T>(context: Context<T>, defaultValue?: T) {
+export function host<T>(context: Context<T>, defaultValue?: T, lifecycle = getLifecycle()) {
 	if (__DEV__) {
-		__DEV__assertIsWithinComponent("host");
+		__DEV__assertIsDirectComponentCode(host.name);
 	}
 
-	if (!runtime.n || !runtime.c) {
+	if (!runtime.$currentContextNew || !runtime.$currentContext) {
 		// fork context container -> current component becomes a host
-		runtime.n = true;
-		runtime.c = {
-			$parent: runtime.c,
+		runtime.$currentContextNew = true;
+		runtime.$currentContext = {
+			$parent: runtime.$currentContext,
 		};
 	}
 
-	const lifecycle = getLifecycle();
+	let isUndefined = defaultValue === undefined;
 	if (__DEV__) {
-		const devId = arguments[2];
-		runtime.hmrState!.restore(lifecycle, devId, value => {
+		const devId = arguments[3];
+		runtime.$hmrState!.restore(lifecycle, devId, value => {
 			defaultValue = value;
+			isUndefined = false;
 		});
 	}
 
 	const localAtom: ContextAtom<T> = {
 		[S_ATOM]: true,
 		$lifecycle: lifecycle,
-		$tracksValue: true,
 		$value: defaultValue,
 		get: getHostedValue,
 		set: setHostedValue,
 	};
 
-	if (defaultValue === undefined) {
-		const ancestor = lookupAncestor(context);
-		if (ancestor) {
-			localAtom.get = getAncestorValue;
-			localAtom.$ancestor = ancestor;
-			link(lifecycle, ancestor, localAtom.$dep = {
-				$fn: notify<T>,
-				$a0: localAtom,
-			});
+	let upstream;
+	if (isUndefined && (upstream = lookupUpstream(context))) {
+		// start in forwarding mode
+		localAtom.get = getUpstreamValue;
+		localAtom.$upstream = upstream;
+		link(lifecycle, upstream, localAtom.$dep = {
+			fn: scheduleAtomNotification,
+			a0: localAtom,
+		});
+	}
+	else {
+		// start in hosting mode
+		localAtom.$tracksValue = true;
+		localAtom.$lastValue = defaultValue;
+		if (__DEV__) {
+			localAtom.$defined = !isUndefined;
 		}
 	}
 
 	if (__DEV__) {
-		localAtom.$devId = arguments[2];
-		if (Object.hasOwn(runtime.c, context.$symbol)) {
+		localAtom.$devId = arguments[3];
+		if (Object.hasOwn(runtime.$currentContext, context.$symbol)) {
 			throw new Error("Component declares multiple hosts of the same Context.");
 		}
 	}
 
-	runtime.c[context.$symbol] = localAtom;
+	runtime.$currentContext[context.$symbol] = localAtom;
 	return localAtom;
 }
 
 /**
  * Gets a readonly Atom carrying the value inherited from the nearest ancestor of the current
- * Component hosting the specified Context.
+ * Component hosting the specified Context. This call fails if no ancestor is hosting the Context.
  * @see {@link host}
  */
-export function contextual<T>(context: Context<T>): ReadAtom<T> {
+export function contextual<T>(context: Context<T>): Atom<T> {
 	if (__DEV__) {
-		__DEV__assertIsWithinComponent("contextual");
+		__DEV__assertIsDirectComponentCode(contextual.name);
 	}
 
-	const atom = lookupAncestor(context);
+	const atom = lookupUpstream(context);
 	if (__DEV__) {
 		if (!atom) {
-			throw new Error("no ancestor is hosting this context");
+			throw new Error("No ancestor is hosting this Context.");
 		}
 
 		// in dev builds, we create a separate consumer Atom forwarding the hosted value with a
@@ -169,14 +185,14 @@ export function contextual<T>(context: Context<T>): ReadAtom<T> {
 			consumer = atom.$consumer = {
 				[S_ATOM]: true,
 				$lifecycle: atom.$lifecycle,
-				$ancestor: atom,
-				get: getAncestorValue,
+				$upstream: atom,
+				get: getUpstreamValue,
 				set: __DEV__setConsumerValue,
 			};
 
 			link(atom.$lifecycle, atom, {
-				$fn: notify<T>,
-				$a0: consumer,
+				fn: scheduleAtomNotification,
+				a0: consumer,
 			});
 		}
 
@@ -186,9 +202,9 @@ export function contextual<T>(context: Context<T>): ReadAtom<T> {
 	return atom!;
 }
 
-function lookupAncestor<T>(context: Context<T>): ContextAtom<T> | undefined {
+function lookupUpstream<T>(context: Context<T>): ContextAtom<T> | undefined {
 	const { $symbol } = context;
-	let ptr: Nil<ContextContainer> = runtime.c;
+	let ptr: Nil<ContextContainer> = runtime.$currentContext;
 	let atom;
 	while (ptr && !(atom = ptr[$symbol])) {
 		ptr = ptr.$parent;
@@ -197,45 +213,42 @@ function lookupAncestor<T>(context: Context<T>): ContextAtom<T> | undefined {
 	return atom;
 }
 
-function getAncestorValue<T>(this: ContextAtom<T>) {
-	return this.$ancestor!.get();
+function getUpstreamValue<T>(this: ContextAtom<T>) {
+	return this.$upstream!.get();
 }
 
 function getHostedValue<T>(this: ContextAtom<T>) {
+	if (__DEV__ && !this.$defined) {
+		throw new Error("Cannot read Context before it has been initialized.");
+	}
+
 	return this.$value!;
 }
 
 function setHostedValue<T>(this: ContextAtom<T>, value: T) {
-	let oldValue;
-	if (this.$ancestor) {
-		oldValue = this.$ancestor.get();
+	let didChange = true;
+	if (this.$upstream) {
+		// switching from forwarding to hosting mode
 		unlink(this.$dep!);
+		this.$upstream = null;
 		this.$dep = null;
-		this.$ancestor = null;
+		this.$tracksValue = true;
+		this.$lastValue = UNIQUE_VALUE;
 		this.get = getHostedValue;
 	}
 	else {
-		oldValue = this.$value;
+		didChange = !Object.is(this.$value, value);
 	}
 
 	this.$value = value;
 	if (__DEV__) {
-		runtime.hmrState!.preserve(this.$lifecycle, this.$devId, value);
+		this.$defined = true;
+		runtime.$hmrState!.preserve(this.$lifecycle, this.$devId, value);
 	}
 
-	return !Object.is(oldValue, value);
+	return didChange;
 }
 
 function __DEV__setConsumerValue(): never {
-	throw new Error("contextual Atoms cannot be written");
-}
-
-function __DEV__assertIsWithinComponent(fn: string) {
-	if (!runtime.componentEvalLifecycle || runtime.componentEvalLifecycle !== runtime.l) {
-		throw new Error(`"${fn}" can only be used directly within components`);
-	}
-
-	if (runtime.componentEvalEffect !== runtime.e) {
-		throw new Error(`"${fn}" cannot be used within effects or derivations`);
-	}
+	throw new Error("Contextual Atoms cannot be written.");
 }

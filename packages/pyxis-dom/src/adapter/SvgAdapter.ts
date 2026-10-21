@@ -1,4 +1,4 @@
-import type { Adapter } from "@calmdown/pyxis/core";
+import type { Adapter } from "@calmdown/pyxis";
 
 import type { IntrinsicElements } from "~/jsx/baked";
 
@@ -17,7 +17,6 @@ export const SvgAdapter: Adapter<Node, IntrinsicElements> = {
 
 const NS = "http://www.w3.org/2000/svg";
 
-function element(tagName: string | undefined) {
-	// undefined only comes from the <Svg> component
-	return document.createElementNS(NS, tagName ?? "svg");
+function element(tagName: string) {
+	return document.createElementNS(NS, tagName);
 }

@@ -1,4 +1,4 @@
-import type { Component, Fragment, JsxResult, PropsType } from "@calmdown/pyxis/core";
+import type { Component, Fragment, JsxResult, PropsType } from "@calmdown/pyxis";
 
 export interface DevSourceInfo {
 	readonly fileName: string;

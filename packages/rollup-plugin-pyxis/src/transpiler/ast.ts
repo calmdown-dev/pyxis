@@ -22,8 +22,9 @@ export function walkDown(node: AST.Node, callbacks: WalkCallbacks, parent: AST.N
 
 		children = node[prop as keyof AST.Node];
 		if (Array.isArray(children)) {
-			if ((length = children.length) > 0 && isNode(children[0])) {
-				for (index = 0; index < length; index += 1) {
+			length = children.length;
+			for (index = 0; index < length; index += 1) {
+				if (isNode(children[index])) {
 					walkDown(children[index], callbacks, node);
 				}
 			}

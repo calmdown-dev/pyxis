@@ -1,4 +1,4 @@
-import type { Adapter } from "@calmdown/pyxis/core";
+import type { Adapter } from "@calmdown/pyxis";
 
 import type { IntrinsicElements } from "~/jsx/baked";
 import { PROP_MAP } from "~/jsx/mapping";
@@ -21,5 +21,5 @@ function element(tagName: string) {
 }
 
 function set(node: Node, prop: string, value: any) {
-	(node as { [_ in string]: any })[(PROP_MAP as { [_ in string]?: string })[prop] ?? prop] = value;
+	(node as { [P in string]: any })[(PROP_MAP as { readonly [P in string]?: string })[prop] || prop] = value;
 }

@@ -3,6 +3,7 @@ import type { Effect } from "./data/Effect";
 import type { Lifecycle } from "./data/Lifecycle";
 import type { ComponentRegistry } from "./dev/ComponentRegistry";
 import type { StateRegistry } from "./dev/StateRegistry";
+import type { MountingGroup } from "./Renderer";
 import type { Extension } from "./Adapter";
 import { S_RUNTIME } from "./symbols";
 
@@ -11,34 +12,40 @@ export interface Runtime {
 	readonly x: { [K in string]?: ExtensionPropDestination };
 
 	/** auto-increment index used to assign unique keys to extensions */
-	i: number;
+	$extIndex: number;
 
 	/** the current Lifecycle */
-	l: Lifecycle | null;
+	$currentLifecycle: Lifecycle | null;
 
 	/** the currently running Effect */
-	e: Effect<any> | null;
+	$currentEffect: Effect<any> | null;
 
 	/** the current ContextContainer */
-	c: ContextContainer | null;
+	$currentContext: ContextContainer | null;
 
 	/**
-	 * whether the current context container {@link c} (if any) was newly created within the
+	 * whether the current context container {@link $currentContext} (if any) was newly created within the
 	 * current component
 	 */
-	n: boolean;
+	$currentContextNew: boolean;
+
+	/** Active render operations; reused between mounts. */
+	$mounts?: MountingGroup<any>[];
+
+	/** Teardowns deferred until the outermost render finishes. Allocated only when needed. */
+	$unmounts?: { $group: MountingGroup<any>; $life: number; $destroy: boolean }[] | null;
 
 	/** hot module reload registry for components, only used in dev builds */
-	hmrComponent?: ComponentRegistry;
+	$hmrComponent?: ComponentRegistry;
 
 	/** hot module reload registry for atom state, only used in dev builds */
-	hmrState?: StateRegistry;
+	$hmrState?: StateRegistry;
 
 	/** when running component code, tracks the Lifecycle given to that component, only used in dev builds */
-	componentEvalLifecycle?: Lifecycle | null;
+	$componentEvalLifecycle?: Lifecycle | null;
 
 	/** when running component code, tracks the Effect (if any) within which it's running, only used in dev builds */
-	componentEvalEffect?: Effect<any> | null;
+	$componentEvalEffect?: Effect<any> | null;
 }
 
 export interface ExtensionPropDestination {
@@ -49,9 +56,9 @@ export interface ExtensionPropDestination {
 // @ts-ignore-error
 export const runtime: Runtime = (globalThis[S_RUNTIME] ??= {
 	x: {},
-	i: 0,
-	l: null,
-	e: null,
-	c: null,
-	n: false,
+	$extIndex: 0,
+	$currentLifecycle: null,
+	$currentEffect: null,
+	$currentContext: null,
+	$currentContextNew: false,
 } satisfies Runtime);

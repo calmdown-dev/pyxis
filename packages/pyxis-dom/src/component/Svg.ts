@@ -1,23 +1,31 @@
-import { Native, fork, type HNode, type JsxObject, type JsxResult, type MountingGroup } from "@calmdown/pyxis/core";
+import { Native, S_COMPONENT, S_TAG_NAME, fork, mount, type ComponentHandler, type HNode, type JsxObject, type JsxResult, type MountingGroup } from "@calmdown/pyxis";
 
 import { SvgAdapter } from "~/adapter/SvgAdapter";
 
 import type { Mutable } from "./types";
 
+export type SvgProps = JSX.IntrinsicElements["Svg"];
+
 // @ts-expect-error fake overload to allow use with JSX
-export function Svg(props: JSX.IntrinsicElements["Svg"]): JsxResult;
+export function Svg(props: SvgProps): JsxResult;
 
 export function Svg(
-	jsx: JsxObject,
+	jsx: Mutable<JsxObject>,
 	hParent: HNode<Node>,
+	hBefore: HNode<Node> | null,
 	nUsedParent: Node,
 	nRealParent: Node,
-	nBefore: Node | null,
 	isBatch: boolean,
 ) {
-	const group = fork(hParent);
-	(group as Mutable<MountingGroup<Node>>).adapter = SvgAdapter;
+	const hGroup = fork(hParent, hBefore);
+	(hGroup as Mutable<MountingGroup<Node>>).adapter = SvgAdapter;
 
-	Native(jsx, hParent, nUsedParent, nRealParent, nBefore, isBatch);
-	group.mounted = true;
+	try {
+		jsx[S_COMPONENT] = Native;
+		jsx[S_TAG_NAME] = "svg";
+		mount(jsx, hGroup, hBefore, nUsedParent, nRealParent, isBatch);
+	}
+	finally {
+		jsx[S_COMPONENT] = Svg as ComponentHandler;
+	}
 }

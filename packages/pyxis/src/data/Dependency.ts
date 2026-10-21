@@ -1,6 +1,8 @@
+import { invoke, rethrow } from "~/support/common";
 import type { ArgsMax3, Callback, Nil } from "~/support/types";
 
 import type { Lifecycle } from "./Lifecycle";
+import type { UpdateCallback } from "./Scheduler";
 
 /**
  * A dependency callback of an Atom. The callback will be run whenever the relevant Atom changes.
@@ -37,6 +39,10 @@ export interface Dependency<TArgs extends ArgsMax3 = ArgsMax3> extends Callback<
 	$ln?: Nil<Dependency>;
 }
 
+/**
+ * Represents an object capable of holding links to Dependencies and dispatching notifications
+ * to them.
+ */
 export interface DependencyList<TArgs extends ArgsMax3 = ArgsMax3> {
 	/**
 	 * The head of the dependencies linked list.
@@ -49,18 +55,57 @@ export interface DependencyList<TArgs extends ArgsMax3 = ArgsMax3> {
 	 * @internal
 	 */
 	$dt?: Nil<Dependency<TArgs>>;
-}
 
-export function bind(lifecycle: Lifecycle, target: DependencyList, block: () => void) {
-	link(lifecycle, target, { $fn: block });
-	block();
+	/**
+	 * Tracks whether notifications are currently being dispatched.
+	 * @internal
+	 */
+	$xa?: boolean;
+
+	/**
+	 * During notification dispatch, tracks the next dependency to be notified.
+	 * @internal
+	 */
+	$xn?: Nil<Dependency>;
+
+	/**
+	 * The notify callback of this DependencyList.
+	 * @internal
+	 */
+	$notify?: Nil<UpdateCallback>;
+
+	/**
+	 * In chained data relations (proxy and context atoms), tracks the upstream atom forwarding
+	 * notifications to this atom.
+	 */
+	$upstream?: Nil<DependencyList>;
+
+	/**
+	 * Tracks whether the next notification must be delivered overriding any optimizations that may
+	 * otherwise try to skip it.
+	 * @internal
+	 */
+	$force?: boolean;
 }
 
 /**
- * Links a Dependency to an Atom and Lifecycle.
- * @internal
+ * Invokes the provided {@link Dependency} and binds it to run again with each notification emitted
+ * by the specified target. The return value of the initial run is forwarded.
  */
-export function link<TArgs extends ArgsMax3>(lifecycle: Lifecycle, target: DependencyList<TArgs>, dep: Dependency<TArgs>) {
+export function bind<TArgs extends ArgsMax3, TResult>(
+	lifecycle: Lifecycle,
+	target: DependencyList,
+	dependency: Dependency & Callback<TArgs, TResult>,
+): TResult {
+	link(lifecycle, target, dependency);
+	return invoke(dependency);
+}
+
+/**
+ * Links a {@link Dependency} to an {@link Atom} and {@link Lifecycle}.
+ */
+export function link<TArgs extends ArgsMax3>(lifecycle: Lifecycle, target: DependencyList, dep: Dependency<TArgs>): void;
+export function link(lifecycle: Lifecycle, target: DependencyList, dep: Dependency) {
 	// link to target
 	if (target.$dt) {
 		target.$dt.$an = dep;
@@ -75,20 +120,38 @@ export function link<TArgs extends ArgsMax3>(lifecycle: Lifecycle, target: Depen
 
 	// link to lifecycle
 	if (lifecycle.$dt) {
-		lifecycle.$dt.$ln = dep as Dependency;
+		lifecycle.$dt.$ln = dep;
 		dep.$lp = lifecycle.$dt;
 	}
 	else {
-		lifecycle.$dh = dep as Dependency;
+		lifecycle.$dh = dep;
 	}
 
 	dep.$lifecycle = lifecycle;
-	lifecycle.$dt = dep as Dependency;
+	lifecycle.$dt = dep;
+
+	// advance cursor when dispatch is currently active
+	if (target.$xa && !target.$xn) {
+		target.$xn = dep;
+	}
+
+	// if there is already a pending update notification, ensure it is delivered regardless of any
+	// optimizations, since the new observer (dep) may have seen an intermediate state and may need
+	// the notification to actually synchronize
+	let update;
+	do {
+		update = target.$notify;
+		if (update && update.$se === update.$lifecycle!.$scheduler.$epoch) {
+			target.$force = true;
+		}
+
+		target = target.$upstream!;
+	}
+	while (target);
 }
 
 /**
  * Unlinks a Dependency from the Atom and Lifecycle it has been linked to.
- * @internal
  */
 export function unlink(dep: Dependency) {
 	const target = dep.$target;
@@ -96,7 +159,12 @@ export function unlink(dep: Dependency) {
 		return; // already unlinked?
 	}
 
-	// unlink from target
+	// advance cursor when dispatch is currently active
+	if (target.$xa && target.$xn === dep) {
+		target.$xn = dep.$an;
+	}
+
+	// unlink from target (atom)
 	if (dep.$ap) {
 		dep.$ap.$an = dep.$an;
 	}
@@ -140,28 +208,36 @@ export function unlink(dep: Dependency) {
  * Unlinks all Dependencies managed by the given Lifecycle.
  * @internal
  */
-export function unlinkAll(lifecycle: Lifecycle) {
+export function teardown(lifecycle: Lifecycle) {
 	let dep = lifecycle.$dh;
-	let atom;
+	let target;
 	let next;
 
 	while (dep) {
-		atom = dep.$target!;
+		target = dep.$target!;
 
+		// advance cursor when dispatch is currently active
+		if (target.$xa && target.$xn === dep) {
+			target.$xn = dep.$an;
+		}
+
+		// unlink from target (atom)
 		if (dep.$ap) {
 			dep.$ap.$an = dep.$an;
 		}
-		else if (atom.$dh === dep) {
-			atom.$dh = dep.$an;
+		else if (target.$dh === dep) {
+			target.$dh = dep.$an;
 		}
 
 		if (dep.$an) {
 			dep.$an.$ap = dep.$ap;
 		}
-		else if (atom.$dt === dep) {
-			atom.$dt = dep.$ap;
+		else if (target.$dt === dep) {
+			target.$dt = dep.$ap;
 		}
 
+		// teardown the dependency - we're removing everything from the Lifecycle, so we don't have
+		// to preserve the linked list's consistency during this loop
 		next = dep.$ln;
 		dep.$lifecycle = null;
 		dep.$target = null;
@@ -174,4 +250,50 @@ export function unlinkAll(lifecycle: Lifecycle) {
 
 	lifecycle.$dh = null;
 	lifecycle.$dt = null;
+
+	lifecycle.$life += 1;
+
+	let callbacks;
+	if ((callbacks = lifecycle.$onMount)) {
+		callbacks.length = 0;
+	}
+
+	if ((callbacks = lifecycle.$onUnmount)) {
+		callbacks.length = 0;
+	}
+}
+
+/**
+ * Invokes all linked dependency callbacks. Resilient against mutations of the list throughout the
+ * dispatch (as long as they only happen via the `link`, `unlink`, or `teardown` functions).
+ * @internal
+ */
+export function notify(list: DependencyList) {
+	// init cursor
+	list.$xa = true;
+	list.$xn = list.$dh;
+
+	// invoke all observer callbacks, catching any errors
+	let errors: unknown[] | undefined;
+	let current;
+	while ((current = list.$xn)) {
+		// the callback may run arbitrary user code, which could lead to mutations of the linked
+		// list we're iterating -> we advance the cursor first; the link, unlink, unlinkAll
+		// functions check and adjust it when necessary; this loop will then advance to the correct
+		// next dependency
+		list.$xn = current.$an;
+		try {
+			invoke(current);
+		}
+		catch (ex) {
+			(errors ??= []).push(ex);
+		}
+	}
+
+	// clear cursor
+	list.$xa = false;
+	list.$xn = null;
+
+	// fail, if there were any errors
+	rethrow(errors);
 }

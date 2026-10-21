@@ -84,6 +84,7 @@ try {
 		plugins: [
 			Pyxis({
 				cssModules: true,
+				dce: true,
 				hmr: true,
 			}),
 		],

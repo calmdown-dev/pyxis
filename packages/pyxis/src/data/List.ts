@@ -1,45 +1,69 @@
-import { invoke } from "~/support/common";
 import type { Nil } from "~/support/types";
 import { runtime } from "~/Runtime";
 
-import { getLifecycle, type Lifecycle } from "./Lifecycle";
-import type { DependencyList } from "./Dependency";
+import { link, notify, type DependencyList } from "./Dependency";
 import { reportAccess } from "./Effect";
-import { createDelta, itemChanged, itemInserted, itemRemoved, listCleared, listSynced, type Equals, type ListDelta } from "./ListDelta";
-import { scheduleTick, scheduleTock, type UpdateCallback } from "./Scheduler";
+import { getLifecycle, withLifecycle, type Lifecycle } from "./Lifecycle";
+import { itemChanged, itemInserted, itemRemoved, listCleared, listSynced, type Equals, type ListDelta, type PendingListDelta } from "./ListDelta";
+import { scheduleTick, type UpdateCallback } from "./Scheduler";
 
 export interface ReadonlyList<T> extends Iterable<T>, DependencyList {
 	/**
 	 * Gets the size of this List.
+	 *
 	 * Reactive in effects and derivations.
 	 */
 	size(): number;
 
 	/**
 	 * Gets the item at the specified index. Return undefined when outside of the List's bounds.
+	 *
 	 * Reactive in effects and derivations.
 	 */
 	get(index: number): T | undefined;
 
 	/**
-	 * Gets the pending or most recently delivered set of changes within the current tick. Returns
-	 * null when no changes were made. Each notification delivers a new set of changes.
-	 * Reactive in effects and derivations.
+	 * Gets a boolean indicating whether changes have been made to this List that have not yet been
+	 * delivered to its observers.
+	 *
+	 * Non-reactive in effects and derivations.
 	 */
-	delta(): ListDelta<T> | null;
+	dirty(): boolean;
 
 	/**
-	 * Gets the underlying array of items. The array is read-only, mutating it will cause observers
-	 * to go out of sync.
+	 * Registers a callback to run whenever one or more changes are made to this List. The callback
+	 * receives a ListDelta object describing all changes made since the last notification.
+	 *
 	 * Non-reactive in effects and derivations.
+	 */
+	delta(block: (delta: ListDelta<T>) => void, lifecycle?: Lifecycle): void;
+
+	/**
+	 * Gets the underlying array of items of this List. The array is read-only, but may change when
+	 * the List itself is mutated.
+	 *
+	 * Non-reactive in effects and derivations.
+	 *
+	 * *Mutating the array directly (e.g. in unchecked JS code) will cause any and all observers to
+	 * go out of sync, breaking the rendered state in unpredictable ways!*
 	 */
 	raw(): readonly T[];
 
 	/**
-	 * Runs the provided callback for each item of this List.
+	 * Runs a block of code for each item of this List.
+	 *
 	 * Reactive in effects and derivations.
 	 */
-	forEach(callback: (item: T, index: number) => void, thisArg?: any): void;
+	forEach(block: (item: T, index: number) => void): void;
+
+	/**
+	 * Runs a block of code with a stable, immutable snapshot of the items within this List. The
+	 * List itself may be mutated as a result of running this code, but the provided snapshot will
+	 * not reflect any such changes.
+	 *
+	 * Non-reactive in effects and derivations.
+	 */
+	stable<R>(block: (snapshot: readonly T[]) => R): R;
 
 	/** @internal */
 	readonly $lifecycle: Lifecycle;
@@ -48,22 +72,19 @@ export interface ReadonlyList<T> extends Iterable<T>, DependencyList {
 	$items: readonly T[];
 
 	/** @internal */
-	$delta: ListDelta<T> | null;
+	$committedDelta: ListDelta<T> | null;
 
 	/** @internal */
-	$pendingDelta?: ListDelta<T> | null;
+	$pendingDelta: PendingListDelta<T> | null;
 
 	/** @internal */
-	$notifying?: boolean;
+	$afterNotify?: Nil<UpdateCallback<[ self: List<T> ]>>;
 
 	/** @internal */
-	$notify?: UpdateCallback<[ self: List<T> ]>;
-
-	/** @internal */
-	$cleanup?: UpdateCallback<[ self: List<T> ]>;
+	$lock: number;
 
 	/**
-	 * The ID of this List, used in development mode.
+	 * The ID of this List, only used in dev builds.
 	 * @internal
 	 */
 	$devId?: string;
@@ -151,7 +172,7 @@ export function listOf<T>(source: Iterable<T>, lifecycle?: Lifecycle, devId?: st
 export function listOf<T>(source?: Nil<Iterable<T>>, lifecycle = getLifecycle()): List<T> {
 	if (__DEV__) {
 		const devId = arguments[2];
-		runtime.hmrState!.restore(lifecycle, devId, value => {
+		runtime.$hmrState!.restore(lifecycle, devId, value => {
 			if (Array.isArray(value)) {
 				source = value;
 			}
@@ -160,15 +181,19 @@ export function listOf<T>(source?: Nil<Iterable<T>>, lifecycle = getLifecycle())
 
 	const items = source ? Array.from(source) : [];
 	const list: List<T> = {
-		$lifecycle: lifecycle,
 		$items: items,
-		$delta: null,
+		$lifecycle: lifecycle,
+		$committedDelta: null,
+		$pendingDelta: null,
+		$lock: 0,
 		[Symbol.iterator]: getIterator,
 		size,
 		get,
+		dirty,
 		delta,
 		raw,
 		forEach,
+		stable,
 		set,
 		clear,
 		insertAt,
@@ -191,15 +216,30 @@ export function listOf<T>(source?: Nil<Iterable<T>>, lifecycle = getLifecycle())
  * Synchronizes the provided List with the given data source. After this operation, the list will
  * contain an exact copy of the source.
  *
- * Note: This function is separated instead of being a List method since the underlying diff
- * algorithm (Myers) is a relatively large chunk of code which would otherwise always get included
- * into bundled builds. This way, tools like Terser can eliminate the extra code when unused.
+ * Note: This function is separated instead of being a List method as the underlying diff algorithm
+ * (Myers) is a relatively large chunk of code which would otherwise always get bundled into
+ * applications. This way, tools like Terser can easily eliminate the extra code when unused.
  */
-export function sync<T>(list: List<T>, source: readonly T[], eq: Equals<T> = defaultEquals) {
-	const oldState = list.$items;
-	list.$items = source.slice();
-	listSynced(currentDelta(list), oldState, source, eq);
-	listMutated(list);
+export function sync<T>(list: List<T>, source: Iterable<T>, eq: Equals<T> = Object.is) {
+	const oldItems = list.$items;
+	const newItems = Array.from(source);
+	list.$items = newItems;
+
+	if (__DEV__) {
+		__DEV__preserveState(list);
+	}
+
+	if (!list.$dh && !list.$xa) {
+		// skip emitting deltas when there are no observers
+		return;
+	}
+
+	// make sure that if no changes are detected, an empty delta isn't left on the List
+	const delta = initDelta(list);
+	if (listSynced(delta, oldItems, newItems, eq)) {
+		list.$pendingDelta = delta;
+		scheduleListNotification(list);
+	}
 }
 
 function size(this: List<any>) {
@@ -212,18 +252,48 @@ function get(this: List<any>, index: number) {
 	return this.$items[index];
 }
 
-function delta<T>(this: List<T>) {
-	reportAccess(this);
-	return this.$delta;
+function dirty(this: List<any>) {
+	if (this.$xa) {
+		// currently notifying observers
+		return true;
+	}
+
+	const delta = this.$pendingDelta;
+	if (!delta) {
+		return false;
+	}
+
+	// a delta is pending, check that the notification is scheduled within an active lifecycle and that the delta contains changes
+	const pending = this.$notify;
+	return (!pending || pending.$life === pending.$lifecycle!.$life) && delta.changes.length > 0;
+}
+
+function delta<T>(this: List<T>, block: (delta: ListDelta<T>) => void, lifecycle: Lifecycle = getLifecycle()) {
+	link(lifecycle, this, {
+		fn: invokeDeltaBlock<T>,
+		a0: this,
+		a1: lifecycle,
+		a2: block,
+	});
 }
 
 function raw<T>(this: List<T>): readonly T[] {
 	return this.$items;
 }
 
-function forEach<T>(this: List<T>, callback: (item: T, index: number) => void, thisArg?: any) {
+function forEach<T>(this: List<T>, callback: (item: T, index: number) => void) {
 	reportAccess(this);
-	this.$items.forEach(callback, thisArg);
+	this.$items.forEach(callback);
+}
+
+function stable<T, R>(this: List<T>, block: (snapshot: readonly T[]) => R) {
+	try {
+		this.$lock += 1;
+		return block(this.$items);
+	}
+	finally {
+		this.$lock = Math.max(this.$lock - 1, 0);
+	}
 }
 
 function getIterator<T>(this: List<T>) {
@@ -239,40 +309,60 @@ function set<T>(this: List<T>, index: number, newItem: T) {
 		return;
 	}
 
+	copyOnWrite(this);
 	this.$items[index] = newItem;
 
+	if (__DEV__) {
+		__DEV__preserveState(this);
+	}
+
 	// only emit deltas when there are observers
-	if (this.$dh) {
-		itemChanged(currentDelta(this), index, oldItem, newItem);
-		listMutated(this);
+	if (this.$dh || this.$xa) {
+		itemChanged(this.$pendingDelta = initDelta(this), index, oldItem, newItem);
+		scheduleListNotification(this);
 	}
 }
 
 function clear(this: List<any>) {
 	const count = this.$items.length;
-	this.$items.length = 0;
+	if (this.$lock > 0) {
+		this.$items = [];
+		this.$lock = 0;
+	}
+	else {
+		this.$items.length = 0;
+	}
+
+	if (__DEV__) {
+		__DEV__preserveState(this);
+	}
 
 	// only emit deltas when there are observers
-	if (this.$dh) {
-		listCleared(currentDelta(this), count);
-		listMutated(this);
+	if (this.$dh || this.$xa) {
+		listCleared(this.$pendingDelta = initDelta(this), count);
+		scheduleListNotification(this);
 	}
 }
 
 function insertAt<T>(this: List<T>, index: number, item: T) {
-	const { $items } = this;
-	if (index === $items.length) {
-		$items.push(item);
+	if (index === this.$items.length) {
+		copyOnWrite(this);
+		this.$items.push(item);
 	}
 	else {
 		assertIndex(this, index);
+		copyOnWrite(this);
 		this.$items.splice(index, 0, item);
 	}
 
+	if (__DEV__) {
+		__DEV__preserveState(this);
+	}
+
 	// only emit deltas when there are observers
-	if (this.$dh) {
-		itemInserted(currentDelta(this), index, item);
-		listMutated(this);
+	if (this.$dh || this.$xa) {
+		itemInserted(this.$pendingDelta = initDelta(this), index, item);
+		scheduleListNotification(this);
 	}
 }
 
@@ -296,12 +386,17 @@ function remove<T>(this: List<any>, item: T) {
 
 function removeAt<T>(this: List<T>, index: number) {
 	assertIndex(this, index);
+	copyOnWrite(this);
 	const item = this.$items.splice(index, 1)[0];
 
+	if (__DEV__) {
+		__DEV__preserveState(this);
+	}
+
 	// only emit deltas when there are observers
-	if (this.$dh) {
-		itemRemoved(currentDelta(this), index, item);
-		listMutated(this);
+	if (this.$dh || this.$xa) {
+		itemRemoved(this.$pendingDelta = initDelta(this), index, item);
+		scheduleListNotification(this);
 	}
 
 	return item;
@@ -316,7 +411,17 @@ function removeLast<T>(this: List<T>) {
 	return length > 0 ? this.removeAt(length - 1) : undefined;
 }
 
+
 function assertIndex(list: List<any>, index: number) {
+	if (!Number.isInteger(index)) {
+		if (__DEV__) {
+			throw new TypeError("list index must be an integer");
+		}
+		else {
+			throw new TypeError();
+		}
+	}
+
 	if (index >= list.$items.length || index < 0) {
 		if (__DEV__) {
 			throw new RangeError("list index out of bounds");
@@ -327,61 +432,62 @@ function assertIndex(list: List<any>, index: number) {
 	}
 }
 
-function defaultEquals<T>(item0: T, item1: T) {
-	return Object.is(item0, item1);
-}
-
-function currentDelta<T>(list: List<T>) {
-	const delta = list.$pendingDelta ??= createDelta<T>();
-	if (!list.$notifying) {
-		list.$delta = delta;
+function initDelta<T>(list: List<T>): PendingListDelta<T> {
+	if (list.$pendingDelta) {
+		const pending = list.$notify;
+		if (!pending || pending.$life === pending.$lifecycle!.$life) {
+			return list.$pendingDelta;
+		}
 	}
 
-	return delta;
+	return {
+		changes: [],
+		relSize: 0,
+	};
 }
 
-function listMutated(list: List<any>) {
-	if (__DEV__) {
-		runtime.hmrState!.preserve(list.$lifecycle, list.$devId, list.$items);
+function copyOnWrite(list: List<any>) {
+	if (list.$lock > 0) {
+		list.$items = list.$items.slice();
+		list.$lock = 0;
 	}
+}
 
+function scheduleListNotification(list: List<any>) {
 	scheduleTick(list.$lifecycle, list.$notify ??= {
-		$fn: notify,
-		$a0: list,
-	});
-
-	scheduleTock(list.$lifecycle, list.$cleanup ??= {
-		$fn: cleanup,
-		$a0: list,
+		fn: notifyListObservers,
+		a0: list,
 	});
 }
 
-function notify(list: List<any>) {
-	// Keep the delivered delta stable for all synchronous observers. Mutations made while
-	// notifying, or by effects afterwards, accumulate in a separate delta for the next pass.
-	list.$delta = list.$pendingDelta!;
+function notifyListObservers(list: List<any>) {
+	// Keep the delivered delta stable for observers. Mutations made while notifying accumulate in a
+	// separate delta for the next pass.
+
+	const delta = list.$pendingDelta!;
 	list.$pendingDelta = null;
-	list.$notifying = true;
-	let current = list.$dh;
-	let next;
 
-	try {
-		while (current) {
-			next = current.$an;
-			invoke(current);
-			current = next;
+	// unless forced, skip notifications whenever the delta is a no-op
+	if (list.$force || delta.changes.length > 0) {
+		delta.snapshot = list.$items;
+		list.$committedDelta = delta as ListDelta<any>;
+		list.$lock += 1; // protect the snapshot
+		list.$force = false;
+
+		try {
+			notify(list);
 		}
-	}
-	finally {
-		list.$notifying = false;
-		if (list.$pendingDelta) {
-			list.$delta = list.$pendingDelta;
+		finally {
+			list.$committedDelta = null;
+			list.$lock = Math.max(list.$lock - 1, 0);
 		}
 	}
 }
 
-function cleanup(list: List<any>) {
-	// A preceding tock may have mutated the List for the next tick. Preserve that pending
-	// delta while releasing the changes delivered during the completed update phase.
-	list.$delta = list.$pendingDelta ?? null;
+function invokeDeltaBlock<T>(list: List<T>, lifecycle: Lifecycle, block: (delta: ListDelta<T>) => void) {
+	withLifecycle(lifecycle, block, list.$committedDelta!);
+}
+
+function __DEV__preserveState(list: List<any>) {
+	runtime.$hmrState!.preserve(list.$lifecycle, list.$devId, list.$items);
 }

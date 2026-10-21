@@ -7,7 +7,7 @@
 		"moduleResolution": "bundler",
 		"paths": {
 			"~/*": [ "./src/*" ],
-			"@calmdown/pyxis/core": [ "./src/exports/core.ts" ]
+			"@calmdown/pyxis": [ "./src/exports/core.ts" ]
 		},
 		"skipLibCheck": true,
 		"stripInternal": true,

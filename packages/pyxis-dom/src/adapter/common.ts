@@ -16,12 +16,31 @@ export function batch() {
 }
 
 export function insert(node: Node, parent: Node, before: Node | null) {
-	parent.insertBefore(node, before);
+	(
+		(parent as Element).tagName === "TEMPLATE"
+			? (parent as HTMLTemplateElement).content
+			: parent
+	)
+		.insertBefore(node, before);
 }
 
 export function remove(node: Node) {
 	node.parentNode?.removeChild(node);
 }
+
+const ATTR_NEEDS_EXPLICIT_BOOLEAN = [
+	"displaystyle",
+	"fence",
+	"separator",
+	"stretchy",
+	"symmetric",
+	"largeop",
+	"movablelimits",
+	"accent",
+	"accentunder",
+	"preserveAlpha",
+]
+	.reduce<{ [A in string]?: true }>((flags, attr) => (flags[attr] = true, flags), {});
 
 export function setAttr(node: Node, attr: string, value: any) {
 	switch (typeof value) {
@@ -31,7 +50,13 @@ export function setAttr(node: Node, attr: string, value: any) {
 			break;
 
 		case "boolean":
-			(node as HTMLElement).toggleAttribute(attr, value);
+			if (ATTR_NEEDS_EXPLICIT_BOOLEAN[attr]) {
+				(node as HTMLElement).setAttribute(attr, value ? "true" : "false");
+			}
+			else {
+				(node as HTMLElement).toggleAttribute(attr, value);
+			}
+
 			break;
 
 		case "object":

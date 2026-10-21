@@ -1,4 +1,4 @@
-import { extension, getLifecycle, peek, unmounted, withLifecycle, type ExtensionPropMapping, type Lifecycle, type MaybeReadAtom, type Nil } from "@calmdown/pyxis/core";
+import { extension, getLifecycle, peek, unmounted, withLifecycle, type ExtensionPropMapping, type Lifecycle, type MaybeAtom, type Nil } from "@calmdown/pyxis";
 
 interface EventPropMapping extends ExtensionPropMapping<Node> {
 	extension: EventProps<this["node"]>;
@@ -9,9 +9,9 @@ type EventProps<TNode> = {
 };
 
 export type EventListenerType<TEvent, TNode = EventTarget, TEventName = string> =
-	| MaybeReadAtom<Nil<(e: ExtendedEvent<TEvent, TNode, TEventName>) => void>>
+	| MaybeAtom<Nil<(e: ExtendedEvent<TEvent, TNode, TEventName>) => void>>
 	| {
-		readonly listener: MaybeReadAtom<Nil<(e: ExtendedEvent<TEvent, TNode, TEventName>) => void>>;
+		readonly listener: MaybeAtom<Nil<(e: ExtendedEvent<TEvent, TNode, TEventName>) => void>>;
 		readonly capture?: boolean;
 		readonly once?: boolean;
 		readonly passive?: boolean;
@@ -59,9 +59,9 @@ export type ExtendedEvent<TEvent, TNode = EventTarget, TEventName = string> =
  * <div on:my-event={e => { console.log(e.myValue) }} />
  * ```
  */
-export const EventExtension = extension<Node, EventPropMapping>((node, prop, value) => {
+export const EventExtension = /*@__PURE__*/ extension<Node, EventPropMapping>((node, prop, value) => {
 	// see if listener options have been given
-	type ListenerAtom = MaybeReadAtom<Nil<(e: unknown) => unknown>>;
+	type ListenerAtom = MaybeAtom<Nil<(e: unknown) => unknown>>;
 	let listenerAtom = value as ListenerAtom;
 	let options: AddEventListenerOptions | undefined;
 
@@ -76,7 +76,7 @@ export const EventExtension = extension<Node, EventPropMapping>((node, prop, val
 	}
 
 	// listen
-	const lifecycle = getExtendedLifecycle();
+	const lifecycle = getEventsLifecycle();
 	const listenerWithLifecycle = (e: unknown) => {
 		const handler = peek(listenerAtom);
 		if (handler) {
@@ -85,7 +85,7 @@ export const EventExtension = extension<Node, EventPropMapping>((node, prop, val
 	};
 
 	node.addEventListener(prop, listenerWithLifecycle, options);
-	lifecycle.$events.push({
+	lifecycle.$evListeners.push({
 		$f: listenerWithLifecycle,
 		$n: node,
 		$e: prop,
@@ -94,10 +94,12 @@ export const EventExtension = extension<Node, EventPropMapping>((node, prop, val
 });
 
 
-function getExtendedLifecycle() {
-	const lifecycle = getLifecycle() as ExtendedLifecycle;
-	if (!lifecycle.$events) {
-		const entries: ListenerEntry[] = [];
+function getEventsLifecycle() {
+	const lifecycle = getLifecycle() as EventsLifecycle;
+	if (!lifecycle.$evInstalled) {
+		const entries = (lifecycle.$evListeners ??= []);
+		lifecycle.$evInstalled = true;
+
 		unmounted(() => {
 			const { length } = entries;
 			let index = 0;
@@ -109,16 +111,16 @@ function getExtendedLifecycle() {
 			}
 
 			entries.length = 0;
-		});
-
-		lifecycle.$events = entries;
+			lifecycle.$evInstalled = false;
+		}, lifecycle);
 	}
 
 	return lifecycle;
 }
 
-interface ExtendedLifecycle extends Lifecycle {
-	$events: ListenerEntry[];
+interface EventsLifecycle extends Lifecycle {
+	$evListeners: ListenerEntry[];
+	$evInstalled: boolean;
 }
 
 interface ListenerEntry {

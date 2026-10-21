@@ -121,7 +121,7 @@ export function buildSourcemap(
 			offset += edit.delta;
 			editIndex += 1;
 		}
-		else {
+		else if (transpiled.at < transpiledCode.length) {
 			addLine();
 			advanceNewLine(original);
 			advanceNewLine(transpiled);

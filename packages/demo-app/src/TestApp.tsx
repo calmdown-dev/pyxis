@@ -1,11 +1,11 @@
-import { atomOf, component, derived, Iterator, listOf, read, unmounted, write, type Atom } from "@calmdown/pyxis";
+import { atomOf, component, derived, Iterator, listOf, read, unmounted, write, type WriteAtom } from "@calmdown/pyxis";
 
 import { Button } from "~/component/Button";
 import { CheckBox } from "~/component/CheckBox";
 import { TextInput } from "~/component/TextInput";
 
 interface TodoItem {
-	done: Atom<boolean>;
+	done: WriteAtom<boolean>;
 	text: string;
 }
 

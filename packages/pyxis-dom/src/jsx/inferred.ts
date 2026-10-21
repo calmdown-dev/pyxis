@@ -1,8 +1,5 @@
 /** @preserve */
-import type { JsxChildren, MaybeReadAtom, S_ELEM_NAME, S_NODE_TYPE } from "@calmdown/pyxis/core";
-
-// pyxis imports, not @preserve'd
-import type { Nil } from "@calmdown/pyxis/core";
+import type { JsxChildren, MaybeAtom, Nil, S_ELEM_NAME, S_NODE_TYPE } from "@calmdown/pyxis";
 
 import type { PROP_MAP } from "./mapping";
 
@@ -31,8 +28,11 @@ type OmitFunctions<T> = Pick<T, { [K in keyof T] -?: T[K] extends Nil<(...args: 
 /** applies custom field overrides O over the given type T */
 type ApplyOverrides<T, O> = Omit<T, keyof O> & Pick<O, { [K in keyof O]: O[K] extends never ? never : K }[keyof O]>;
 
-/** wraps each property type in MaybeReadAtom to allow the use of atoms on properties of intrinsic elements */
-type WrapProps<T> = { [K in keyof T]: MaybeReadAtom<T[K]> };
+/** adds each prop into a union with null and undefined */
+type AllowNil<T> = { [K in keyof T]: Nil<T[K]> };
+
+/** wraps each property type in MaybeAtom to allow the use of atoms on properties of intrinsic elements */
+type WrapProps<T> = { [K in keyof T]: MaybeAtom<T[K]> };
 
 /** renames props according to the given mapping */
 type MapProps<T, M extends { [K in string]: string }> = {
@@ -71,14 +71,13 @@ interface NoChildrenProp {
 
 // #region CSS
 
+type OmitVendorPrefixed<T> = Pick<T, { [K in keyof T]: K extends `webkit${string}` ? never : K }[keyof T]>;
+
 /** @bake */
-export type CSSStyleDeclarationProps = Finalize<WrapProps<ApplyOverrides<OmitFunctions<OmitReadonly<OmitIndex<CSSStyleDeclaration>>>, CSSPropOverrides>>>;
+export type CSSStyleDeclarationProps = Finalize<WrapProps<AllowNil<ApplyOverrides<OmitVendorPrefixed<OmitFunctions<OmitReadonly<OmitIndex<CSSStyleDeclaration>>>>, CSSPropOverrides>>>>;
 
 interface CSSPropOverrides {
-	anchorName: string;
-	positionAnchor: string;
-	positionArea: string;
-
+	// deprecated rules:
 	clip: never;
 	cssFloat: never;
 	cssText: never;
@@ -90,71 +89,6 @@ interface CSSPropOverrides {
 	pageBreakAfter: never;
 	pageBreakBefore: never;
 	pageBreakInside: never;
-	webkitAlignContent: never;
-	webkitAlignItems: never;
-	webkitAlignSelf: never;
-	webkitAnimation: never;
-	webkitAnimationDelay: never;
-	webkitAnimationDirection: never;
-	webkitAnimationDuration: never;
-	webkitAnimationFillMode: never;
-	webkitAnimationIterationCount: never;
-	webkitAnimationName: never;
-	webkitAnimationPlayState: never;
-	webkitAnimationTimingFunction: never;
-	webkitAppearance: never;
-	webkitBackfaceVisibility: never;
-	webkitBackgroundClip: never;
-	webkitBackgroundOrigin: never;
-	webkitBackgroundSize: never;
-	webkitBorderBottomLeftRadius: never;
-	webkitBorderBottomRightRadius: never;
-	webkitBorderRadius: never;
-	webkitBorderTopLeftRadius: never;
-	webkitBorderTopRightRadius: never;
-	webkitBoxAlign: never;
-	webkitBoxFlex: never;
-	webkitBoxOrdinalGroup: never;
-	webkitBoxOrient: never;
-	webkitBoxPack: never;
-	webkitBoxShadow: never;
-	webkitBoxSizing: never;
-	webkitFilter: never;
-	webkitFlex: never;
-	webkitFlexBasis: never;
-	webkitFlexDirection: never;
-	webkitFlexFlow: never;
-	webkitFlexGrow: never;
-	webkitFlexShrink: never;
-	webkitFlexWrap: never;
-	webkitJustifyContent: never;
-	webkitMask: never;
-	webkitMaskBoxImage: never;
-	webkitMaskBoxImageOutset: never;
-	webkitMaskBoxImageRepeat: never;
-	webkitMaskBoxImageSlice: never;
-	webkitMaskBoxImageSource: never;
-	webkitMaskBoxImageWidth: never;
-	webkitMaskClip: never;
-	webkitMaskComposite: never;
-	webkitMaskImage: never;
-	webkitMaskOrigin: never;
-	webkitMaskPosition: never;
-	webkitMaskRepeat: never;
-	webkitMaskSize: never;
-	webkitOrder: never;
-	webkitPerspective: never;
-	webkitPerspectiveOrigin: never;
-	webkitTextSizeAdjust: never;
-	webkitTransform: never;
-	webkitTransformOrigin: never;
-	webkitTransformStyle: never;
-	webkitTransition: never;
-	webkitTransitionDelay: never;
-	webkitTransitionDuration: never;
-	webkitTransitionProperty: never;
-	webkitTransitionTimingFunction: never;
-	webkitUserSelect: never;
 	wordWrap: never;
 }
 
@@ -163,7 +97,7 @@ interface CSSPropOverrides {
 // #region ARIA
 
 /** @bake */
-export type ARIAProps = Finalize<WrapProps<ARIAMixin>>;
+export type ARIAProps = Finalize<WrapProps<AllowNil<ARIAMixin>>>;
 
 // #endregion
 
@@ -176,6 +110,7 @@ type HTMLRawProps<T, O> = MapProps<WrapProps<ApplyOverrides<Omit<OmitFunctions<O
 interface HTMLPropOverrides {
 	part: string;
 
+	// not supported as props, instead handled by framework/extensions:
 	classList: never;
 	innerHTML: never;
 	innerText: never;
@@ -195,6 +130,16 @@ export type HTMLCommonProps = Finalize<HTMLRawProps<HTMLElement, {}>>;
  */
 export type HTMLAnchorElementProps = HTMLProps<HTMLAnchorElement, "a", {
 	relList: string;
+
+	// not supported as a prop, use children:
+	text: never;
+
+	// deprecated props:
+	charset: never;
+	coords: never;
+	name: never;
+	rev: never;
+	shape: never;
 }>;
 
 /**
@@ -203,6 +148,9 @@ export type HTMLAnchorElementProps = HTMLProps<HTMLAnchorElement, "a", {
  */
 export type HTMLAreaElementProps = HTMLPropsNoChildren<HTMLAreaElement, "area", {
 	relList: string;
+
+	// deprecated props:
+	noHref: never;
 }>;
 
 /**
@@ -239,7 +187,10 @@ export type HTMLQuoteElementProps<N extends "blockquote" | "q"> = HTMLProps<HTML
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLBRElementProps = HTMLPropsNoChildren<HTMLBRElement, "br">;
+export type HTMLBRElementProps = HTMLPropsNoChildren<HTMLBRElement, "br", {
+	// deprecated props:
+	clear: never;
+}>;
 
 /**
  * @bake
@@ -257,13 +208,36 @@ export type HTMLCanvasElementProps = HTMLProps<HTMLCanvasElement, "canvas">;
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLTableCaptionElementProps = HTMLProps<HTMLTableCaptionElement, "caption">;
+export type HTMLTableCaptionElementProps = HTMLProps<HTMLTableCaptionElement, "caption", {
+	// deprecated props:
+	align: never;
+}>;
 
 /**
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLTableColElementProps<N extends "col" | "colgroup"> = HTMLPropsNoChildren<HTMLTableColElement, N>;
+export type HTMLTableColElementProps = HTMLPropsNoChildren<HTMLTableColElement, "col", {
+	// deprecated props:
+	align: never;
+	ch: never;
+	chOff: never;
+	vAlign: never;
+	width: never;
+}>;
+
+/**
+ * @bake
+ * @extends HTMLCommonProps
+ */
+export type HTMLTableColGroupElementProps = HTMLProps<HTMLTableColElement, "colgroup", {
+	// deprecated props:
+	align: never;
+	ch: never;
+	chOff: never;
+	vAlign: never;
+	width: never;
+}>;
 
 /**
  * @bake
@@ -299,19 +273,29 @@ export type HTMLDialogElementProps = HTMLProps<HTMLDialogElement, "dialog">;
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLDivElementProps = HTMLProps<HTMLDivElement, "div">;
+export type HTMLDivElementProps = HTMLProps<HTMLDivElement, "div", {
+	// deprecated props:
+	align: never;
+}>;
 
 /**
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLDListElementProps = HTMLProps<HTMLDListElement, "dl">;
+export type HTMLDListElementProps = HTMLProps<HTMLDListElement, "dl", {
+	// deprecated props:
+	compact: never;
+}>;
 
 /**
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLEmbedElementProps = HTMLPropsNoChildren<HTMLEmbedElement, "embed">;
+export type HTMLEmbedElementProps = HTMLPropsNoChildren<HTMLEmbedElement, "embed", {
+	// deprecated props:
+	align: never;
+	name: never;
+}>;
 
 /**
  * @bake
@@ -331,7 +315,10 @@ export type HTMLFormElementProps = HTMLProps<HTMLFormElement, "form", {
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLHeadingElementProps<N extends "h1" | "h2" | "h3" | "h4" | "h5" | "h6"> = HTMLProps<HTMLHeadingElement, N>;
+export type HTMLHeadingElementProps<N extends "h1" | "h2" | "h3" | "h4" | "h5" | "h6"> = HTMLProps<HTMLHeadingElement, N, {
+	// deprecated props:
+	align: never;
+}>;
 
 // /**
 //  * @bake
@@ -343,7 +330,14 @@ export type HTMLHeadingElementProps<N extends "h1" | "h2" | "h3" | "h4" | "h5" |
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLHRElementProps = HTMLPropsNoChildren<HTMLHRElement, "hr">;
+export type HTMLHRElementProps = HTMLPropsNoChildren<HTMLHRElement, "hr", {
+	// deprecated props:
+	align: never;
+	color: never;
+	noShade: never;
+	size: never;
+	width: never;
+}>;
 
 // /**
 //  * @bake
@@ -355,19 +349,45 @@ export type HTMLHRElementProps = HTMLPropsNoChildren<HTMLHRElement, "hr">;
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLIFrameElementProps = HTMLProps<HTMLIFrameElement, "iframe">;
+export type HTMLIFrameElementProps = HTMLProps<HTMLIFrameElement, "iframe", {
+	// deprecated props:
+	align: never;
+	frameBorder: never;
+	longDesc: never;
+	marginHeight: never;
+	marginWidth: never;
+	scrolling: never;
+}>;
 
 /**
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLImageElementProps = HTMLPropsNoChildren<HTMLImageElement, "img">;
+export type HTMLImageElementProps = HTMLPropsNoChildren<HTMLImageElement, "img", {
+	// deprecated props:
+	align: never;
+	border: never;
+	hspace: never;
+	longDesc: never;
+	lowsrc: never;
+	name: never;
+	vspace: never;
+}>;
 
 /**
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLInputElementProps = HTMLPropsNoChildren<HTMLInputElement, "input">;
+export type HTMLInputElementProps = HTMLPropsNoChildren<HTMLInputElement, "input", {
+	// deprecated props:
+	align: never;
+	useMap: never;
+
+	// not supported as props:
+	selectionDirection: never;
+	selectionEnd: never;
+	selectionStart: never;
+}>;
 
 /**
  * @bake
@@ -379,13 +399,19 @@ export type HTMLLabelElementProps = HTMLProps<HTMLLabelElement, "label">;
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLLegendElementProps = HTMLProps<HTMLLegendElement, "legend">;
+export type HTMLLegendElementProps = HTMLProps<HTMLLegendElement, "legend", {
+	// deprecated props:
+	align: never;
+}>;
 
 /**
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLLIElementProps = HTMLProps<HTMLLIElement, "li">;
+export type HTMLLIElementProps = HTMLProps<HTMLLIElement, "li", {
+	// deprecated props:
+	type: never;
+}>;
 
 // /**
 //  * @bake
@@ -403,7 +429,10 @@ export type HTMLMapElementProps = HTMLProps<HTMLMapElement, "map">;
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLMenuElementProps = HTMLProps<HTMLMenuElement, "menu">;
+export type HTMLMenuElementProps = HTMLProps<HTMLMenuElement, "menu", {
+	// deprecated props:
+	compact: never;
+}>;
 
 // /**
 //  * @bake
@@ -421,13 +450,29 @@ export type HTMLMeterElementProps = HTMLProps<HTMLMeterElement, "meter">;
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLObjectElementProps = HTMLProps<HTMLObjectElement, "object">;
+export type HTMLObjectElementProps = HTMLProps<HTMLObjectElement, "object", {
+	// deprecated props:
+	align: never;
+	archive: never;
+	border: never;
+	code: never;
+	codeBase: never;
+	codeType: never;
+	declare: never;
+	hspace: never;
+	standby: never;
+	useMap: never;
+	vspace: never;
+}>;
 
 /**
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLOListElementProps = HTMLProps<HTMLOListElement, "ol">;
+export type HTMLOListElementProps = HTMLProps<HTMLOListElement, "ol", {
+	// deprecated props:
+	compact: never;
+}>;
 
 /**
  * @bake
@@ -439,19 +484,25 @@ export type HTMLOptGroupElementProps = HTMLProps<HTMLOptGroupElement, "optgroup"
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLOptionElementProps = HTMLProps<HTMLOptionElement, "option">;
+export type HTMLOptionElementProps = HTMLProps<HTMLOptionElement, "option", {
+	// not supported as a prop, use children:
+	text: never;
+}>;
 
 /**
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLOutputElementProps = HTMLProps<HTMLOutputElement, "output">;
+export type HTMLOutputElementProps = HTMLPropsNoChildren<HTMLOutputElement, "output">;
 
 /**
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLParagraphElementProps = HTMLProps<HTMLParagraphElement, "p">;
+export type HTMLParagraphElementProps = HTMLProps<HTMLParagraphElement, "p", {
+	// deprecated props:
+	align: never;
+}>;
 
 /**
  * @bake
@@ -463,7 +514,10 @@ export type HTMLPictureElementProps = HTMLProps<HTMLPictureElement, "picture">;
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLPreElementProps = HTMLProps<HTMLPreElement, "pre">;
+export type HTMLPreElementProps = HTMLProps<HTMLPreElement, "pre", {
+	// deprecated props:
+	width: never;
+}>;
 
 /**
  * @bake
@@ -481,7 +535,10 @@ export type HTMLProgressElementProps = HTMLProps<HTMLProgressElement, "progress"
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLSelectElementProps = HTMLProps<HTMLSelectElement, "select">;
+export type HTMLSelectElementProps = HTMLProps<HTMLSelectElement, "select", {
+	// not supported as a prop:
+	length: never;
+}>;
 
 /**
  * @bake
@@ -511,19 +568,72 @@ export type HTMLSpanElementProps = HTMLProps<HTMLSpanElement, "span">;
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLTableElementProps = HTMLProps<HTMLTableElement, "table">;
+export type HTMLTableElementProps = HTMLProps<HTMLTableElement, "table", {
+	// not supported as a prop:
+	caption: never;
+	tHead: never;
+	tFoot: never;
+
+	// deprecated props:
+	align: never;
+	bgColor: never;
+	border: never;
+	cellPadding: never;
+	cellSpacing: never;
+	frame: never;
+	rules: never;
+	summary: never;
+	width: never;
+}>;
 
 /**
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLTableSectionElementProps<N extends "tbody" | "tfoot" | "thead"> = HTMLProps<HTMLTableSectionElement, N>;
+export type HTMLTableSectionElementProps<N extends "tbody" | "tfoot" | "thead"> = HTMLProps<HTMLTableSectionElement, N, {
+	// deprecated props:
+	align: never;
+	bgColor: never;
+	ch: never;
+	chOff: never;
+	vAlign: never;
+}>;
 
 /**
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLTableCellElementProps<N extends "td" | "th"> = HTMLProps<HTMLTableCellElement, N>;
+export type HTMLTableCellElementProps = HTMLProps<HTMLTableCellElement, "td", {
+	// deprecated props:
+	abbr: never;
+	align: never;
+	axis: never;
+	bgColor: never;
+	ch: never;
+	chOff: never;
+	height: never;
+	noWrap: never;
+	scope: never;
+	vAlign: never;
+	width: never;
+}>;
+
+/**
+ * @bake
+ * @extends HTMLCommonProps
+ */
+export type HTMLTableHeadingElementProps = HTMLProps<HTMLTableCellElement, "th", {
+	// deprecated props:
+	align: never;
+	axis: never;
+	bgColor: never;
+	ch: never;
+	chOff: never;
+	height: never;
+	noWrap: never;
+	vAlign: never;
+	width: never;
+}>;
 
 /**
  * @bake
@@ -535,7 +645,12 @@ export type HTMLTemplateElementProps = HTMLProps<HTMLTemplateElement, "template"
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLTextAreaElementProps = HTMLProps<HTMLTextAreaElement, "textarea">;
+export type HTMLTextAreaElementProps = HTMLPropsNoChildren<HTMLTextAreaElement, "textarea", {
+	// not supported as props:
+	selectionDirection: never;
+	selectionEnd: never;
+	selectionStart: never;
+}>;
 
 /**
  * @bake
@@ -553,7 +668,14 @@ export type HTMLTimeElementProps = HTMLProps<HTMLTimeElement, "time">;
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLTableRowElementProps = HTMLProps<HTMLTableRowElement, "tr">;
+export type HTMLTableRowElementProps = HTMLProps<HTMLTableRowElement, "tr", {
+	// deprecated props
+	align: never;
+	bgColor: never;
+	ch: never;
+	chOff: never;
+	vAlign: never;
+}>;
 
 /**
  * @bake
@@ -565,7 +687,11 @@ export type HTMLTrackElementProps = HTMLPropsNoChildren<HTMLTrackElement, "track
  * @bake
  * @extends HTMLCommonProps
  */
-export type HTMLUListElementProps = HTMLProps<HTMLUListElement, "ul">;
+export type HTMLUListElementProps = HTMLProps<HTMLUListElement, "ul", {
+	// deprecated props:
+	compact: never;
+	type: never;
+}>;
 
 /**
  * @bake
@@ -600,8 +726,8 @@ export interface HTMLIntrinsicElements {
 	caption: HTMLTableCaptionElementProps;
 	cite: HTMLElementProps<"cite">;
 	code: HTMLElementProps<"code">;
-	col: HTMLTableColElementProps<"col">;
-	colgroup: HTMLTableColElementProps<"colgroup">;
+	col: HTMLTableColElementProps;
+	colgroup: HTMLTableColGroupElementProps;
 	data: HTMLDataElementProps;
 	datalist: HTMLDataListElementProps;
 	dd: HTMLElementProps<"dd">;
@@ -678,11 +804,11 @@ export interface HTMLIntrinsicElements {
 	sup: HTMLElementProps<"sup">;
 	table: HTMLTableElementProps;
 	tbody: HTMLTableSectionElementProps<"tbody">;
-	td: HTMLTableCellElementProps<"td">;
+	td: HTMLTableCellElementProps;
 	template: HTMLTemplateElementProps;
 	textarea: HTMLTextAreaElementProps;
 	tfoot: HTMLTableSectionElementProps<"tfoot">;
-	th: HTMLTableCellElementProps<"th">;
+	th: HTMLTableHeadingElementProps;
 	thead: HTMLTableSectionElementProps<"thead">;
 	time: HTMLTimeElementProps;
 	// title: HTMLTitleElementProps;
@@ -718,7 +844,6 @@ export type SVGCommonProps = Finalize<WrapProps<{
 }>>;
 
 type SVGProps<T, N extends string, P = {}> = Finalize<NodeTypeProp<T> & ElemNameProp<N> & ChildrenProp & WrapProps<P>>;
-type SVGPropsNoChildren<T, N extends string, P = {}> = Finalize<NodeTypeProp<T> & ElemNameProp<N> & NoChildrenProp & WrapProps<P>>;
 
 /** @preserve */
 export type SVGAccumulate = "none" | "sum";
@@ -799,13 +924,16 @@ export type SVGVectorEffect = "none" | "non-scaling-stroke" | "non-scaling-size"
 export type SVGVisibility = "visible" | "hidden" | "collapse";
 
 /** @preserve */
-export type SVGWhiteSpace = "normal" | "pre" | "nowrap" | "pre-wrap" | "break-space" | "pre-line";
+export type SVGWhiteSpace = "normal" | "pre" | "nowrap" | "pre-wrap" | "break-spaces" | "pre-line";
 
 /** @preserve */
 export type SVGWritingMode = "horizontal-tb" | "vertical-rl" | "vertical-lr";
 
 /** @preserve */
 export type SVGColorChannel = "R" | "G" | "B" | "A";
+
+/** @preserve */
+export type SVGTextOverflow = "clip" | "ellipsis";
 
 /**
  * @bake
@@ -922,7 +1050,7 @@ export type SVGAnimateTransformElementProps = SVGProps<SVGAnimateTransformElemen
  * @bake
  * @extends SVGCommonProps
  */
-export type SVGCircleElementProps = SVGPropsNoChildren<SVGCircleElement, "circle", {
+export type SVGCircleElementProps = SVGProps<SVGCircleElement, "circle", {
 	"clip-path": string;
 	"clip-rule": SVGClipRule;
 	cursor: string;
@@ -985,7 +1113,7 @@ export type SVGDescElementProps = SVGProps<SVGDescElement, "desc">;
  * @bake
  * @extends SVGCommonProps
  */
-export type SVGEllipseElementProps = SVGPropsNoChildren<SVGEllipseElement, "ellipse", {
+export type SVGEllipseElementProps = SVGProps<SVGEllipseElement, "ellipse", {
 	"clip-path": string;
 	"clip-rule": SVGClipRule;
 	cursor: string;
@@ -1418,21 +1546,21 @@ export type SVGFilterElementProps = SVGProps<SVGFilterElement, "filter", {
 	y: number | string;
 }>;
 
-/**
- * @bake
- * @extends SVGCommonProps
- */
-export type SVGForeignObjectElementProps = SVGProps<SVGForeignObjectElement, "foreignObject", {
-	opacity: number | string;
-	overflow: SVGOverflow;
-	"pointer-events": SVGPointerEvents;
-	requiredExtensions: string;
-	systemLanguage: string;
-	"vector-effect": SVGVectorEffect;
-	visibility: SVGVisibility;
-	x: number | string;
-	y: number | string;
-}>;
+// /**
+//  * @bake
+//  * @extends SVGCommonProps
+//  */
+// export type SVGForeignObjectElementProps = SVGProps<SVGForeignObjectElement, "foreignObject", {
+// 	opacity: number | string;
+// 	overflow: SVGOverflow;
+// 	"pointer-events": SVGPointerEvents;
+// 	requiredExtensions: string;
+// 	systemLanguage: string;
+// 	"vector-effect": SVGVectorEffect;
+// 	visibility: SVGVisibility;
+// 	x: number | string;
+// 	y: number | string;
+// }>;
 
 /**
  * @bake
@@ -1452,7 +1580,7 @@ export type SVGGElementProps = SVGProps<SVGGElement, "g", {
  * @bake
  * @extends SVGCommonProps
  */
-export type SVGImageElementProps = SVGPropsNoChildren<SVGImageElement, "image", {
+export type SVGImageElementProps = SVGProps<SVGImageElement, "image", {
 	"clip-path": string;
 	"clip-rule": SVGClipRule;
 	crossorigin: SVGCrossOrigin;
@@ -1479,7 +1607,7 @@ export type SVGImageElementProps = SVGPropsNoChildren<SVGImageElement, "image", 
  * @bake
  * @extends SVGCommonProps
  */
-export type SVGLineElementProps = SVGPropsNoChildren<SVGLineElement, "line", {
+export type SVGLineElementProps = SVGProps<SVGLineElement, "line", {
 	"clip-path": string;
 	"clip-rule": SVGClipRule;
 	cursor: string;
@@ -1582,7 +1710,7 @@ export type SVGMPathElementProps = SVGProps<SVGMPathElement, "mpath", {
  * @bake
  * @extends SVGCommonProps
  */
-export type SVGPathElementProps = SVGPropsNoChildren<SVGPathElement, "path", {
+export type SVGPathElementProps = SVGProps<SVGPathElement, "path", {
 	"clip-path": string;
 	"clip-rule": SVGClipRule;
 	cursor: string;
@@ -1641,7 +1769,7 @@ export type SVGPatternElementProps = SVGProps<SVGPatternElement, "pattern", {
  * @bake
  * @extends SVGCommonProps
  */
-export type SVGPolygonElementProps = SVGPropsNoChildren<SVGPolygonElement, "polygon", {
+export type SVGPolygonElementProps = SVGProps<SVGPolygonElement, "polygon", {
 	"clip-path": string;
 	"clip-rule": SVGClipRule;
 	cursor: string;
@@ -1675,7 +1803,7 @@ export type SVGPolygonElementProps = SVGPropsNoChildren<SVGPolygonElement, "poly
  * @bake
  * @extends SVGCommonProps
  */
-export type SVGPolylineElementProps = SVGPropsNoChildren<SVGPolylineElement, "polyline", {
+export type SVGPolylineElementProps = SVGProps<SVGPolylineElement, "polyline", {
 	"clip-path": string;
 	"clip-rule": SVGClipRule;
 	cursor: string;
@@ -1727,7 +1855,7 @@ export type SVGRadialGradientElementProps = SVGProps<SVGRadialGradientElement, "
  * @bake
  * @extends SVGCommonProps
  */
-export type SVGRectElementProps = SVGPropsNoChildren<SVGRectElement, "rect", {
+export type SVGRectElementProps = SVGProps<SVGRectElement, "rect", {
 	"clip-path": string;
 	"clip-rule": SVGClipRule;
 	cursor: string;
@@ -1797,7 +1925,7 @@ export type SVGSetElementProps = SVGProps<SVGSetElement, "set", {
  * @bake
  * @extends SVGCommonProps
  */
-export type SVGStopElementProps = SVGPropsNoChildren<SVGStopElement, "stop", {
+export type SVGStopElementProps = SVGProps<SVGStopElement, "stop", {
 	"stop-color": string;
 	"stop-opacity": number | string;
 }>;
@@ -1902,7 +2030,7 @@ export type SVGTextElementProps = SVGProps<SVGTextElement, "text", {
 	systemLanguage: string;
 	"text-anchor": SVGTextAnchor;
 	"text-decoration": string;
-	"text-overflow": "clip" | "ellipses";
+	"text-overflow": SVGTextOverflow;
 	"text-rendering": "auto" | "optimizeSpeed" | "optimizeLegibility" | "geometricPrecision";
 	textLength: number | string;
 	"unicode-bidi": SVGUnicodeBidi;
@@ -1955,7 +2083,7 @@ export type SVGTextPathElementProps = SVGProps<SVGTextPathElement, "textPath", {
 	systemLanguage: string;
 	"text-anchor": SVGTextAnchor;
 	"text-decoration": string;
-	"text-overflow": "clip" | "ellipses";
+	"text-overflow": SVGTextOverflow;
 	textLength: number | string;
 	"unicode-bidi": SVGUnicodeBidi;
 	"vector-effect": SVGVectorEffect;
@@ -2008,7 +2136,7 @@ export type SVGTSpanElementProps = SVGProps<SVGTSpanElement, "tspan", {
 	systemLanguage: string;
 	"text-anchor": SVGTextAnchor;
 	"text-decoration": string;
-	"text-overflow": "clip" | "ellipses";
+	"text-overflow": SVGTextOverflow;
 	textLength: number | string;
 	"unicode-bidi": SVGUnicodeBidi;
 	"vector-effect": SVGVectorEffect;
@@ -2024,7 +2152,7 @@ export type SVGTSpanElementProps = SVGProps<SVGTSpanElement, "tspan", {
  * @bake
  * @extends SVGCommonProps
  */
-export type SVGUseElementProps = SVGPropsNoChildren<SVGUseElement, "use", {
+export type SVGUseElementProps = SVGProps<SVGUseElement, "use", {
 	"clip-path": string;
 	"clip-rule": SVGClipRule;
 	cursor: string;
@@ -2088,7 +2216,7 @@ export interface SVGIntrinsicElements {
 	feTile: SVGFETileElementProps;
 	feTurbulence: SVGFETurbulenceElementProps;
 	filter: SVGFilterElementProps;
-	foreignObject: SVGForeignObjectElementProps;
+	// foreignObject: SVGForeignObjectElementProps;
 	g: SVGGElementProps;
 	image: SVGImageElementProps;
 	line: SVGLineElementProps;
@@ -2131,14 +2259,15 @@ export interface SVGIntrinsicElements {
 export type MathMLCommonProps = Finalize<WrapProps<{
 	dir: "ltr" | "rtl";
 	displaystyle: boolean;
-	mathbackground: string;
-	mathcolor: string;
-	mathsize: string;
 	scriptlevel: string;
+
+	// superseded by CSS equivalents:
+	// mathbackground: string;
+	// mathcolor: string;
+	// mathsize: string;
 }>>;
 
 type MathMLProps<T, N extends string, P = {}> = Finalize<NodeTypeProp<T> & ElemNameProp<N> & ChildrenProp & WrapProps<P>>;
-type MathMLPropsNoChildren<T, N extends string, P = {}> = Finalize<NodeTypeProp<T> & ElemNameProp<N> & NoChildrenProp & WrapProps<P>>;
 
 /**
  * @bake
@@ -2158,7 +2287,7 @@ export type MathMLMathElementProps = MathMLProps<MathMLElement, "mathml", {
  * @bake
  * @extends MathMLCommonProps
  */
-export type MatMLFracElementProps = MathMLPropsNoChildren<MathMLElement, "mfrac", {
+export type MatMLFracElementProps = MathMLProps<MathMLElement, "mfrac", {
 	linethickness: string;
 }>;
 
@@ -2212,7 +2341,7 @@ export type MatMLPaddedElementProps = MathMLProps<MathMLElement, "mpadded", {
  * @bake
  * @extends MathMLCommonProps
  */
-export type MatMLRowElementProps = MathMLPropsNoChildren<MathMLElement, "mrow">;
+export type MatMLRowElementProps = MathMLProps<MathMLElement, "mrow">;
 
 /**
  * @bake
@@ -2237,7 +2366,7 @@ export type MatMLTDElementProps = MathMLProps<MathMLElement, "mtd", {
  * @bake
  * @extends MathMLCommonProps
  */
-export type MatMLTextElementProps = MathMLPropsNoChildren<MathMLElement, "mtext">;
+export type MatMLTextElementProps = MathMLProps<MathMLElement, "mtext">;
 
 /**
  * @bake

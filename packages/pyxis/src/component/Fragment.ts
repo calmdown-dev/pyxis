@@ -19,10 +19,10 @@ export function Fragment(props: JsxProps<FragmentProps>): JsxResult;
 export function Fragment<TNode>(
 	jsx: JsxObject,
 	hParent: HNode<TNode>,
+	hBefore: HNode<TNode> | null,
 	nUsedParent: TNode,
 	nRealParent: TNode,
-	nBefore: TNode | null,
 	isBatch: boolean,
 ) {
-	mountJsx(jsx.children, hParent, nUsedParent, nRealParent, nBefore, isBatch);
+	mountJsx(jsx.children, hParent, hBefore, nUsedParent, nRealParent, isBatch);
 }

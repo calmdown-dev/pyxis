@@ -1,14 +1,13 @@
-import { isAtom, write, type Atom } from "~/data/Atom";
-import { onMounted, onUnmounted } from "~/data/Lifecycle";
+import { isAtom, write, type WriteAtom } from "~/data/Atom";
+import { invokeMountedCallback, onceMounted, onceUnmounted } from "~/data/Lifecycle";
 import { extension, type ExtensionPropMapping } from "~/Adapter";
-import type { MountingGroup } from "~/Renderer";
 
-interface RefPropMapping extends ExtensionPropMapping<any> {
+interface RefPropMapping extends ExtensionPropMapping<unknown> {
 	extension: RefProps<this["node"]>;
 }
 
 interface RefProps<TNode> {
-	readonly atom?: Atom<TNode | null>;
+	readonly atom?: WriteAtom<TNode | null>;
 	readonly call?: RefFn<TNode>;
 }
 
@@ -42,20 +41,20 @@ export interface RefFn<TNode> {
  * Ref callbacks are only called when the node mounts, they never receive `null`. Instead,
  * unmounted nodes may be handled by returning a teardown callback.
  */
-export const RefExtension = extension<any, RefPropMapping>((node, prop, value, group) => {
+export const RefExtension = /*@__PURE__*/ extension<any, RefPropMapping>((node, prop, value, group) => {
 	switch (prop) {
 		case "atom":
 			if (isAtom(value)) {
-				onMounted(group, {
-					$fn: write,
-					$a0: value,
-					$a1: node,
+				onceMounted(group, {
+					fn: write,
+					a0: value,
+					a1: node,
 				});
 
-				onUnmounted(group, {
-					$fn: write,
-					$a0: value,
-					$a1: null,
+				onceUnmounted(group, {
+					fn: write,
+					a0: value,
+					a1: null,
 				});
 			}
 
@@ -63,22 +62,14 @@ export const RefExtension = extension<any, RefPropMapping>((node, prop, value, g
 
 		case "call":
 			if (typeof value === "function") {
-				onMounted(group, {
-					$fn: refCall,
-					$a0: value,
-					$a1: node,
-					$a2: group,
+				onceMounted(group, {
+					fn: invokeMountedCallback,
+					a0: group,
+					a1: value,
+					a2: node,
 				});
 			}
 
 			break;
 	}
 });
-
-function refCall(setter: RefFn<any>, node: any, group: MountingGroup<any>) {
-	// un/mount callbacks run with Lifecycle set, so we don't need the `withLifecycle` wrapper here
-	const teardown = setter(node);
-	if (teardown) {
-		onUnmounted(group, { $fn: teardown });
-	}
-}

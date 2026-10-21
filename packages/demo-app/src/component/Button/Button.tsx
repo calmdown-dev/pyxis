@@ -1,13 +1,12 @@
 import { component } from "@calmdown/pyxis";
-
-import type { ExtendedProps } from "~/types";
+import { Button as DomButton, type ButtonProps as DomButtonProps } from "@calmdown/pyxis-dom";
 
 import "./Button.module.css";
 
-export type ButtonProps = ExtendedProps<"button", {}>;
+export type ButtonProps = DomButtonProps;
 
 export const Button = component((props: ButtonProps) => (
-	<button
+	<DomButton
 		{...props}
 		cl:button
 		type={props.type ?? "button"}

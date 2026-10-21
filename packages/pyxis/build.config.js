@@ -5,7 +5,7 @@ import * as Plugin from "build-logic/plugins";
 Target.TypeScriptLibrary.build(target => {
 	target.entry("core", "./src/exports/core.ts");
 	target.configure({
-		external: [ "@calmdown/pyxis", "@calmdown/pyxis/core" ],
+		external: [ "@calmdown/pyxis" ],
 		transform: {
 			define: {
 				__DEV__: "false",
@@ -41,7 +41,7 @@ Target.TypeScriptLibrary.build(target => {
 Target.TypeScriptLibrary.build(target => {
 	target.entry("core-dev", "./src/exports/core-dev.ts");
 	target.configure({
-		external: [ "@calmdown/pyxis", "@calmdown/pyxis/core" ],
+		external: [ "@calmdown/pyxis" ],
 		transform: {
 			define: {
 				__DEV__: "true",

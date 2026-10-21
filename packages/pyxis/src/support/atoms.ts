@@ -1,4 +1,4 @@
-import { atomOf, isAtom, peek, read, update, write, type Atom, type MaybeAtom, type ReadAtom } from "~/data/Atom";
+import { atomOf, isAtom, peek, read, update, write, type WriteAtom, type MaybeWriteAtom, type Atom } from "~/data/Atom";
 import { derived } from "~/data/Derivation";
 import { getLifecycle, type Lifecycle } from "~/data/Lifecycle";
 
@@ -45,11 +45,12 @@ export function text(strings: TemplateStringsArray, ...values: unknown[]) {
  */
 export function writes<A>(
 	input: A,
-	value: A extends Atom<infer T> ? T : never,
+	value: A extends WriteAtom<infer T> ? T : never,
 	force?: boolean,
 ): () => void;
 
-export function writes<T>(input: MaybeAtom<T>, value: T, force?: boolean) {
+/*@__NO_SIDE_EFFECTS__*/
+export function writes<T>(input: MaybeWriteAtom<T>, value: T, force?: boolean) {
 	return isAtom(input)
 		? () => void write(input, value, force)
 		: noop;
@@ -62,11 +63,12 @@ export function writes<T>(input: MaybeAtom<T>, value: T, force?: boolean) {
  */
 export function updates<A>(
 	input: A,
-	transform: A extends Atom<infer T> ? (value: T) => T : never,
+	transform: A extends WriteAtom<infer T> ? (value: T) => T : never,
 	force?: boolean,
 ): () => void;
 
-export function updates<T>(input: MaybeAtom<T>, transform: (value: T) => T, force?: boolean) {
+/*@__NO_SIDE_EFFECTS__*/
+export function updates<T>(input: MaybeWriteAtom<T>, transform: (value: T) => T, force?: boolean) {
 	return isAtom(input)
 		? () => void update(input, transform, force)
 		: noop;
@@ -77,7 +79,7 @@ export function updates<T>(input: MaybeAtom<T>, transform: (value: T) => T, forc
  * Extracts the type of value represented by the given type, unwrapping Atoms if they're part of the
  * type.
  */
-export type ValueType<T> = T extends ReadAtom<infer V> ? V : T;
+export type ValueType<T> = T extends Atom<infer V> ? V : T;
 
 /**
  * Infers an object with its fields' values wrapped in Atoms. Optionally, if a specific TKeys union
@@ -87,11 +89,11 @@ export type AtomsOf<TData extends { readonly [K in string]: any }, TKeys extends
 	undefined extends TKeys
 		? {
 			[K in keyof TData as K extends string | number ? K : never]: undefined extends TData[K]
-				? MaybeAtom<ValueType<TData[K]>>
-				: Atom<ValueType<TData[K]>>;
+				? MaybeWriteAtom<ValueType<TData[K]>>
+				: WriteAtom<ValueType<TData[K]>>;
 		}
 		: Flatten<(
-			& { [K in TKeys & keyof TData & (string | number)] -?: Atom<ValueType<TData[K]>> }
+			& { [K in TKeys & keyof TData & (string | number)] -?: WriteAtom<ValueType<TData[K]>> }
 			& Omit<Pick<TData, keyof TData & (string | number)>, TKeys & keyof TData>
 		)>
 );
@@ -130,7 +132,7 @@ export function atomsOf(
 
 	lifecycle ??= getLifecycle();
 
-	const result: { [K in string]: Atom<any> } = Object.create(null);
+	const result: { [K in string]: WriteAtom<any> } = Object.create(null);
 	if (keys) {
 		const { length } = keys;
 		let index = 0;
@@ -138,7 +140,7 @@ export function atomsOf(
 
 		for (; index < length; index += 1) {
 			key = keys[index];
-			result[key] = atomOf(peek(data[key]), lifecycle);
+			result[key] = atomOf(data[key], lifecycle);
 		}
 
 		for (key in data) {
@@ -150,7 +152,7 @@ export function atomsOf(
 	else {
 		let key;
 		for (key in data) {
-			result[key] = atomOf(peek(data[key]), lifecycle);
+			result[key] = atomOf(data[key], lifecycle);
 		}
 	}
 
@@ -177,7 +179,7 @@ export function assign<TData extends { readonly [K in string]: any }, const TKey
 ): TStore;
 
 export function assign(
-	store: { [K in string]?: Atom<any> },
+	store: { [K in string]?: WriteAtom<any> },
 	data: { readonly [K in string]: any },
 	keysOrLifecycle?: readonly (string | number)[] | Lifecycle,
 	maybeLifecycle?: Lifecycle,
@@ -193,9 +195,9 @@ export function assign(
 		lifecycle = keysOrLifecycle as (Lifecycle | undefined);
 	}
 
-	const visited: { [K in string]?: true } = Object.create(null);
 	if (keys) {
 		const { length } = keys;
+		const visited: { [K in string]?: true } = Object.create(null);
 		let index = 0;
 		let key;
 
@@ -221,15 +223,13 @@ export function assign(
 				write(atom, peek(data[key]));
 			}
 			else {
-				store[key] = atomOf(peek(data[key]), lifecycle ??= getLifecycle());
+				store[key] = atomOf(data[key], lifecycle ??= getLifecycle());
 			}
-
-			visited[key] = true;
 		}
 
 		for (key in data) {
-			if (!visited[key]) {
-				store[key] = atomOf(peek(data[key]), lifecycle ??= getLifecycle());
+			if (!Object.hasOwn(store, key)) {
+				store[key] = atomOf(data[key], lifecycle ??= getLifecycle());
 			}
 		}
 	}

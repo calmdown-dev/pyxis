@@ -1,1 +1,1 @@
-export { Fragment, jsx, jsxs } from "@calmdown/pyxis/core";
+export { Fragment, jsx, jsxs } from "@calmdown/pyxis";

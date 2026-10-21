@@ -111,8 +111,7 @@ export class PyxisLoader {
 				// pre-resolve Pyxis imports
 				const moduleIds = [
 					options.pyxisModule,
-					`${options.pyxisModule}/core`,
-					`${options.pyxisModule}/core-dev`,
+					`${options.pyxisModule}/dev`,
 					`${options.pyxisModule}/jsx-runtime`,
 					`${options.pyxisModule}/jsx-dev-runtime`,
 				];
