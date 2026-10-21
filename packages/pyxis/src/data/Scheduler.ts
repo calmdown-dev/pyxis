@@ -217,11 +217,6 @@ export function scheduleEffect(lifecycle: Lifecycle, callback: UpdateCallback) {
 	schedule(lifecycle, lifecycle.$scheduler.$onEffect, callback);
 }
 
-/** @internal */
-export function scheduleTick(lifecycle: Lifecycle, callback: UpdateCallback) {
-	schedule(lifecycle, lifecycle.$scheduler.$onTick, callback);
-}
-
 /**
  * Runs a block of code on the next tick of the scheduler, synchronized with other updates. Unless
  * a tick is already pending, a new one is scheduled.
@@ -230,12 +225,16 @@ export function scheduleTick(lifecycle: Lifecycle, callback: UpdateCallback) {
  * same tick.
  */
 export function tick(block: () => void, lifecycle = getLifecycle()) {
-	schedule(lifecycle, lifecycle.$scheduler.$onTick, { $fn: block });
+	schedule(lifecycle, lifecycle.$scheduler.$onTick, { fn: block });
 }
 
-/** @internal */
-export function scheduleTock(lifecycle: Lifecycle, callback: UpdateCallback) {
-	schedule(lifecycle, lifecycle.$scheduler.$onTock, callback);
+/**
+ * Similar to {@link tick}, but instead accepts a {@link Callback} object. Useful in hot paths
+ * where it may be desirable to reuse callback objects and/or avoid closures.
+ * @see {@link tick}
+ */
+export function scheduleTick<TArgs extends ArgsMax3>(lifecycle: Lifecycle, callback: Callback<TArgs>) {
+	schedule(lifecycle, lifecycle.$scheduler.$onTick, callback as UpdateCallback);
 }
 
 /**
@@ -246,5 +245,14 @@ export function scheduleTock(lifecycle: Lifecycle, callback: UpdateCallback) {
  * no longer delivered in the same scheduler tick - they're postponed to the next one.
  */
 export function tock(block: () => void, lifecycle = getLifecycle()) {
-	schedule(lifecycle, lifecycle.$scheduler.$onTock, { $fn: block });
+	schedule(lifecycle, lifecycle.$scheduler.$onTock, { fn: block });
+}
+
+/**
+ * Similar to {@link tock}, but instead accepts a {@link Callback} object. Useful in hot paths
+ * where it may be desirable to reuse callback objects and/or avoid closures.
+ * @see {@link tock}
+ */
+export function scheduleTock<TArgs extends ArgsMax3>(lifecycle: Lifecycle, callback: Callback<TArgs>) {
+	schedule(lifecycle, lifecycle.$scheduler.$onTock, callback as UpdateCallback);
 }

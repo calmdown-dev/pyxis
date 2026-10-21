@@ -1,6 +1,6 @@
 import { isAtom, type Atom } from "~/data/Atom";
 import type { ContextContainer } from "~/data/Context";
-import { bind, teardown } from "~/data/Dependency";
+import { bind, teardown, type Dependency } from "~/data/Dependency";
 import type { Lifecycle } from "~/data/Lifecycle";
 import { createScheduler } from "~/data/Scheduler";
 import { invoke, rethrow } from "~/support/common";
@@ -829,18 +829,28 @@ function mountDynamicText<TNode>(
 	nBefore: TNode | null,
 	isBatch: boolean,
 ) {
-	const { adapter } = hParent.$ng;
-	let node: TNode | null = null;
-
-	bind(hParent.$ng, atom, () => {
-		const value = atom.get();
-		node = adapter.text(
-			value === null || value === undefined || typeof value === "boolean" ? "" : "" + value,
-			node,
-		);
+	const node = bind(hParent.$ng, atom, {
+		fn: setBoundText<TNode>,
+		a0: hParent.$ng.adapter,
+		a1: null,
 	});
 
-	insert(node!, null, hParent, nUsedParent, nBefore, isBatch);
+	insert(node, null, hParent, nUsedParent, nBefore, isBatch);
+}
+
+function setBoundText<TNode>(
+	this: Dependency<[ Adapter<TNode>, TNode | null ]>,
+	adapter: Adapter<TNode>,
+	node: TNode | null,
+) {
+	const value = (this.$target! as Atom).get();
+	return (
+		// setting `a1` allows us to hold the rendered node as a state of the bound Dependency object
+		this.a1 = adapter.text(
+			value === null || value === undefined || typeof value === "boolean" ? "" : "" + value,
+			node,
+		)
+	);
 }
 
 /**

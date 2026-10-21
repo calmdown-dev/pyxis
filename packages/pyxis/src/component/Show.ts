@@ -60,9 +60,10 @@ export function Show<TNode>(
 		if (isAtom(data)) {
 			dataOrProxy = createProxy(hParent.$ng, data.get(), proxyKeys);
 			link(hParent.$ng, data, {
-				$fn: () => {
-					updateProxy(dataOrProxy as ProxyObject, data.get(), proxyKeys);
-				},
+				fn: updateShowProxy,
+				a0: dataOrProxy as ProxyObject,
+				a1: data,
+				a2: proxyKeys,
 			});
 		}
 		else {
@@ -160,4 +161,8 @@ export function Show<TNode>(
 	// forget stale batch before future re-renders
 	isBatch = false;
 	nUsedParent = nRealParent;
+}
+
+function updateShowProxy(proxy: ProxyObject, source: Atom, keys: readonly PropertyKey[]) {
+	updateProxy(proxy, source.get(), keys);
 }

@@ -1,8 +1,5 @@
 /** @preserve */
-import type { JsxChildren, MaybeAtom, S_ELEM_NAME, S_NODE_TYPE } from "@calmdown/pyxis/core";
-
-// pyxis imports, not @preserve'd
-import type { Nil } from "@calmdown/pyxis/core";
+import type { JsxChildren, MaybeAtom, Nil, S_ELEM_NAME, S_NODE_TYPE } from "@calmdown/pyxis/core";
 
 import type { PROP_MAP } from "./mapping";
 
@@ -30,6 +27,9 @@ type OmitFunctions<T> = Pick<T, { [K in keyof T] -?: T[K] extends Nil<(...args: 
 
 /** applies custom field overrides O over the given type T */
 type ApplyOverrides<T, O> = Omit<T, keyof O> & Pick<O, { [K in keyof O]: O[K] extends never ? never : K }[keyof O]>;
+
+/** adds each prop into a union with null and undefined */
+type AllowNil<T> = { [K in keyof T]: Nil<T[K]> };
 
 /** wraps each property type in MaybeAtom to allow the use of atoms on properties of intrinsic elements */
 type WrapProps<T> = { [K in keyof T]: MaybeAtom<T[K]> };
@@ -74,13 +74,9 @@ interface NoChildrenProp {
 type OmitVendorPrefixed<T> = Pick<T, { [K in keyof T]: K extends `webkit${string}` ? never : K }[keyof T]>;
 
 /** @bake */
-export type CSSStyleDeclarationProps = Finalize<WrapProps<ApplyOverrides<OmitVendorPrefixed<OmitFunctions<OmitReadonly<OmitIndex<CSSStyleDeclaration>>>>, CSSPropOverrides>>>;
+export type CSSStyleDeclarationProps = Finalize<WrapProps<AllowNil<ApplyOverrides<OmitVendorPrefixed<OmitFunctions<OmitReadonly<OmitIndex<CSSStyleDeclaration>>>>, CSSPropOverrides>>>>;
 
 interface CSSPropOverrides {
-	anchorName: string;
-	positionAnchor: string;
-	positionArea: string;
-
 	// deprecated rules:
 	clip: never;
 	cssFloat: never;
@@ -101,7 +97,7 @@ interface CSSPropOverrides {
 // #region ARIA
 
 /** @bake */
-export type ARIAProps = Finalize<WrapProps<ARIAMixin>>;
+export type ARIAProps = Finalize<WrapProps<AllowNil<ARIAMixin>>>;
 
 // #endregion
 

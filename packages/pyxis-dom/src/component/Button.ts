@@ -9,7 +9,7 @@ export type ButtonProps = JSX.IntrinsicElements["button"] & {
 
 export const Button: Component<ButtonProps> = /*@__PURE__*/ control(
 	/* tagName = */ "button",
-	/* deferredPropNames = */ [],
+	/* deferredPropNames = */ null,
 	/* attributeMapping = */ {
 		commandFor: "commandfor",
 		popoverTarget: "popovertarget",

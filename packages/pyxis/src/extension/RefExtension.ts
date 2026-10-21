@@ -1,5 +1,5 @@
 import { isAtom, write, type WriteAtom } from "~/data/Atom";
-import { invokeMountedCallback, onMounted, onUnmounted } from "~/data/Lifecycle";
+import { invokeMountedCallback, onceMounted, onceUnmounted } from "~/data/Lifecycle";
 import { extension, type ExtensionPropMapping } from "~/Adapter";
 
 interface RefPropMapping extends ExtensionPropMapping<unknown> {
@@ -45,16 +45,16 @@ export const RefExtension = /*@__PURE__*/ extension<any, RefPropMapping>((node, 
 	switch (prop) {
 		case "atom":
 			if (isAtom(value)) {
-				onMounted(group, {
-					$fn: write,
-					$a0: value,
-					$a1: node,
+				onceMounted(group, {
+					fn: write,
+					a0: value,
+					a1: node,
 				});
 
-				onUnmounted(group, {
-					$fn: write,
-					$a0: value,
-					$a1: null,
+				onceUnmounted(group, {
+					fn: write,
+					a0: value,
+					a1: null,
 				});
 			}
 
@@ -62,11 +62,11 @@ export const RefExtension = /*@__PURE__*/ extension<any, RefPropMapping>((node, 
 
 		case "call":
 			if (typeof value === "function") {
-				onMounted(group, {
-					$fn: invokeMountedCallback,
-					$a0: group,
-					$a1: value,
-					$a2: node,
+				onceMounted(group, {
+					fn: invokeMountedCallback,
+					a0: group,
+					a1: value,
+					a2: node,
 				});
 			}
 

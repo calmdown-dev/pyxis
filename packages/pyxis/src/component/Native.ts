@@ -1,5 +1,6 @@
-import { isAtom } from "~/data/Atom";
-import { bind } from "~/data/Dependency";
+import { isAtom, type Atom } from "~/data/Atom";
+import { link, type Dependency } from "~/data/Dependency";
+import type { Adapter } from "~/Adapter";
 import type { JsxObject } from "~/Component";
 import { insert, type HNode } from "~/Renderer";
 import { runtime } from "~/Runtime";
@@ -46,18 +47,29 @@ export function Native<TNode>(
 		}
 		else if (name !== "children") {
 			if (isAtom(value)) {
-				const atom = value;
-				const prop = name;
-				bind(hGroup, atom, () => {
-					adapter.set(nNode, prop, atom.get());
+				link(hGroup, value, {
+					fn: setBoundProp,
+					a0: adapter,
+					a1: nNode,
+					a2: name,
 				});
+
+				value = value.get();
 			}
-			else {
-				adapter.set(nNode, name, value);
-			}
+
+			adapter.set(nNode, name, value);
 		}
 	}
 
 	insert(nNode, jsx.children, hParent, nUsedParent, nBefore, isBatch);
 	return nNode;
+}
+
+function setBoundProp<TNode>(
+	this: Dependency,
+	adapter: Adapter<TNode>,
+	node: TNode,
+	prop: string,
+) {
+	adapter.set(node, prop, (this.$target as Atom).get());
 }

@@ -1,5 +1,5 @@
 import type { MaybeAtom } from "~/data/Atom";
-import { onUnmounted } from "~/data/Lifecycle";
+import { onceUnmounted } from "~/data/Lifecycle";
 import type { Nil, PropsType } from "~/support/types";
 
 import { mount, mountJsx, fork, unmount, type HNode, insert } from "./Renderer";
@@ -73,7 +73,7 @@ export function component(
 					);
 				});
 
-				onUnmounted(hParent.$ng, { $fn: unsubscribe });
+				onceUnmounted(hParent.$ng, { fn: unsubscribe });
 
 				// forget stale batch before future re-renders
 				nUsedParent = nRealParent;

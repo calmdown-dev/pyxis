@@ -13,7 +13,7 @@ const DEFERRED_PROPS = [
 export const Select: Component<SelectProps> = /*@__PURE__*/ control(
 	/* tagName = */ "select",
 	/* deferredPropNames = */ DEFERRED_PROPS,
-	/* attributeMapping = */ {},
+	/* attributeMapping = */ null,
 	/* initialize = */ (elem, props, lifecycle) => {
 		const applyProps = () => {
 			setControlProps(elem, props, DEFERRED_PROPS);

@@ -76,8 +76,8 @@ function use<T>(this: ProxyAtom<T>, value: MaybeAtom<T>, isInit: boolean = false
 		// all Atoms actually implement the WriteAtom interface
 		this.$upstream = value as WriteAtom<T>;
 		link(this.$lifecycle, value, this.$dep ??= {
-			$fn: scheduleAtomNotification,
-			$a0: this,
+			fn: scheduleAtomNotification,
+			a0: this,
 		});
 	}
 	else {

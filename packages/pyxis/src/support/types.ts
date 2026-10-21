@@ -37,6 +37,7 @@ export type ElemName<P> = P extends { readonly [S_ELEM_NAME]?: infer N extends s
 
 /**
  * Infers a mutable object from a given immutable one.
+ * @internal
  */
 export type Mutable<T> = { -readonly [K in keyof T]: T[K] };
 
@@ -57,15 +58,8 @@ export type ArgsMax3<A0 = any, A1 = any, A2 = any> = [ a0?: A0, a1?: A1, a2?: A2
  * Describes a callback with up to two stored arguments.
  */
 export interface Callback<TArgs extends ArgsMax3 = ArgsMax3, TReturn = void> {
-	/** @internal */
-	$fn: (this: any, ...args: TArgs) => TReturn;
-
-	/** @internal */
-	$a0?: TArgs[0];
-
-	/** @internal */
-	$a1?: TArgs[1];
-
-	/** @internal */
-	$a2?: TArgs[2];
+	fn: (this: any, ...args: TArgs) => TReturn;
+	a0?: TArgs[0];
+	a1?: TArgs[1];
+	a2?: TArgs[2];
 }

@@ -22,7 +22,10 @@ const CONTROL_PROPS = [
 
 export const Input: Component<InputProps> = /*@__PURE__*/ control(
 	/* tagName = */ "input",
-	/* deferredPropNames = */ [ ...CONTROL_PROPS, "name" ],
+	/* deferredPropNames = */ [
+		...CONTROL_PROPS,
+		"name",
+	],
 	/* attributeMapping = */ {
 		popoverTarget: "popovertarget",
 	},

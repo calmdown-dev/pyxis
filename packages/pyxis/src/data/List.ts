@@ -270,10 +270,10 @@ function dirty(this: List<any>) {
 
 function delta<T>(this: List<T>, block: (delta: ListDelta<T>) => void, lifecycle: Lifecycle = getLifecycle()) {
 	link(lifecycle, this, {
-		$fn: invokeDeltaBlock<T>,
-		$a0: this,
-		$a1: lifecycle,
-		$a2: block,
+		fn: invokeDeltaBlock<T>,
+		a0: this,
+		a1: lifecycle,
+		a2: block,
 	});
 }
 
@@ -455,8 +455,8 @@ function copyOnWrite(list: List<any>) {
 
 function scheduleListNotification(list: List<any>) {
 	scheduleTick(list.$lifecycle, list.$notify ??= {
-		$fn: notifyListObservers,
-		$a0: list,
+		fn: notifyListObservers,
+		a0: list,
 	});
 }
 

@@ -137,8 +137,8 @@ export function host<T>(context: Context<T>, defaultValue?: T, lifecycle = getLi
 		localAtom.get = getUpstreamValue;
 		localAtom.$upstream = upstream;
 		link(lifecycle, upstream, localAtom.$dep = {
-			$fn: scheduleAtomNotification,
-			$a0: localAtom,
+			fn: scheduleAtomNotification,
+			a0: localAtom,
 		});
 	}
 	else {
@@ -191,8 +191,8 @@ export function contextual<T>(context: Context<T>): Atom<T> {
 			};
 
 			link(atom.$lifecycle, atom, {
-				$fn: scheduleAtomNotification,
-				$a0: consumer,
+				fn: scheduleAtomNotification,
+				a0: consumer,
 			});
 		}
 

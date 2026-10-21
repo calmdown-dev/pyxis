@@ -1,6 +1,6 @@
 import type { ArgsMax3, Nil } from "~/support/types";
 
-import { getLifecycle, onUnmounted, type Lifecycle } from "./Lifecycle";
+import { getLifecycle, onceUnmounted, type Lifecycle } from "./Lifecycle";
 import { link, unlink, type Dependency, type DependencyList } from "./Dependency";
 import { scheduleEffect, type UpdateCallback } from "./Scheduler";
 import { runtime } from "~/Runtime";
@@ -105,8 +105,8 @@ function scheduleReaction(this: EffectDependency, effect: Effect<ReturnType<Effe
 	// being "scheduled" - this also gives priority to already queued updates and coalesces
 	// additional re-run attempts while the first one is still pending.
 	scheduleEffect(effect.$lifecycle, effect.$resolve ??= {
-		$fn: runEffect,
-		$a0: effect,
+		fn: runEffect,
+		a0: effect,
 	});
 }
 
@@ -135,9 +135,9 @@ function runEffect(effect: Effect<ReturnType<EffectBlock>>) {
 
 	if (!effect.$tracksUnmount && effect.$dispose) {
 		effect.$tracksUnmount = true;
-		onUnmounted(lifecycle, {
-			$fn: teardownEffect,
-			$a0: effect,
+		onceUnmounted(lifecycle, {
+			fn: teardownEffect,
+			a0: effect,
 		});
 	}
 }
@@ -171,6 +171,7 @@ export function resolve<TEffect extends Effect<any>>(effect: TEffect): TEffect e
 	const cycle = (effect.$cycle += 1);
 	const prevLifecycle = runtime.$currentLifecycle;
 	const prevEffect = runtime.$currentEffect;
+	const prevTail = effect.$et;
 	runtime.$currentLifecycle = effect.$lifecycle;
 	runtime.$currentEffect = effect;
 
@@ -182,13 +183,19 @@ export function resolve<TEffect extends Effect<any>>(effect: TEffect): TEffect e
 		runtime.$currentEffect = prevEffect;
 
 		// on re-runs, check if new Atoms were accessed - if so, eagerly cleanup
-		if (cycle > 1 && effect.$rc > 0) {
+		if (cycle > 1 && effect.$rc > 0 && prevTail) {
 			let current = effect.$eh;
 			let next;
+
 			while (current) {
 				next = current.$en;
-				if (current.$a1! < cycle) {
+				if (current.a1! < cycle) {
 					unlinkEffectDep(effect, current);
+				}
+
+				// beyond the previous tail, there can only be new dependencies -> cleanup done
+				if (current === prevTail) {
+					break;
 				}
 
 				current = next;
@@ -220,7 +227,7 @@ export function unlinkEffectDep<TEffect extends Effect<any>>(effect: TEffect, de
 	dep.$ep = null;
 	dep.$en = null;
 
-	effect.$deps!.delete(dep.$target!);
+	effect.$deps?.delete(dep.$target!);
 	unlink(dep);
 }
 
@@ -234,27 +241,62 @@ export function reportAccess(atom: DependencyList) {
 		return;
 	}
 
-	let dep = currentEffect.$deps?.get(atom);
+	// look for a Dependency object already linked to this Atom
+	const deps = currentEffect.$deps;
+	let dep: EffectDependency | null | undefined;
+	let count = 0;
+
+	if (deps) {
+		dep = deps.get(atom);
+	}
+	else {
+		dep = currentEffect.$eh;
+		while (dep) {
+			count += 1;
+			if (dep.$target === atom) {
+				break;
+			}
+
+			dep = dep.$en;
+		}
+	}
+
 	if (dep) {
-		// refresh dependency to the current cycle number
-		dep.$a1 = currentEffect.$cycle;
+		// Dependency found, refresh its cycle number
+		dep.a1 = currentEffect.$cycle;
 		if (!dep.$lifecycle) {
-			// dep has become temporarily stale and got unlinked while still lingering in the
-			// $deps WeakMap - that's okay, but must be re-linked to work again
+			// Dependency has become temporarily stale and got unlinked while still lingering in
+			// the $deps WeakMap - that's okay, but it must be re-linked to work again
 			link(currentEffect.$lifecycle, atom, dep);
 		}
 	}
 	else {
+		// no Dependency found, link a new one for this Atom
 		link(currentEffect.$lifecycle, atom, dep = {
-			$fn: currentEffect.$react,
-			$a0: currentEffect,
-			$a1: currentEffect.$cycle,
+			fn: currentEffect.$react,
+			a0: currentEffect,
+			a1: currentEffect.$cycle,
 		});
 
-		(currentEffect.$deps ??= new WeakMap()).set(atom, dep);
-		currentEffect.$rc! += 1;
+		if (deps) {
+			deps.set(atom, dep);
+		}
+		else if (count >= 5) {
+			// this Effect now has enough Dependencies to justify a WeakMap for faster lookups
+			const map = currentEffect.$deps = new WeakMap<DependencyList, EffectDependency>();
 
-		// add the dependency to the Effect's list
+			// insert existing Dependencies to the map
+			let current = currentEffect.$eh;
+			do {
+				map.set(current!.$target!, current!);
+			}
+			while (current = current!.$en);
+
+			// insert the new Dependency
+			map.set(atom, dep);
+		}
+
+		// link to the Effect itself (the link function only links to Lifecycle and the Atom)
 		if (currentEffect.$et) {
 			currentEffect.$et.$en = dep;
 			dep.$ep = currentEffect.$et;
@@ -264,6 +306,7 @@ export function reportAccess(atom: DependencyList) {
 		}
 
 		currentEffect.$et = dep;
+		currentEffect.$rc! += 1;
 	}
 }
 

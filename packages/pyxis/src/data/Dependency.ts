@@ -39,6 +39,10 @@ export interface Dependency<TArgs extends ArgsMax3 = ArgsMax3> extends Callback<
 	$ln?: Nil<Dependency>;
 }
 
+/**
+ * Represents an object capable of holding links to Dependencies and dispatching notifications
+ * to them.
+ */
 export interface DependencyList<TArgs extends ArgsMax3 = ArgsMax3> {
 	/**
 	 * The head of the dependencies linked list.
@@ -84,16 +88,23 @@ export interface DependencyList<TArgs extends ArgsMax3 = ArgsMax3> {
 	$force?: boolean;
 }
 
-export function bind(lifecycle: Lifecycle, target: DependencyList, block: () => void) {
-	link(lifecycle, target, { $fn: block });
-	block();
+/**
+ * Invokes the provided {@link Dependency} and binds it to run again with each notification emitted
+ * by the specified target. The return value of the initial run is forwarded.
+ */
+export function bind<TArgs extends ArgsMax3, TResult>(
+	lifecycle: Lifecycle,
+	target: DependencyList,
+	dependency: Dependency & Callback<TArgs, TResult>,
+): TResult {
+	link(lifecycle, target, dependency);
+	return invoke(dependency);
 }
 
 /**
- * Links a Dependency to an Atom and Lifecycle.
- * @internal
+ * Links a {@link Dependency} to an {@link Atom} and {@link Lifecycle}.
  */
-export function link<TArgs extends ArgsMax3>(lifecycle: Lifecycle, target: DependencyList<TArgs>, dep: Dependency<TArgs>): void;
+export function link<TArgs extends ArgsMax3>(lifecycle: Lifecycle, target: DependencyList, dep: Dependency<TArgs>): void;
 export function link(lifecycle: Lifecycle, target: DependencyList, dep: Dependency) {
 	// link to target
 	if (target.$dt) {
@@ -141,7 +152,6 @@ export function link(lifecycle: Lifecycle, target: DependencyList, dep: Dependen
 
 /**
  * Unlinks a Dependency from the Atom and Lifecycle it has been linked to.
- * @internal
  */
 export function unlink(dep: Dependency) {
 	const target = dep.$target;

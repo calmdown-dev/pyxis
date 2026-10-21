@@ -6,18 +6,19 @@ export { Show, type ShowDataProps, type ShowProps, type ShowProxyDataProps } fro
 export { atomOf, isAtom, peek, read, update, write, type Atom, type MaybeAtom, type MaybeWriteAtom, type WriteAtom } from "~/data/Atom";
 export { contextOf, contextual, host, type Context } from "~/data/Context";
 export { derived, type Derivation } from "~/data/Derivation";
-export { bind } from "~/data/Dependency";
+export { bind, link, unlink, type Dependency, type DependencyList } from "~/data/Dependency";
 export { effect, noEffect, type EffectBlock } from "~/data/Effect";
-export { getLifecycle, mounted, unmounted, withLifecycle, type Lifecycle, type MountBlock, type UnmountBlock } from "~/data/Lifecycle";
+export { getLifecycle, mounted, onceMounted, onceUnmounted, unmounted, withLifecycle, type Lifecycle, type MountBlock, type UnmountBlock } from "~/data/Lifecycle";
 export { listOf, sync, type List, type ReadonlyList } from "~/data/List";
 export { LC_CHANGE, LC_CLEAR, LC_INSERT, LC_REMOVE, type Equals, type ListChange, type ListCleared, type ListDelta, type ListItemChanged, type ListItemInserted, type ListItemRemoved } from "~/data/ListDelta";
 export { proxyOf, type Proxied, type ProxyAtom } from "~/data/ProxyAtom";
-export { tick, tock, type TickFn } from "~/data/Scheduler";
+export { tick, tock, scheduleTick, scheduleTock, type TickFn } from "~/data/Scheduler";
 
 export { RefExtension, type RefFn } from "~/extension/RefExtension";
 
+export { invoke } from "~/support/common";
 export { assign, atomsOf, text, updates, writes, type AtomsOf, type ValueType } from "~/support/atoms";
-export type { ElementsType, ElemName, Flatten, Nil, NodeType, PropsType, S_ELEM_NAME, S_NODE_TYPE } from "~/support/types";
+export type { ArgsMax3, Callback, ElementsType, ElemName, Flatten, Nil, NodeType, PropsType, S_ELEM_NAME, S_NODE_TYPE } from "~/support/types";
 
 export { ext, extension, type Adapter, type Extension, type ExtensionPropMapping, type ExtensionsType } from "~/Adapter";
 export { component, type Component, type ComponentHandler, type DataTemplate, type JsxChildren, type JsxChildrenProp, type JsxDevSourceInfo, type JsxObject, type JsxProps, type JsxResult, type JsxText, type PropsOf, type WithChildren } from "~/Component";

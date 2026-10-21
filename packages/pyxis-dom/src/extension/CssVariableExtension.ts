@@ -1,4 +1,4 @@
-import { bind, extension, isAtom, type ExtensionPropMapping, type MaybeAtom, type Nil } from "@calmdown/pyxis/core";
+import { extension, isAtom, link, type Atom, type ExtensionPropMapping, type MaybeAtom, type Nil } from "@calmdown/pyxis/core";
 
 interface CssVariablePropMapping extends ExtensionPropMapping<Node> {
 	extension: {
@@ -24,17 +24,26 @@ export const CssVariableExtension = /*@__PURE__*/ extension<Node, CssVariablePro
 	// extensions are only applicable to JSX elements which get rendered via DomAdapter::element
 	// despite the typings, node is actually guaranteed to be an Element here
 
+	const varName = "--" + prop;
 	if (isAtom(value)) {
-		bind(group, value, () => {
-			setProp((node as StylableElement).style, prop, value.get());
+		link(group, value, {
+			fn: setBoundCssVariable,
+			a0: node,
+			a1: varName,
+			a2: value,
 		});
+
+		value = value.get();
 	}
-	else if (value !== null && value !== undefined) {
-		setProp((node as StylableElement).style, prop, value);
-	}
+
+	setCssVariable(node, varName, value);
 });
 
-function setProp(style: CSSStyleDeclaration, varName: string, value: Nil<string | number>) {
+function setBoundCssVariable(node: Node, varName: string, atom: Atom<Nil<string | number>>) {
+	setCssVariable(node, varName, atom.get());
+}
+
+function setCssVariable(node: Node, varName: string, value: Nil<string | number>) {
 	if (value === null || value === undefined || value === "") {
 		value = null;
 	}
@@ -42,5 +51,5 @@ function setProp(style: CSSStyleDeclaration, varName: string, value: Nil<string 
 		value = value.toFixed(3);
 	}
 
-	style.setProperty("--" + varName, value);
+	(node as StylableElement).style.setProperty(varName, value);
 }

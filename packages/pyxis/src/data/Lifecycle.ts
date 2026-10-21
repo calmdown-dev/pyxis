@@ -48,16 +48,21 @@ export function mounted(block: MountBlock, lifecycle?: Lifecycle) {
 	}
 
 	lifecycle ??= getLifecycle();
-	onMounted(lifecycle, {
-		$fn: invokeMountedCallback,
-		$a0: lifecycle,
-		$a1: block,
+	onceMounted(lifecycle, {
+		fn: invokeMountedCallback,
+		a0: lifecycle,
+		a1: block,
 	});
 }
 
-/** @internal */
-export function onMounted(lifecycle: Lifecycle, callback: Callback) {
-	(lifecycle.$onMount ??= []).push(callback);
+/**
+ * Similar to {@link mounted}, but instead accepts a {@link Callback} object. Useful in hot paths
+ * where it may be desirable to reuse callback objects, avoid closures, or {@link Lifecycle} needs
+ * to be tightly controlled.
+ * @see {@link mounted}
+ */
+export function onceMounted<TArgs extends ArgsMax3>(lifecycle: Lifecycle, callback: Callback<TArgs>) {
+	(lifecycle.$onMount ??= []).push(callback as Callback);
 }
 
 /** @internal */
@@ -72,7 +77,7 @@ export function invokeMountedCallback(lifecycle: Lifecycle, block: (arg: any) =>
 			return;
 		}
 
-		onUnmounted(lifecycle, { $fn: dispose });
+		onceUnmounted(lifecycle, { fn: dispose });
 	}
 }
 
@@ -86,12 +91,17 @@ export function unmounted(block: UnmountBlock, lifecycle?: Lifecycle) {
 		__DEV__assertIsDirectComponentCode(unmounted.name);
 	}
 
-	onUnmounted(lifecycle ?? getLifecycle(), { $fn: block });
+	onceUnmounted(lifecycle ?? getLifecycle(), { fn: block });
 }
 
-/** @internal */
-export function onUnmounted(lifecycle: Lifecycle, callback: Callback) {
-	(lifecycle.$onUnmount ??= []).push(callback);
+/**
+ * Similar to {@link unmounted}, but instead accepts a {@link Callback} object. Useful in hot paths
+ * where it may be desirable to reuse callback objects, avoid closures, or {@link Lifecycle} needs
+ * to be tightly controlled.
+ * @see {@link unmounted}
+ */
+export function onceUnmounted<TArgs extends ArgsMax3>(lifecycle: Lifecycle, callback: Callback<TArgs>) {
+	(lifecycle.$onUnmount ??= []).push(callback as Callback);
 }
 
 

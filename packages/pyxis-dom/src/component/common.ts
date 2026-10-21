@@ -19,26 +19,33 @@ import type { Mutable } from "./types";
 
 export function control<TProps extends PropsType>(
 	tagName: ElemName<TProps>,
-	deferredPropNames: readonly string[],
-	attributeMapping?: { readonly [_ in string]?: string },
+	deferredPropNames?: readonly string[] | null,
+	attributeMapping?: { readonly [_ in string]: string } | null,
 	initialize?: (elem: NodeType<TProps>, props: TProps, lifecycle: Lifecycle) => void,
 ): Component<TProps>;
 
 /*@__NO_SIDE_EFFECTS__*/
 export function control<TProps extends PropsType>(
 	tagName: ElemName<TProps>,
-	deferredPropNames: readonly string[],
-	attributeMapping?: { readonly [_ in string]?: string },
+	deferredPropNames?: readonly string[] | null,
+	attributeMapping?: { readonly [_ in string]: string } | null,
 	initialize?: (elem: Node, props: JsxObject, lifecycle: Lifecycle) => void,
 ): ComponentHandler {
 	// build map of excluded props
-	const excludedPropMap = deferredPropNames.reduce(assignFlag, {});
+	const excludedPropMap = deferredPropNames?.reduce(assignFlag, {}) ?? {};
+	let attributeRouting: { [_ in string]: string } | undefined;
 
-	// also exclude attributes, if defined
+	// resolve fixed attribute routes once, retaining their source prop names as values
 	if (attributeMapping) {
+		let routing: { [_ in string]: string } | undefined;
 		let name;
 		for (name in attributeMapping) {
 			excludedPropMap[name] = true;
+			(routing ??= {})[attributeMapping[name]!] = name;
+		}
+
+		if (routing) {
+			attributeRouting = ext(AttributeExtension, routing) as { [_ in string]: string };
 		}
 	}
 
@@ -53,17 +60,14 @@ export function control<TProps extends PropsType>(
 			}
 		}
 
-		// copy attributes via extension props
-		if (attributeMapping) {
-			let values: { [_ in string]?: any } | undefined;
-			for (name in attributeMapping) {
+		// route attributes via extension props
+		if (attributeRouting) {
+			let route;
+			for (route in attributeRouting) {
+				name = attributeRouting[route];
 				if (Object.hasOwn(jsx, name)) {
-					(values ??= {})[attributeMapping[name]!] = jsx[name];
+					props[route] = jsx[name];
 				}
-			}
-
-			if (values) {
-				ext(AttributeExtension, values, props);
 			}
 		}
 

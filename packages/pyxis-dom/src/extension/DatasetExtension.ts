@@ -1,8 +1,8 @@
-import { bind, extension, isAtom, type ExtensionPropMapping, type MaybeAtom } from "@calmdown/pyxis/core";
+import { extension, isAtom, link, type Atom, type ExtensionPropMapping, type MaybeAtom, type Nil } from "@calmdown/pyxis/core";
 
 interface DatasetPropMapping extends ExtensionPropMapping<Node> {
 	extension: {
-		[TDataKey in string]?: MaybeAtom<string | undefined>;
+		[TDataKey in string]?: MaybeAtom<Nil<string>>;
 	};
 }
 
@@ -24,17 +24,28 @@ export const DatasetExtension = /*@__PURE__*/ extension<Node, DatasetPropMapping
 	// despite the typings, node is actually guaranteed to be an Element here
 
 	if (isAtom(value)) {
-		bind(group, value, () => {
-			const tmp = value.get();
-			if (tmp === undefined) {
-				delete (node as ElementWithDataset).dataset[prop];
-			}
-			else {
-				(node as ElementWithDataset).dataset[prop] = tmp;
-			}
+		link(group, value, {
+			fn: setBoundData,
+			a0: node,
+			a1: prop,
+			a2: value,
 		});
+
+		value = value.get();
 	}
-	else if (value !== undefined) {
-		(node as ElementWithDataset).dataset[prop] = value;
-	}
+
+	setData(node, prop, value);
 });
+
+function setBoundData(node: Node, prop: string, atom: Atom<Nil<string>>) {
+	setData(node, prop, atom.get());
+}
+
+function setData(node: Node, prop: string, data: Nil<string>) {
+	if (typeof data === "string") {
+		(node as ElementWithDataset).dataset[prop] = data;
+	}
+	else {
+		delete (node as ElementWithDataset).dataset[prop];
+	}
+}

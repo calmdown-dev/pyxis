@@ -14,7 +14,7 @@ import { scheduleTick } from "./Scheduler";
  * @see {@link peek}
  * @see {@link WriteAtom}
  */
-export interface Atom<out T> extends DependencyList {
+export interface Atom<out T = unknown> extends DependencyList {
 	/** Pyxis Atom type guard marker. */
 	readonly [S_ATOM]: true;
 
@@ -286,8 +286,8 @@ export function update<T>(input: MaybeWriteAtom<T>, transform: (value: T) => T, 
  */
 export function scheduleAtomNotification<T>(atom: Atom<T>) {
 	scheduleTick(atom.$lifecycle, atom.$notify ??= {
-		$fn: notifyAtomObservers,
-		$a0: atom,
+		fn: notifyAtomObservers,
+		a0: atom,
 	});
 }
 

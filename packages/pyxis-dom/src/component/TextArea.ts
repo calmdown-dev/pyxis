@@ -12,7 +12,7 @@ const DEFERRED_PROPS = [
 export const TextArea: Component<TextAreaProps> = /*@__PURE__*/ control(
 	/* tagName = */ "textarea",
 	/* deferredPropNames = */ DEFERRED_PROPS,
-	/* attributeMapping = */ {},
+	/* attributeMapping = */ null,
 	/* initialize = */ (elem, props, lifecycle) => {
 		effect(() => {
 			setControlProps(elem, props, DEFERRED_PROPS);

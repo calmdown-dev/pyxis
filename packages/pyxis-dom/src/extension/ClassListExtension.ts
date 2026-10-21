@@ -1,8 +1,8 @@
-import { bind, extension, isAtom, type ExtensionPropMapping, type MaybeAtom } from "@calmdown/pyxis/core";
+import { extension, isAtom, link, type Atom, type ExtensionPropMapping, type MaybeAtom, type Nil } from "@calmdown/pyxis/core";
 
 interface ClassListPropMapping extends ExtensionPropMapping<Node> {
 	extension: {
-		[TClassName in string]?: MaybeAtom<boolean>;
+		[TClassName in string]?: MaybeAtom<Nil<boolean>>;
 	};
 }
 
@@ -29,14 +29,19 @@ export const ClassListExtension = /*@__PURE__*/ extension<Node, ClassListPropMap
 	// despite the typings, node is actually guaranteed to be an Element here
 
 	if (isAtom(value)) {
-		bind(group, value, () => {
-			(node as Element).classList.toggle(prop, value.get());
+		link(group, value, {
+			fn: setBoundClass,
+			a0: node,
+			a1: prop,
+			a2: value,
 		});
+
+		value = value.get();
 	}
-	else if (value !== undefined) {
-		// if somehow the class existed on the node before this setter ran, toggle will remove it
-		// in case the prop was set as `cl:xyz={false}`, making it consistent with the dynamic
-		// setter above (when an Atom is given)
-		(node as Element).classList.toggle(prop, value);
-	}
+
+	(node as Element).classList.toggle(prop, value ?? false);
 });
+
+function setBoundClass(node: Node, prop: string, atom: Atom<Nil<boolean>>) {
+	(node as Element).classList.toggle(prop, atom.get() ?? false);
+}

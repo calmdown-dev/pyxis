@@ -1,4 +1,4 @@
-import { bind, extension, isAtom, type ExtensionPropMapping } from "@calmdown/pyxis/core";
+import { extension, isAtom, link, type Atom, type ExtensionPropMapping } from "@calmdown/pyxis/core";
 
 import type { CSSStyleDeclarationProps } from "~/jsx/baked";
 
@@ -15,7 +15,7 @@ type StylableElement = Element & ElementCSSInlineStyle;
  * rule will be updated dynamically. Example usage:
  *
  * ```tsx
- * <div css:background="red" />
+ * <p css:color="blue">I'm blue, da ba dee...</p>
  * ```
  */
 export const CssStyleExtension = /*@__PURE__*/ extension<Node, CssStylePropMapping>((node, prop, value, group) => {
@@ -23,11 +23,19 @@ export const CssStyleExtension = /*@__PURE__*/ extension<Node, CssStylePropMappi
 	// despite the typings, node is actually guaranteed to be an Element here
 
 	if (isAtom(value)) {
-		bind(group, value, () => {
-			(node as StylableElement).style[prop as keyof CSSStyleDeclarationProps] = value.get();
+		link(group, value, {
+			fn: setBoundCssRule,
+			a0: node,
+			a1: prop,
+			a2: value,
 		});
+
+		value = value.get();
 	}
-	else if (value) {
-		(node as StylableElement).style[prop as keyof CSSStyleDeclarationProps] = value;
-	}
+
+	(node as StylableElement).style[prop as keyof CSSStyleDeclarationProps] = value ?? "";
 });
+
+function setBoundCssRule(node: Node, prop: string, atom: Atom<any>) {
+	(node as StylableElement).style[prop as keyof CSSStyleDeclarationProps] = atom.get() ?? "";
+}

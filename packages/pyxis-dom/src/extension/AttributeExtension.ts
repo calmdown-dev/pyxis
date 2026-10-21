@@ -1,4 +1,4 @@
-import { bind, extension, isAtom, type ExtensionPropMapping, type MaybeAtom, type Nil } from "@calmdown/pyxis/core";
+import { extension, isAtom, link, type Atom, type ExtensionPropMapping, type MaybeAtom, type Nil } from "@calmdown/pyxis/core";
 
 import { setAttr } from "~/adapter/common";
 
@@ -18,11 +18,20 @@ interface AttributePropMapping extends ExtensionPropMapping<Node> {
  */
 export const AttributeExtension = /*@__PURE__*/ extension<Node, AttributePropMapping>((node, prop, value, group) => {
 	if (isAtom(value)) {
-		bind(group, value, () => {
-			setAttr(node, prop, value.get());
+		link(group, value, {
+			// setBoundAttribute, node, prop, value
+			fn: setBoundAttribute,
+			a0: node,
+			a1: prop,
+			a2: value,
 		});
+
+		value = value.get();
 	}
-	else {
-		setAttr(node, prop, value);
-	}
+
+	setAttr(node, prop, value);
 });
+
+function setBoundAttribute(node: Node, prop: string, atom: Atom<Nil<string | number | boolean>>) {
+	setAttr(node, prop, atom.get());
+}
