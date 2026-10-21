@@ -49,7 +49,7 @@ export function control<TProps extends PropsType>(
 		}
 	}
 
-	return (jsx, hParent, nUsedParent, nRealParent, nBefore, isBatch) => {
+	return (jsx, hParent, hBefore, nUsedParent, nRealParent, isBatch) => {
 		const props = {} as Mutable<JsxObject>;
 
 		// copy props, excluding deferred and attributes
@@ -73,7 +73,7 @@ export function control<TProps extends PropsType>(
 
 		// run the native handler to render the actual element
 		props[S_TAG_NAME] = tagName;
-		const node = Native(props, hParent, nUsedParent, nRealParent, nBefore, isBatch) as Element;
+		const node = Native(props, hParent, hBefore, nUsedParent, nRealParent, isBatch) as Element;
 
 		// run custom init logic, if defined
 		initialize?.(node, jsx, getLifecycle());

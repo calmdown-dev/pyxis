@@ -11,12 +11,12 @@ interface TemplateJsx extends JsxObject {
 function Template<TNode>(
 	jsx: TemplateJsx,
 	hParent: HNode<TNode>,
+	hBefore: HNode<TNode> | null,
 	nUsedParent: TNode,
 	nRealParent: TNode,
-	nBefore: TNode | null,
 	isBatch: boolean,
 ) {
-	mountJsx(jsx.t?.(jsx.d), hParent, nUsedParent, nRealParent, nBefore, isBatch);
+	mountJsx(jsx.t?.(jsx.d), hParent, hBefore, nUsedParent, nRealParent, isBatch);
 }
 
 const REUSED_JSX = {
@@ -26,16 +26,16 @@ const REUSED_JSX = {
 export function mountTemplate<TNode, TData>(
 	template: DataTemplate<TData>,
 	data: TData,
-	hGroup: MountingGroup<TNode>,
+	hParent: MountingGroup<TNode>,
+	hBefore: HNode<TNode> | null,
 	nUsedParent: TNode,
 	nRealParent: TNode,
-	nBefore: TNode | null,
 	isBatch: boolean,
 ) {
 	REUSED_JSX.t = template;
 	REUSED_JSX.d = data;
 	try {
-		mount(REUSED_JSX, hGroup, nUsedParent, nRealParent, nBefore, isBatch);
+		mount(REUSED_JSX, hParent, hBefore, nUsedParent, nRealParent, isBatch);
 	}
 	finally {
 		REUSED_JSX.t = null;

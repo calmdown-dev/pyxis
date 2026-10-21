@@ -159,7 +159,7 @@ export function createRenderer<TNode, TIntrinsicElements extends ElementsType>(
 				willMount(hGroup, () => {
 					const isBatch = !!adapter.batch;
 					const nParent = isBatch ? adapter.batch!() : nRoot;
-					mount(jsx, hGroup, nParent, nRoot, null, isBatch);
+					mount(jsx, hGroup, null, nParent, nRoot, isBatch);
 					if (isBatch) {
 						adapter.insert(nParent, nRoot, null);
 						flush(hGroup);
@@ -357,37 +357,37 @@ export function willMount<TNode>(
  */
 export function mount<TNode>(
 	jsx: any,
-	hGroup: MountingGroup<TNode>,
+	hParent: MountingGroup<TNode>,
+	hBefore: HNode<TNode> | null,
 	nUsedParent: TNode,
 	nRealParent: TNode,
-	nBefore: TNode | null,
 	isBatch: boolean,
 ) {
-	if (hGroup.mounted) {
+	if (hParent.mounted) {
 		return;
 	}
 
 	const mounts = runtime.$mounts ??= [];
-	if (++hGroup.$depth === 1) {
-		mounts.push(hGroup);
+	if (++hParent.$depth === 1) {
+		mounts.push(hParent);
 	}
 
 	const prevLifecycle = runtime.$currentLifecycle;
 	const prevEffect = runtime.$currentEffect;
 	const prevContext = runtime.$currentContext;
 	const prevContextNew = runtime.$currentContextNew;
-	runtime.$currentLifecycle = hGroup;
-	runtime.$currentContext = hGroup.$context;
+	runtime.$currentLifecycle = hParent;
+	runtime.$currentContext = hParent.$context;
 	runtime.$currentContextNew = false;
 	runtime.$currentEffect = null;
 
 	let errors: unknown[] | undefined;
 	try {
-		mountJsx(jsx, hGroup, nUsedParent, nRealParent, nBefore, isBatch);
+		mountJsx(jsx, hParent, hBefore, nUsedParent, nRealParent, isBatch);
 
-		hGroup.$canMount = true;
+		hParent.$canMount = true;
 		if (!isBatch) {
-			flush(hGroup);
+			flush(hParent);
 		}
 	}
 	catch (ex) {
@@ -398,12 +398,12 @@ export function mount<TNode>(
 	runtime.$currentEffect = prevEffect;
 	runtime.$currentContext = prevContext;
 	runtime.$currentContextNew = prevContextNew;
-	if (--hGroup.$depth === 0) {
+	if (--hParent.$depth === 0) {
 		mounts.pop();
 	}
 
-	if (errors?.length && !deferUnmount(hGroup)) {
-		errors = doUnmount(hGroup, errors);
+	if (errors?.length && !deferUnmount(hParent)) {
+		errors = doUnmount(hParent, errors);
 	}
 
 	finishMount(errors);
@@ -584,22 +584,23 @@ function doFlush<TNode>(hNode: HNode<TNode>, errors: unknown[] | undefined): unk
  * @see {@link mount}
  * @internal
  */
-export function reinsertNodes<TNode>(hGroup: MountingGroup<TNode>, nParent: TNode, nBefore: TNode | null) {
-	if (!hGroup.mounted) {
+export function reinsertNodes<TNode>(hParent: MountingGroup<TNode>, hBefore: HNode<TNode> | null, nParent: TNode) {
+	if (!hParent.mounted) {
 		return;
 	}
 
-	const { adapter } = hGroup;
-	let current = hGroup.$hh;
+	const { adapter } = hParent;
+	const nAnchor = hBefore?.$nn ?? null;
+	let current = hParent.$hh;
 
 	while (current) {
 		if (current.$isNative) {
-			adapter.insert(current.$nn, nParent, nBefore);
+			adapter.insert(current.$nn, nParent, nAnchor);
 			// no need to recurse, group is already mounted, so any sub-groups within this native
-			// node have been already moved with it
+			// node have already been moved with it
 		}
 		else {
-			reinsertNodes(current, nParent, nBefore);
+			reinsertNodes(current, hBefore, nParent);
 		}
 
 		current = current.$hn;
@@ -709,9 +710,9 @@ function unmountNode<TNode>(hNode: HNode<TNode>, errors: unknown[] | undefined, 
 export function mountJsx<TNode>(
 	jsx: any,
 	hParent: HNode<TNode>,
+	hBefore: HNode<TNode> | null,
 	nUsedParent: TNode,
 	nRealParent: TNode,
-	nBefore: TNode | null,
 	isBatch: boolean,
 ) {
 	switch (typeof jsx) {
@@ -721,19 +722,19 @@ export function mountJsx<TNode>(
 			}
 
 			if (Array.isArray(jsx)) {
-				const text = mountJsxArray(jsx, hParent, nUsedParent, nRealParent, nBefore, isBatch);
+				const text = mountJsxArray(jsx, hParent, hBefore, nUsedParent, nRealParent, isBatch);
 				if (text) {
-					mountStaticText(text, hParent, nUsedParent, nBefore, isBatch);
+					mountStaticText(text, hParent, hBefore, nUsedParent, isBatch);
 				}
 
 				break;
 			}
 
 			if (isAtom(jsx)) {
-				mountDynamicText(jsx, hParent, nUsedParent, nBefore, isBatch);
+				mountDynamicText(jsx, hParent, hBefore, nUsedParent, isBatch);
 			}
 			else {
-				(jsx[S_COMPONENT] as ComponentHandler | undefined)?.(jsx, hParent, nUsedParent, nRealParent, nBefore, isBatch);
+				(jsx[S_COMPONENT] as ComponentHandler | undefined)?.(jsx, hParent, hBefore, nUsedParent, nRealParent, isBatch);
 			}
 
 			break;
@@ -747,7 +748,7 @@ export function mountJsx<TNode>(
 
 		case "number":
 		case "bigint":
-			mountStaticText("" + jsx, hParent, nUsedParent, nBefore, isBatch);
+			mountStaticText("" + jsx, hParent, hBefore, nUsedParent, isBatch);
 			break;
 	}
 }
@@ -759,9 +760,9 @@ export function mountJsx<TNode>(
 function mountJsxArray<TNode>(
 	jsx: readonly any[],
 	hParent: HNode<TNode>,
+	hBefore: HNode<TNode> | null,
 	nUsedParent: TNode,
 	nRealParent: TNode,
-	nBefore: TNode | null,
 	isBatch: boolean,
 	text: string = "",
 ): string {
@@ -787,16 +788,16 @@ function mountJsxArray<TNode>(
 				}
 
 				if (Array.isArray(item)) {
-					text = mountJsxArray(item, hParent, nUsedParent, nRealParent, nBefore, isBatch, text);
+					text = mountJsxArray(item, hParent, hBefore, nUsedParent, nRealParent, isBatch, text);
 					break;
 				}
 
 				if (text) {
-					mountStaticText(text, hParent, nUsedParent, nBefore, isBatch);
+					mountStaticText(text, hParent, hBefore, nUsedParent, isBatch);
 					text = "";
 				}
 
-				mountJsx(item, hParent, nUsedParent, nRealParent, nBefore, isBatch);
+				mountJsx(item, hParent, hBefore, nUsedParent, nRealParent, isBatch);
 				break;
 		}
 	}
@@ -810,12 +811,12 @@ function mountJsxArray<TNode>(
 function mountStaticText<TNode>(
 	text: string,
 	hParent: HNode<TNode>,
+	hBefore: HNode<TNode> | null,
 	nUsedParent: TNode,
-	nBefore: TNode | null,
 	isBatch: boolean,
 ) {
 	const node = hParent.$ng.adapter.text(text, null);
-	insert(node, null, hParent, nUsedParent, nBefore, isBatch);
+	insert(node, null, hParent, hBefore, nUsedParent, isBatch);
 }
 
 /**
@@ -825,8 +826,8 @@ function mountStaticText<TNode>(
 function mountDynamicText<TNode>(
 	atom: Atom<Nil<string | number | bigint | boolean>>,
 	hParent: HNode<TNode>,
+	hBefore: HNode<TNode> | null,
 	nUsedParent: TNode,
-	nBefore: TNode | null,
 	isBatch: boolean,
 ) {
 	const node = bind(hParent.$ng, atom, {
@@ -835,7 +836,7 @@ function mountDynamicText<TNode>(
 		a1: null,
 	});
 
-	insert(node, null, hParent, nUsedParent, nBefore, isBatch);
+	insert(node, null, hParent, hBefore, nUsedParent, isBatch);
 }
 
 function setBoundText<TNode>(
@@ -855,40 +856,54 @@ function setBoundText<TNode>(
 
 /**
  * Inserts a native node and adds it to the tracking hierarchy. Necessary to preserve render order.
+ * Returns the newly created tracking node, or null when tracking is skipped. Only a direct child
+ * of hParent is used as a tracking insertion point; an outer anchor means appending within hParent.
+ * Batched native insertions append, while hBefore still determines the tracking position.
  * Should only be called by component handlers!
  */
 export function insert<TNode>(
 	nNode: TNode,
 	children: any,
 	hParent: HNode<TNode>,
+	hBefore: HNode<TNode> | null,
 	nUsedParent: TNode,
-	nBefore: TNode | null,
 	isBatch: boolean,
+	forceTrack: true,
+): NativeNode<TNode>;
+
+export function insert<TNode>(
+	nNode: TNode,
+	children: any,
+	hParent: HNode<TNode>,
+	hBefore: HNode<TNode> | null,
+	nUsedParent: TNode,
+	isBatch: boolean,
+	forceTrack?: boolean,
+): NativeNode<TNode> | null;
+
+export function insert<TNode>(
+	nNode: TNode,
+	children: any,
+	hParent: HNode<TNode>,
+	hBefore: HNode<TNode> | null,
+	nUsedParent: TNode,
+	isBatch: boolean,
+	forceTrack = false,
 ) {
 	let hNative = hParent;
-	if (hNative.$isGroup) {
-		// parent is a group, so this is its top-level node -> find insertion point
-		let hBefore = null;
-		if (nBefore) {
-			let current = hParent.$ht;
-			while (current) {
-				if (current.$isNative && current.$nn === nBefore) {
-					hBefore = current;
-					break;
-				}
-
-				current = current.$hp;
-			}
-		}
-
+	if (hNative.$isGroup || forceTrack) {
+		// Track top-level nodes of groups, or explicitly requested nodes such as markers.
 		track(hNative = {
 			$isNative: true,
-			$ng: hNative,
+			$ng: hParent.$ng,
 			$nn: nNode,
-			$ph: hNative,
+			$ph: hParent,
 		}, hParent, hBefore);
 	}
 
-	mountJsx(children, hNative, nNode, nNode, null, isBatch);
-	hParent.$ng.adapter.insert(nNode, nUsedParent, nBefore);
+	// Children belong to a new native parent; the outer sibling anchor does not apply to them.
+	mountJsx(children, hNative, null, nNode, nNode, isBatch);
+	hParent.$ng.adapter.insert(nNode, nUsedParent, isBatch ? null : hBefore?.$nn ?? null);
+
+	return hNative === hParent ? null : hNative as NativeNode<TNode>;
 }

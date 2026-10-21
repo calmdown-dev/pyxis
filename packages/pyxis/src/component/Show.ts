@@ -38,9 +38,9 @@ export function Show<T, P extends readonly (keyof T)[]>(props: JsxProps<ShowProx
 export function Show<TNode>(
 	props: JsxObject,
 	hParent: HNode<TNode>,
+	hBefore: HNode<TNode> | null,
 	nUsedParent: TNode,
 	nRealParent: TNode,
-	nBefore: TNode | null,
 	isBatch: boolean,
 ) {
 	const when = props.when as MaybeAtom<boolean> | undefined;
@@ -83,34 +83,32 @@ export function Show<TNode>(
 	if (!(isAtom(when) || isAtom(template) || (!proxyKeys && isAtom(data)))) {
 		const isLocalBatch = shouldBatch && !isBatch;
 		let nBatchParent = nUsedParent;
-		let nBatchBefore = nBefore;
 		if (isLocalBatch) {
 			nBatchParent = adapter.batch!();
-			nBatchBefore = null;
 		}
 
 		mountJsx(
 			/* jsx = */ template(dataOrProxy),
 			/* hParent = */ hParent,
+			/* hBefore = */ hBefore,
 			/* nUsedParent = */ nBatchParent,
 			/* nRealParent = */ nRealParent,
-			/* nBefore = */ nBatchBefore,
 			/* isBatch = */ isLocalBatch || isBatch,
 		);
 
 		if (isLocalBatch) {
-			adapter.insert(nBatchParent, nUsedParent, nBefore);
+			adapter.insert(nBatchParent, nUsedParent, hBefore?.$nn ?? null);
 		}
 
 		return;
 	}
 
 	// re-mounts may be necessary -> create a sub-group
-	const hGroup = fork(hParent);
+	const hGroup = fork(hParent, hBefore);
 	const dispose = () => unmount(hGroup);
 
 	// (re-)render effect
-	let nMarker: TNode | null = nBefore;
+	let hMarker: HNode<TNode> | null = hBefore;
 	effect(willMount(hGroup, () => {
 		if (read(when) === false) {
 			return undefined;
@@ -118,24 +116,22 @@ export function Show<TNode>(
 
 		const isLocalBatch = shouldBatch && !isBatch;
 		let nBatchParent = nUsedParent;
-		let nBatchBefore = nMarker;
 		if (isLocalBatch) {
 			nBatchParent = adapter.batch!();
-			nBatchBefore = null;
 		}
 
 		mountTemplate(
 			/* template = */ read(template),
 			/* data = */ read(dataOrProxy),
-			/* hGroup = */ hGroup,
+			/* hParent = */ hGroup,
+			/* hBefore = */ hMarker,
 			/* nUsedParent = */ nBatchParent,
 			/* nRealParent = */ nRealParent,
-			/* nBefore = */ nBatchBefore,
 			/* isBatch = */ isLocalBatch || isBatch,
 		);
 
 		if (isLocalBatch) {
-			adapter.insert(nBatchParent, nUsedParent, nMarker);
+			adapter.insert(nBatchParent, nUsedParent, hMarker?.$nn ?? null);
 			try {
 				flush(hGroup);
 			}
@@ -148,14 +144,14 @@ export function Show<TNode>(
 	}), hParent.$ng);
 
 	// insert marker to preserve position in the document
-	nMarker = __DEV__ ? adapter.marker("/Show") : adapter.marker();
-	insert(
-		/* hNode = */ nMarker,
+	hMarker = insert(
+		/* hNode = */ __DEV__ ? adapter.marker("/Show") : adapter.marker(),
 		/* children = */ null,
 		/* hParent = */ hParent,
+		/* hBefore = */ hBefore,
 		/* nUsedParent = */ nUsedParent,
-		/* nBefore = */ nBefore,
 		/* isBatch = */ isBatch,
+		/* forceTrack = */ true,
 	);
 
 	// forget stale batch before future re-renders

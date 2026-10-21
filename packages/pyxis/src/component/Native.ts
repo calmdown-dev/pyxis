@@ -9,9 +9,9 @@ import { S_TAG_NAME } from "~/symbols";
 export function Native<TNode>(
 	jsx: JsxObject,
 	hParent: HNode<TNode>,
+	hBefore: HNode<TNode> | null,
 	nUsedParent: TNode,
 	_nRealParent: TNode,
-	nBefore: TNode | null,
 	isBatch: boolean,
 ) {
 	const hGroup = hParent.$ng;
@@ -61,7 +61,7 @@ export function Native<TNode>(
 		}
 	}
 
-	insert(nNode, jsx.children, hParent, nUsedParent, nBefore, isBatch);
+	insert(nNode, jsx.children, hParent, hBefore, nUsedParent, isBatch);
 	return nNode;
 }
 

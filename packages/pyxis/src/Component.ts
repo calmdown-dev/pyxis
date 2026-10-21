@@ -42,19 +42,18 @@ export function component(
 		devId && runtime.$hmrComponent!.upsert(devId, block);
 	}
 
-	return (props, hParent, nUsedParent, nRealParent, nBefore, isBatch) => {
+	return (props, hParent, hBefore, nUsedParent, nRealParent, isBatch) => {
 		const capturedContext = runtime.$currentContext;
 		const capturedContextNew = runtime.$currentContextNew;
 		try {
 			if (__DEV__) {
 				if (!import.meta.hot || !devId) {
-					mountJsx(__DEV__evalComponent(block, props), hParent, nUsedParent, nRealParent, nBefore, isBatch);
+					mountJsx(__DEV__evalComponent(block, props), hParent, hBefore, nUsedParent, nRealParent, isBatch);
 					return;
 				}
 
-				const hGroup = fork(hParent);
-				const nMarker = hGroup.adapter.marker(`/${devId}`);
-				insert(nMarker, null, hParent, nUsedParent, nBefore, isBatch);
+				const hGroup = fork(hParent, hBefore);
+				let hMarker = hBefore;
 
 				const unsubscribe = runtime.$hmrComponent!.subscribe(devId, impl => {
 					unmount(hGroup);
@@ -62,18 +61,21 @@ export function component(
 						/* jsx = */ {
 							...props,
 							[S_COMPONENT]: (() => (
-								mountJsx(__DEV__evalComponent(impl, props), hGroup, nUsedParent, nRealParent, nMarker, isBatch)
+								mountJsx(__DEV__evalComponent(impl, props), hGroup, hMarker, nUsedParent, nRealParent, isBatch)
 							)) satisfies ComponentHandler,
 						},
-						/* hGroup = */ hGroup,
+						/* hParent = */ hGroup,
+						/* hBefore = */ hMarker,
 						/* nUsedParent = */ nUsedParent,
 						/* nRealParent = */ nRealParent,
-						/* nBefore = */ nMarker,
 						/* isBatch = */ isBatch,
 					);
 				});
 
 				onceUnmounted(hParent.$ng, { fn: unsubscribe });
+
+				// Initial content renders before the marker, matching Show's batching order.
+				hMarker = insert(hGroup.adapter.marker(`/${devId}`), null, hParent, hBefore, nUsedParent, isBatch, true);
 
 				// forget stale batch before future re-renders
 				nUsedParent = nRealParent;
@@ -81,7 +83,7 @@ export function component(
 			}
 			else {
 				runtime.$currentContextNew = false; // reset context container
-				mountJsx(block(props), hParent, nUsedParent, nRealParent, nBefore, isBatch);
+				mountJsx(block(props), hParent, hBefore, nUsedParent, nRealParent, isBatch);
 			}
 		}
 		finally {
@@ -201,15 +203,17 @@ export type WithChildren<T extends PropsType> = T & { children?: JsxChildren };
 
 /**
  * A handler function rendering a specific Component type. This is the real shape of Pyxis
- * components used internally by the framework.
+ * components used internally by the framework. `hBefore` is a tracked native anchor. When
+ * `isBatch` is true, native insertions append while `hBefore` still determines the position in the
+ * tracking hierarchy.
  */
 export interface ComponentHandler {
 	<TNode>(
 		jsx: JsxObject,
 		hParent: HNode<TNode>,
+		hBefore: HNode<TNode> | null,
 		nUsedParent: TNode,
 		nRealParent: TNode,
-		nBefore: TNode | null,
 		isBatch: boolean,
 	): void;
 }
