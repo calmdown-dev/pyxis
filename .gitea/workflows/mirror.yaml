@@ -1,0 +1,82 @@
+# This action runs in local Gitea, mirroring incoming commits to the associated
+# GitHub repo; It does not run on GitHub.
+
+name: Mirror to GitHub
+
+on: [ push ]
+
+jobs:
+  mirror:
+    if: ${{ !gitea.event.deleted }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Trust Home CA
+        shell: bash
+        env:
+          HOME_CA: ${{ vars.HOME_CA }}
+        run: |
+          set -euo pipefail
+          : "${HOME_CA:?Set the HOME_CA organization variable}"
+
+          printf '%s\n' "$HOME_CA" > "$RUNNER_TEMP/home-ca.pem"
+          cat /etc/ssl/certs/ca-certificates.crt "$RUNNER_TEMP/home-ca.pem" > "$RUNNER_TEMP/ca-bundle.pem"
+
+          echo "GIT_SSL_CAINFO=$RUNNER_TEMP/ca-bundle.pem" >> "$GITHUB_ENV"
+          echo "NODE_EXTRA_CA_CERTS=$RUNNER_TEMP/home-ca.pem" >> "$GITHUB_ENV"
+
+      - name: Checkout the Repository
+        uses: https://github.com/actions/checkout@v4
+        with:
+          github-server-url: ${{ gitea.server_url }}
+          repository: ${{ gitea.repository }}
+          ref: ${{ gitea.ref }}
+          token: ${{ secrets.GITEA_TOKEN }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Push updated branch or tag to GitHub
+        shell: bash
+        env:
+          MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
+          MIRROR_REPO: ${{ vars.MIRROR_REPO }}
+          SOURCE_REF: ${{ gitea.ref }}
+        run: |
+          set -euo pipefail
+          : "${MIRROR_TOKEN:?Set the MIRROR_TOKEN secret}"
+          : "${MIRROR_REPO:?Set the MIRROR_REPO repository variable}"
+
+          if [[ ! "$MIRROR_REPO" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
+            echo "MIRROR_REPO must have the form owner/repository"
+            exit 1
+          fi
+
+          # check what ref was pushed - only mirror branch commits and tags
+          case "$SOURCE_REF" in
+            refs/heads/*) source="HEAD" ;;
+            refs/tags/*) source="$SOURCE_REF" ;;
+            *) echo "Skipping unsupported ref"; exit 0 ;;
+          esac
+
+          # create a temp file, auto-deleted on exit
+          askpass="$(mktemp "$RUNNER_TEMP/github-askpass.XXXXXX")"
+          trap 'rm -f "$askpass"' EXIT
+
+          # write the temporary script
+          cat > "$askpass" <<'SCRIPT'
+          #!/bin/sh
+          case "$1" in
+            *Username*) printf '%s\n' 'x-access-token' ;;
+            *Password*) printf '%s\n' "$MIRROR_TOKEN" ;;
+            *) exit 1 ;;
+          esac
+          SCRIPT
+
+          # make it runnable and hand it over to git
+          chmod 700 "$askpass"
+          export GIT_ASKPASS="$askpass"
+          export GIT_TERMINAL_PROMPT=0
+
+          # push the ref to GitHub
+          git -c credential.helper= push "https://github.com/${MIRROR_REPO}.git" "${source}:${SOURCE_REF}"
