@@ -13,18 +13,9 @@ jobs:
 
     steps:
       - name: Trust Home CA
-        shell: bash
-        env:
-          HOME_CA: ${{ vars.HOME_CA }}
-        run: |
-          set -euo pipefail
-          : "${HOME_CA:?Set the HOME_CA organization variable}"
-
-          printf '%s\n' "$HOME_CA" > "$RUNNER_TEMP/home-ca.pem"
-          cat /etc/ssl/certs/ca-certificates.crt "$RUNNER_TEMP/home-ca.pem" > "$RUNNER_TEMP/ca-bundle.pem"
-
-          echo "GIT_SSL_CAINFO=$RUNNER_TEMP/ca-bundle.pem" >> "$GITHUB_ENV"
-          echo "NODE_EXTRA_CA_CERTS=$RUNNER_TEMP/home-ca.pem" >> "$GITHUB_ENV"
+        uses: https://shithub.home/calmdown.dev/trust-ca@v1
+        with:
+          certificate: ${{ vars.HOME_CA }}
 
       - name: Checkout the Repository
         uses: https://github.com/actions/checkout@v4
